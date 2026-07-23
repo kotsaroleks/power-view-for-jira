@@ -1,0 +1,17 @@
+{
+  "name": "@power-view/storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@power-view/domain": "workspace:*",
+    "@power-view/extension-messaging": "workspace:*",
+    "zod": "^4.0.0"
+  }
+}

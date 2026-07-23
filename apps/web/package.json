@@ -1,0 +1,20 @@
+{
+  "name": "@power-view/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@power-view/domain": "workspace:*",
+    "@power-view/extension-messaging": "workspace:*",
+    "@power-view/jira-client": "workspace:*",
+    "@power-view/storage": "workspace:*",
+    "@power-view/ui": "workspace:*",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}

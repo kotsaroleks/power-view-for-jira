@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Power View for Jira",
+  "version": "0.1.0",
+  "description": "Advanced Jira planning views with explicit, allowlisted editing.",
+  "action": {
+    "default_title": "Open Power View",
+    "default_popup": "popup/index.html"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "optional_host_permissions": ["https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.atlassian.net/*"],
+      "js": ["content/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

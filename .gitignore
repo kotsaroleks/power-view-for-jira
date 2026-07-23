@@ -1,0 +1,8 @@
+node_modules/
+.pnpm-store/
+dist/
+playwright-report/
+test-results/
+coverage/
+.DS_Store
+*.local

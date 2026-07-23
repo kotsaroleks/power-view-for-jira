@@ -1,0 +1,21 @@
+{
+  "name": "@power-view/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && vite build --config vite.content.config.ts",
+    "dev": "pnpm --parallel dev:extension dev:content",
+    "dev:content": "vite build --config vite.content.config.ts --watch",
+    "dev:extension": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@power-view/domain": "workspace:*",
+    "@power-view/extension-messaging": "workspace:*",
+    "@power-view/storage": "workspace:*",
+    "@power-view/ui": "workspace:*",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}
