@@ -56,6 +56,7 @@ export async function checkForUpdate(
   let response: Response;
   try {
     response = await fetchImpl(url, {
+      cache: "no-store",
       headers: {
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
