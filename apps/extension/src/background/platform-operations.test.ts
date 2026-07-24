@@ -18,11 +18,29 @@ const context: JiraPageContext = {
   detectionSources: ["url"],
 };
 
-const mutationRequest: JiraTransportRequest = {
-  baseUrl: context.baseUrl,
-  method: "PUT",
-  path: "/rest/api/3/issue/POWER-42",
-  body: { fields: { duedate: "2026-08-01" } },
+const mutationRequests: Record<string, JiraTransportRequest> = {
+  "date update": {
+    baseUrl: context.baseUrl,
+    method: "PUT",
+    path: "/rest/api/3/issue/POWER-42",
+    body: { fields: { duedate: "2026-08-01" } },
+  },
+  "assignee change": {
+    baseUrl: context.baseUrl,
+    method: "PUT",
+    path: "/rest/api/3/issue/POWER-42/assignee",
+    body: { accountId: "5f8a1b2c3d4e5f6a7b8c9d0e" },
+  },
+  "issue link creation": {
+    baseUrl: context.baseUrl,
+    method: "POST",
+    path: "/rest/api/3/issueLink",
+    body: {
+      type: { name: "Blocks" },
+      inwardIssue: { key: "POWER-42" },
+      outwardIssue: { key: "POWER-43" },
+    },
+  },
 };
 
 const sender = {
@@ -84,46 +102,51 @@ beforeEach(() => {
   permissionsContains.mockReset().mockResolvedValue(true);
 });
 
-describe("mutation transport fallback", () => {
-  it("does not fall back to the main-world bridge when the page bridge fails after the request may already have reached Jira", async () => {
-    const requestId = crypto.randomUUID();
-    tabsSendMessage.mockResolvedValueOnce({
-      type: "ERROR",
-      requestId,
-      ok: false,
-      error: {
-        code: "NETWORK_ERROR",
-        message: "The Jira page could not complete the REST request.",
-        retryable: true,
-      },
+describe.each(Object.entries(mutationRequests))(
+  "mutation transport fallback (%s)",
+  (_label, mutationRequest) => {
+    it("does not fall back to the main-world bridge when the page bridge fails after the request may already have reached Jira", async () => {
+      const requestId = crypto.randomUUID();
+      tabsSendMessage.mockResolvedValueOnce({
+        type: "ERROR",
+        requestId,
+        ok: false,
+        error: {
+          code: "NETWORK_ERROR",
+          message: "The Jira page could not complete the REST request.",
+          retryable: true,
+        },
+      });
+
+      await expect(
+        executeJiraRequest(requestId, mutationRequest, sender),
+      ).rejects.toThrow();
+
+      expect(tabsSendMessage).toHaveBeenCalledTimes(1);
+      expect(scriptingExecuteScript).not.toHaveBeenCalled();
     });
 
-    await expect(
-      executeJiraRequest(requestId, mutationRequest, sender),
-    ).rejects.toThrow();
+    it("falls back to the main-world bridge only when the page bridge itself is unreachable", async () => {
+      const requestId = crypto.randomUUID();
+      tabsSendMessage.mockRejectedValueOnce(
+        new Error("Could not establish connection. Receiving end does not exist."),
+      );
+      tabsGet.mockResolvedValueOnce({ id: TAB_ID, url: context.pageUrl });
+      scriptingExecuteScript.mockResolvedValueOnce([
+        {
+          result: { kind: "success", status: 200, data: { id: "POWER-42" }, durationMs: 5 },
+        },
+      ]);
 
-    expect(tabsSendMessage).toHaveBeenCalledTimes(1);
-    expect(scriptingExecuteScript).not.toHaveBeenCalled();
-  });
+      const result = await executeJiraRequest(requestId, mutationRequest, sender);
 
-  it("falls back to the main-world bridge only when the page bridge itself is unreachable", async () => {
-    const requestId = crypto.randomUUID();
-    tabsSendMessage.mockRejectedValueOnce(
-      new Error("Could not establish connection. Receiving end does not exist."),
-    );
-    tabsGet.mockResolvedValueOnce({ id: TAB_ID, url: context.pageUrl });
-    scriptingExecuteScript.mockResolvedValueOnce([
-      { result: { kind: "success", status: 200, data: { id: "POWER-42" }, durationMs: 5 } },
-    ]);
-
-    const result = await executeJiraRequest(requestId, mutationRequest, sender);
-
-    expect(result).toMatchObject({
-      status: 200,
-      data: { id: "POWER-42" },
-      transport: "jira-main-world",
+      expect(result).toMatchObject({
+        status: 200,
+        data: { id: "POWER-42" },
+        transport: "jira-main-world",
+      });
+      expect(tabsSendMessage).toHaveBeenCalledTimes(1);
+      expect(scriptingExecuteScript).toHaveBeenCalledTimes(1);
     });
-    expect(tabsSendMessage).toHaveBeenCalledTimes(1);
-    expect(scriptingExecuteScript).toHaveBeenCalledTimes(1);
-  });
-});
+  },
+);
