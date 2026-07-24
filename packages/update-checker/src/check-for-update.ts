@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 export type UpdateCheckStatus = "up-to-date" | "update-available" | "check-failed";
 
 export interface UpdateCheckResult {
@@ -20,7 +18,13 @@ export interface CheckForUpdateInput {
   now?: () => Date;
 }
 
-const commitResponseSchema = z.object({ sha: z.string().min(1) });
+function commitSha(body: unknown): string | undefined {
+  if (typeof body !== "object" || body === null) {
+    return undefined;
+  }
+  const sha = (body as Record<string, unknown>).sha;
+  return typeof sha === "string" && sha.length > 0 ? sha : undefined;
+}
 
 function result(
   status: UpdateCheckStatus,
@@ -86,15 +90,14 @@ export async function checkForUpdate(
     });
   }
 
-  const parsed = commitResponseSchema.safeParse(body);
-  if (!parsed.success) {
+  const latestCommitSha = commitSha(body);
+  if (!latestCommitSha) {
     return result("check-failed", checkedAt, {
       currentCommitSha,
       errorMessage: "GitHub returned an unexpected response shape.",
     });
   }
 
-  const latestCommitSha = parsed.data.sha;
   return result(
     latestCommitSha === currentCommitSha ? "up-to-date" : "update-available",
     checkedAt,
