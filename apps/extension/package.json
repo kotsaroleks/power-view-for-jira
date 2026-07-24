@@ -15,7 +15,9 @@
     "@power-view/extension-messaging": "workspace:*",
     "@power-view/storage": "workspace:*",
     "@power-view/ui": "workspace:*",
+    "@power-view/update-checker": "workspace:*",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "zod": "^4.0.0"
   }
 }

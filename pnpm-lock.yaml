@@ -79,12 +79,18 @@ importers:
       "@power-view/ui":
         specifier: workspace:*
         version: link:../../packages/ui
+      "@power-view/update-checker":
+        specifier: workspace:*
+        version: link:../../packages/update-checker
       react:
         specifier: ^19.1.1
         version: 19.2.8
       react-dom:
         specifier: ^19.1.1
         version: 19.2.8(react@19.2.8)
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
 
   apps/web:
     dependencies:
@@ -122,10 +128,6 @@ importers:
         version: 4.4.3
 
   packages/jira-client:
-    devDependencies:
-      "@power-view/test-fixtures":
-        specifier: workspace:*
-        version: link:../test-fixtures
     dependencies:
       "@power-view/domain":
         specifier: workspace:*
@@ -136,6 +138,10 @@ importers:
       zod:
         specifier: ^4.0.0
         version: 4.4.3
+    devDependencies:
+      "@power-view/test-fixtures":
+        specifier: workspace:*
+        version: link:../test-fixtures
 
   packages/storage:
     dependencies:
@@ -145,6 +151,9 @@ importers:
       "@power-view/extension-messaging":
         specifier: workspace:*
         version: link:../extension-messaging
+      "@power-view/update-checker":
+        specifier: workspace:*
+        version: link:../update-checker
       zod:
         specifier: ^4.0.0
         version: 4.4.3
@@ -156,6 +165,12 @@ importers:
       react:
         specifier: ^19.1.1
         version: 19.2.8
+
+  packages/update-checker:
+    dependencies:
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
 
 packages:
   "@adobe/css-tools@4.5.0":

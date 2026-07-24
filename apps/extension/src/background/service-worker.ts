@@ -5,13 +5,21 @@ import {
   type MessageSenderContext,
 } from "./message-handler";
 import { platformOperations, removeContextForTab } from "./platform-operations";
+import { registerUpdateChecks, runUpdateCheck } from "./update-checker-runner";
 
 const handleMessage = createExtensionMessageHandler(platformOperations);
 
 chrome.runtime.onInstalled.addListener(() => {
   const version = chrome.runtime.getManifest().version;
   console.info(`${PRODUCT_NAME} ${version} installed.`);
+  void runUpdateCheck();
 });
+
+chrome.runtime.onStartup.addListener(() => {
+  void runUpdateCheck();
+});
+
+registerUpdateChecks();
 
 chrome.runtime.onMessage.addListener((rawMessage, sender, sendResponse) => {
   const senderContext: MessageSenderContext = {

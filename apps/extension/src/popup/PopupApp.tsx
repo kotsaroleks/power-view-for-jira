@@ -10,6 +10,7 @@ import { Button } from "@power-view/ui";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { openPowerView } from "./open-power-view";
+import { UpdatePanel, type UpdatePanelProps } from "./UpdatePanel";
 
 async function activeTabUrl(): Promise<string | undefined> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -24,12 +25,14 @@ export interface PopupAppProps {
   runtime?: ExtensionRuntime;
   getActiveTabUrl?: () => Promise<string | undefined>;
   containsHostPermission?: (originPattern: string) => Promise<boolean>;
+  updatePanelProps?: UpdatePanelProps;
 }
 
 export function PopupApp({
   runtime = chrome.runtime,
   getActiveTabUrl = activeTabUrl,
   containsHostPermission: checkHostPermission = containsHostPermission,
+  updatePanelProps = {},
 }: PopupAppProps) {
   const [context, setContext] = useState<JiraPageContext>();
   const [customJiraUrl, setCustomJiraUrl] = useState("");
@@ -246,6 +249,7 @@ export function PopupApp({
         </Button>
       </div>
       <p className="privacy-note">No Jira data leaves your browser.</p>
+      <UpdatePanel {...updatePanelProps} />
     </main>
   );
 }

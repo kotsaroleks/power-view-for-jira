@@ -1,5 +1,5 @@
 {
-  "name": "@power-view/storage",
+  "name": "@power-view/update-checker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,9 +10,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@power-view/domain": "workspace:*",
-    "@power-view/extension-messaging": "workspace:*",
-    "@power-view/update-checker": "workspace:*",
     "zod": "^4.0.0"
   }
 }

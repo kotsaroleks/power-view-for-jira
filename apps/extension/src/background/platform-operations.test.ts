@@ -134,7 +134,12 @@ describe.each(Object.entries(mutationRequests))(
       tabsGet.mockResolvedValueOnce({ id: TAB_ID, url: context.pageUrl });
       scriptingExecuteScript.mockResolvedValueOnce([
         {
-          result: { kind: "success", status: 200, data: { id: "POWER-42" }, durationMs: 5 },
+          result: {
+            kind: "success",
+            status: 200,
+            data: { id: "POWER-42" },
+            durationMs: 5,
+          },
         },
       ]);
 

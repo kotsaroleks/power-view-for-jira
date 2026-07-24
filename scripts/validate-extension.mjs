@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 const extensionDirectory = resolve(import.meta.dirname, "../dist/extension");
 const requiredFiles = [
   "manifest.json",
+  "build-info.json",
   "background/service-worker.js",
   "content/content-script.js",
   "popup/index.html",
@@ -32,7 +33,7 @@ if (
   throw new Error("The production service worker must remain an MV3 module.");
 }
 
-const requiredPermissions = ["activeTab", "scripting", "storage"];
+const requiredPermissions = ["activeTab", "alarms", "scripting", "storage"];
 const actualPermissions = [...(manifest.permissions ?? [])].sort();
 
 if (JSON.stringify(actualPermissions) !== JSON.stringify(requiredPermissions)) {
@@ -69,6 +70,32 @@ if (JSON.stringify(contentMatches) !== JSON.stringify(["https://*.atlassian.net/
 
 if (/^\s*(?:import|export)\s/m.test(contentScriptText)) {
   throw new Error("The content script must be bundled as a classic non-module script.");
+}
+
+const buildInfoText = await readFile(
+  resolve(extensionDirectory, "build-info.json"),
+  "utf8",
+);
+const buildInfo = JSON.parse(buildInfoText);
+const requiredBuildInfoKeys = [
+  "schemaVersion",
+  "commitSha",
+  "commitShaShort",
+  "repoOwner",
+  "repoName",
+  "builtAt",
+  "gitAvailable",
+];
+
+if (requiredBuildInfoKeys.some((key) => !(key in buildInfo))) {
+  throw new Error("build-info.json is missing required update-check metadata.");
+}
+
+if (
+  typeof buildInfo.builtAt !== "string" ||
+  Number.isNaN(Date.parse(buildInfo.builtAt))
+) {
+  throw new Error("build-info.json must include a valid builtAt timestamp.");
 }
 
 console.info(`Validated ${requiredFiles.length} extension entry points.`);
