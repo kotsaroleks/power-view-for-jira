@@ -564,17 +564,24 @@ async function executeJiraPageBridge(
   requestId: string,
   request: JiraTransportRequest,
   storedContext: StoredJiraContext,
+  options: { allowUncertainFallback: boolean },
 ) {
   try {
     return await executeJiraContentBridge(requestId, request, storedContext);
   } catch (error) {
-    if (
-      !(error instanceof JiraRequestExecutionError) ||
-      (!["AUTH_REQUIRED", "NETWORK_ERROR", "TIMEOUT", "INVALID_RESPONSE"].includes(
-        error.appError.code,
-      ) &&
-        error.failureStage !== "bridge-unavailable")
-    ) {
+    if (!(error instanceof JiraRequestExecutionError)) {
+      throw error;
+    }
+
+    const bridgeUnavailable = error.failureStage === "bridge-unavailable";
+    const fallbackEligible =
+      bridgeUnavailable ||
+      (options.allowUncertainFallback &&
+        ["AUTH_REQUIRED", "NETWORK_ERROR", "TIMEOUT", "INVALID_RESPONSE"].includes(
+          error.appError.code,
+        ));
+
+    if (!fallbackEligible) {
       throw error;
     }
 
@@ -619,9 +626,14 @@ async function executeJiraRequest(
                 request,
                 storedContext.context.baseUrl,
               ),
-            () => executeJiraPageBridge(requestId, request, storedContext),
+            () =>
+              executeJiraPageBridge(requestId, request, storedContext, {
+                allowUncertainFallback: true,
+              }),
           )
-        : await executeJiraMainWorldBridge(request, storedContext);
+        : await executeJiraPageBridge(requestId, request, storedContext, {
+            allowUncertainFallback: false,
+          });
 
     await diagnosticsStore.recordRequest(
       {
