@@ -30,8 +30,8 @@ describe("Jira issue to schedule integration", () => {
     expect(tasks.get("POWER-3")?.parentId).toBe("20002");
     expect(tasks.get("POWER-2")?.dependencies).toEqual(["20004"]);
     expect(tasks.get("POWER-1")).toMatchObject({
-      start: "2026-02-02",
-      end: "2026-02-12",
+      start: "2026-01-01",
+      end: "2026-02-09",
       isSyntheticDate: true,
     });
     expect(model.warnings.map((warning) => warning.code)).toEqual(

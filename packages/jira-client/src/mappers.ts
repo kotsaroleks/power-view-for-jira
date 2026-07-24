@@ -1,13 +1,14 @@
-import type {
-  FieldMapping,
-  JiraDeploymentType,
-  JiraField,
-  JiraProject,
-  JiraServerInfo,
-  JiraStatusCategory,
-  JiraUser,
-  NormalizedIssue,
-  NormalizedIssueLink,
+import {
+  classifyIssueLinkRelationship,
+  type FieldMapping,
+  type JiraDeploymentType,
+  type JiraField,
+  type JiraProject,
+  type JiraServerInfo,
+  type JiraStatusCategory,
+  type JiraUser,
+  type NormalizedIssue,
+  type NormalizedIssueLink,
 } from "@power-view/domain";
 
 import type {
@@ -152,20 +153,21 @@ function semanticLinkType(
   relationshipText: string | undefined,
   direction: NormalizedIssueLink["direction"],
 ): NormalizedIssueLink["semanticType"] {
-  const value = `${typeName} ${relationshipText ?? ""}`.toLowerCase();
-  if (value.includes("block")) {
-    return direction === "outward" ? "blocks" : "is-blocked-by";
+  const phrase = relationshipText ?? "";
+  switch (classifyIssueLinkRelationship(typeName, phrase, phrase)) {
+    case "blocks":
+      return direction === "outward" ? "blocks" : "is-blocked-by";
+    case "finish-to-finish":
+      return "finish-to-finish";
+    case "duplicate":
+      return direction === "outward" ? "duplicates" : "is-duplicated-by";
+    case "depends":
+      return "depends-on";
+    case "relates":
+      return "relates-to";
+    default:
+      return "unknown";
   }
-  if (value.includes("duplicate")) {
-    return direction === "outward" ? "duplicates" : "is-duplicated-by";
-  }
-  if (value.includes("depend")) {
-    return "depends-on";
-  }
-  if (value.includes("relate")) {
-    return "relates-to";
-  }
-  return "unknown";
 }
 
 function mapIssueLinks(rawIssue: RawJiraIssue): NormalizedIssueLink[] {

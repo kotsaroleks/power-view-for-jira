@@ -32,6 +32,10 @@ export function ganttDependencyGeometry(
       return;
     }
 
+    const dependencyLinksByTaskId = new Map(
+      (dependent.dependencyLinks ?? []).map((link) => [link.taskId, link]),
+    );
+
     dependent.dependencies.forEach((prerequisiteId) => {
       const prerequisite = taskById.get(prerequisiteId);
       const prerequisiteIndex = indexById.get(prerequisiteId);
@@ -44,10 +48,20 @@ export function ganttDependencyGeometry(
         return;
       }
 
+      const relationshipType =
+        dependencyLinksByTaskId.get(prerequisiteId)?.relationshipType ??
+        "finish-to-start";
       const prerequisiteBar = renderer.taskBar(prerequisite, viewport);
       const dependentBar = renderer.taskBar(dependent, viewport);
       const sourceX = prerequisiteBar.left + prerequisiteBar.width;
-      const targetX = dependentBar.left;
+      const targetX =
+        relationshipType === "finish-to-finish"
+          ? dependentBar.left + dependentBar.width
+          : dependentBar.left;
+      const conflict =
+        relationshipType === "finish-to-finish"
+          ? dependent.end < prerequisite.end
+          : dependent.start <= prerequisite.end;
       const sourceY = prerequisiteIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
       const targetY = dependentIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
       const routeX =
@@ -62,7 +76,7 @@ export function ganttDependencyGeometry(
         prerequisiteKey: prerequisite.issueKey,
         dependentKey: dependent.issueKey,
         path: `M ${sourceX} ${sourceY} H ${routeX} V ${targetY} H ${targetX}`,
-        conflict: dependent.start <= prerequisite.end,
+        conflict,
         selected: selectedTaskId === prerequisite.id || selectedTaskId === dependent.id,
       });
     });

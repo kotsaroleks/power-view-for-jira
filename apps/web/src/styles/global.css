@@ -1403,6 +1403,16 @@ h1 {
   box-shadow: 0 0 0 2px rgb(201 55 44 / 14%);
 }
 
+.gantt-task-bar.date-misaligned {
+  background-image: linear-gradient(
+    to right,
+    #c9372c 0,
+    #c9372c 4px,
+    rgb(201 55 44 / 12%) 4px,
+    rgb(201 55 44 / 12%) 100%
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -156,6 +156,80 @@ describe("schedule resolution", () => {
     });
   });
 
+  it("prefers the child rollup over a parent's own explicit dates and flags the mismatch", () => {
+    const model = buildGanttScheduleModel(
+      [
+        issue("POWER-1", {
+          issueType: "Epic",
+          startDate: "2026-05-01",
+          dueDate: "2026-05-10",
+        }),
+        issue("POWER-2", {
+          parentKey: "POWER-1",
+          startDate: "2026-03-02",
+          dueDate: "2026-03-10",
+        }),
+      ],
+      { today: "2026-01-01" },
+    );
+
+    expect(model.tasks[0]).toMatchObject({
+      start: "2026-03-02",
+      end: "2026-03-10",
+      startSource: "children",
+      endSource: "children",
+      hasDateMisalignment: true,
+    });
+    expect(model.warnings).toContainEqual(
+      expect.objectContaining({
+        issueKey: "POWER-1",
+        code: "PARENT_DATE_MISMATCH",
+      }),
+    );
+  });
+
+  it("does not flag a mismatch when the parent's own explicit dates already match the rollup", () => {
+    const model = buildGanttScheduleModel(
+      [
+        issue("POWER-1", {
+          issueType: "Epic",
+          startDate: "2026-03-02",
+          dueDate: "2026-03-10",
+        }),
+        issue("POWER-2", {
+          parentKey: "POWER-1",
+          startDate: "2026-03-02",
+          dueDate: "2026-03-10",
+        }),
+      ],
+      { today: "2026-01-01" },
+    );
+
+    expect(model.tasks[0]).toMatchObject({
+      start: "2026-03-02",
+      end: "2026-03-10",
+      hasDateMisalignment: false,
+    });
+    expect(
+      model.warnings.some((warning) => warning.code === "PARENT_DATE_MISMATCH"),
+    ).toBe(false);
+  });
+
+  it("leaves leaf issues (no children) fully unaffected by rollup priority", () => {
+    const model = buildGanttScheduleModel(
+      [issue("POWER-1", { startDate: "2026-03-01", dueDate: "2026-03-04" })],
+      { today: "2026-01-01" },
+    );
+
+    expect(model.tasks[0]).toMatchObject({
+      start: "2026-03-01",
+      end: "2026-03-04",
+      startSource: "jira",
+      endSource: "jira",
+      hasDateMisalignment: false,
+    });
+  });
+
   it("falls back through created, today, resolution, and configured duration", () => {
     const model = buildGanttScheduleModel(
       [
@@ -327,6 +401,7 @@ describe("progress and dependencies", () => {
         issueKey: "POWER-1",
         linkId: "link-100",
         typeName: "Blocks",
+        relationshipType: "finish-to-start",
       },
     ]);
     expect(tasks.get("POWER-2")).toMatchObject({
@@ -337,6 +412,34 @@ describe("progress and dependencies", () => {
     expect(tasks.get("POWER-3")?.dependencies).toEqual(["id-POWER-2"]);
     expect(tasks.get("POWER-3")?.parentId).toBe("id-POWER-2");
     expect(model.dependencyCount).toBe(2);
+  });
+
+  it("maps a finish-to-finish semantic link to a finish-to-finish dependency", () => {
+    const model = buildGanttScheduleModel(
+      [
+        issue("POWER-1", {
+          issueType: "Epic",
+          links: [
+            {
+              typeName: "Gantt: finish-finish",
+              direction: "outward",
+              linkedIssueKey: "POWER-2",
+              semanticType: "finish-to-finish",
+            },
+          ],
+        }),
+        issue("POWER-2", { issueType: "Epic" }),
+      ],
+      { today: "2026-01-01" },
+    );
+    const tasks = new Map(model.tasks.map((task) => [task.issueKey, task]));
+
+    expect(tasks.get("POWER-1")?.dependencyLinks).toEqual([
+      expect.objectContaining({
+        issueKey: "POWER-2",
+        relationshipType: "finish-to-finish",
+      }),
+    ]);
   });
 
   it("marks done prerequisites as unblocked and carries filter metadata", () => {

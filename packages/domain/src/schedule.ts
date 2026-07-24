@@ -36,7 +36,8 @@ export type ScheduleWarningCode =
   | "MAXIMUM_DEPTH"
   | "INVALID_START_DATE"
   | "INVALID_END_DATE"
-  | "END_BEFORE_START";
+  | "END_BEFORE_START"
+  | "PARENT_DATE_MISMATCH";
 
 export interface ScheduleWarning {
   issueKey: string;
@@ -50,12 +51,15 @@ export type EndDateSource =
 export type CalculatedProgressSource =
   "jira-progress" | "subtasks" | "children" | "status" | "none";
 
+export type DependencyRelationshipType = "finish-to-start" | "finish-to-finish";
+
 export interface GanttDependency {
   taskId: string;
   issueKey: string;
   linkId?: string;
   typeName: string;
   relationshipText?: string;
+  relationshipType: DependencyRelationshipType;
 }
 
 export interface GanttTask {
@@ -84,6 +88,7 @@ export interface GanttTask {
   startSource: StartDateSource;
   endSource: EndDateSource;
   dateWarning?: string;
+  hasDateMisalignment?: boolean;
   dependencies: string[];
   dependencyLinks?: GanttDependency[];
 }
@@ -115,6 +120,7 @@ interface ResolvedDates {
   startSource: StartDateSource;
   endSource: EndDateSource;
   isSynthetic: boolean;
+  hasDateMisalignment: boolean;
 }
 
 interface CalculatedProgress {
@@ -457,6 +463,10 @@ function dependencyMap(
           ...(link.id ? { linkId: link.id } : {}),
           typeName: link.typeName,
           ...(link.relationshipText ? { relationshipText: link.relationshipText } : {}),
+          relationshipType:
+            link.semanticType === "finish-to-finish"
+              ? "finish-to-finish"
+              : "finish-to-start",
         });
       }
     }
@@ -479,7 +489,10 @@ function applyDependencyLink(
     add(issueKey, link.linkedIssueKey, link);
   } else if (link.semanticType === "blocks") {
     add(link.linkedIssueKey, issueKey, link);
-  } else if (link.semanticType === "depends-on") {
+  } else if (
+    link.semanticType === "depends-on" ||
+    link.semanticType === "finish-to-finish"
+  ) {
     if (link.direction === "outward") {
       add(issueKey, link.linkedIssueKey, link);
     } else {
@@ -513,13 +526,15 @@ export function buildGanttScheduleModel(
         message: `Invalid start date “${rawStart}” was ignored.`,
       });
     }
+    const hasChildren = resolvedChildren.length > 0;
     const childStarts = resolvedChildren.map((child) => child.dates.start).sort();
+    const rollupStart = hasChildren ? childStarts[0] : undefined;
     const created = dateOnly(node.issue.createdAt);
-    const start = explicitStart ?? childStarts[0] ?? created ?? today;
-    const startSource: StartDateSource = explicitStart
-      ? "jira"
-      : childStarts[0]
-        ? "children"
+    const start = rollupStart ?? explicitStart ?? created ?? today;
+    const startSource: StartDateSource = rollupStart
+      ? "children"
+      : explicitStart
+        ? "jira"
         : created
           ? "created"
           : "today";
@@ -534,17 +549,35 @@ export function buildGanttScheduleModel(
       });
     }
     const childEnds = resolvedChildren.map((child) => child.dates.end).sort();
-    const childEnd = childEnds.at(-1);
+    const rollupEnd = hasChildren ? childEnds.at(-1) : undefined;
     const resolution = dateOnly(node.issue.resolvedAt);
     const fallbackEnd = addDays(start, defaultDurationFor(node.issue, durations));
-    let end = explicitEnd ?? childEnd ?? resolution ?? fallbackEnd;
-    let endSource: EndDateSource = explicitEnd
-      ? "jira"
-      : childEnd
-        ? "children"
+    let end = rollupEnd ?? explicitEnd ?? resolution ?? fallbackEnd;
+    let endSource: EndDateSource = rollupEnd
+      ? "children"
+      : explicitEnd
+        ? "jira"
         : resolution
           ? "resolution"
           : "default-duration";
+
+    let hasDateMisalignment = false;
+    if (hasChildren) {
+      if (explicitStart !== undefined && explicitStart !== rollupStart) {
+        hasDateMisalignment = true;
+      }
+      if (explicitEnd !== undefined && explicitEnd !== rollupEnd) {
+        hasDateMisalignment = true;
+      }
+      if (hasDateMisalignment) {
+        scheduleWarnings.push({
+          issueKey: node.issue.key,
+          code: "PARENT_DATE_MISMATCH",
+          message: `Rollup dates (${rollupStart}–${rollupEnd}) differ from this issue’s own Start/Due date (${explicitStart ?? "—"}–${explicitEnd ?? "—"}); the rollup is used for the bar.`,
+        });
+      }
+    }
+
     if (end < start) {
       end = fallbackEnd;
       endSource = "corrected";
@@ -562,6 +595,7 @@ export function buildGanttScheduleModel(
         startSource,
         endSource,
         isSynthetic: startSource !== "jira" || endSource !== "jira",
+        hasDateMisalignment,
       },
       progress: calculateProgress(node, resolvedChildren),
     } satisfies ResolvedNode;
@@ -611,6 +645,7 @@ export function buildGanttScheduleModel(
       startSource: resolved.dates.startSource,
       endSource: resolved.dates.endSource,
       ...(resolved.dates.isSynthetic ? { dateWarning: SYNTHETIC_DATE_WARNING } : {}),
+      hasDateMisalignment: resolved.dates.hasDateMisalignment,
       dependencies: [...(dependencies.get(node.issue.key)?.keys() ?? [])],
       dependencyLinks: [...(dependencies.get(node.issue.key)?.values() ?? [])],
     });

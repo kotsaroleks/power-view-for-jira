@@ -70,6 +70,59 @@ describe("Gantt dependency geometry", () => {
     expect(result[0]?.path).toMatch(/^M \d/);
   });
 
+  it("anchors finish-to-finish connectors at both bars' end and flags a conflict when the dependent finishes first", () => {
+    const prerequisite = task({ id: "1", end: "2026-07-25" });
+    const conflicting = task({
+      id: "2",
+      start: "2026-07-20",
+      end: "2026-07-23",
+      dependencies: ["1"],
+      dependencyLinks: [
+        {
+          taskId: "1",
+          issueKey: "POWER-1",
+          typeName: "Gantt: finish-finish",
+          relationshipType: "finish-to-finish",
+        },
+      ],
+    });
+    const tasks = [prerequisite, conflicting];
+    const viewport = nativeGanttRenderer.createViewport(tasks, "week", "2026-07-23");
+
+    const result = ganttDependencyGeometry(tasks, viewport, nativeGanttRenderer, 0, 2);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      prerequisiteKey: "POWER-1",
+      dependentKey: "POWER-2",
+      conflict: true,
+    });
+  });
+
+  it("does not flag a finish-to-finish conflict when the dependent finishes no earlier than the prerequisite", () => {
+    const prerequisite = task({ id: "1", end: "2026-07-25" });
+    const onTime = task({
+      id: "2",
+      start: "2026-07-20",
+      end: "2026-07-26",
+      dependencies: ["1"],
+      dependencyLinks: [
+        {
+          taskId: "1",
+          issueKey: "POWER-1",
+          typeName: "Gantt: finish-finish",
+          relationshipType: "finish-to-finish",
+        },
+      ],
+    });
+    const tasks = [prerequisite, onTime];
+    const viewport = nativeGanttRenderer.createViewport(tasks, "week", "2026-07-23");
+
+    const result = ganttDependencyGeometry(tasks, viewport, nativeGanttRenderer, 0, 2);
+
+    expect(result[0]).toMatchObject({ conflict: false });
+  });
+
   it("does not draw connectors whose endpoint is outside the virtual window", () => {
     const tasks = [
       task({ id: "1" }),

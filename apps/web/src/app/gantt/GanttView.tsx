@@ -449,10 +449,10 @@ export function GanttView({
                     />
                   ) : null}
                   <button
-                    className={`gantt-task-bar ${statusClass(task)}${task.isBlocked ? " is-blocked" : ""}`}
+                    className={`gantt-task-bar ${statusClass(task)}${task.isBlocked ? " is-blocked" : ""}${task.hasDateMisalignment ? " date-misaligned" : ""}`}
                     type="button"
                     style={{ left: geometry.left, width: geometry.width }}
-                    aria-label={`Select ${task.issueKey}, ${task.start} to ${task.end}, ${task.progress}% complete${task.isBlocked ? ", blocked" : ""}`}
+                    aria-label={`Select ${task.issueKey}, ${task.start} to ${task.end}, ${task.progress}% complete${task.isBlocked ? ", blocked" : ""}${task.hasDateMisalignment ? ", date mismatch with rollup" : ""}`}
                     aria-pressed={isSelected}
                     onClick={() => setSelectedTaskId(task.id)}
                   >

@@ -1,4 +1,9 @@
-import type { FieldMapping, GanttTask, JiraUser } from "@power-view/domain";
+import {
+  classifyIssueLinkRelationship,
+  type FieldMapping,
+  type GanttTask,
+  type JiraUser,
+} from "@power-view/domain";
 import {
   isJiraClientError,
   type JiraClient,
@@ -78,7 +83,27 @@ function dependencyIssueOrder(
 }
 
 function isDependencyLinkType(type: JiraIssueLinkType): boolean {
-  return /\b(block|depend)/i.test(`${type.name} ${type.inward} ${type.outward}`);
+  const kind = classifyIssueLinkRelationship(type.name, type.inward, type.outward);
+  return kind === "blocks" || kind === "finish-to-finish" || kind === "depends";
+}
+
+function canLinkAsDependency(a: GanttTask, b: GanttTask): boolean {
+  const typeOf = (task: GanttTask) => task.issueTypeName.trim().toLowerCase();
+  const isEpic = (task: GanttTask) => typeOf(task) === "epic";
+  const isStory = (task: GanttTask) => typeOf(task) === "story";
+  const isTaskOrBug = (task: GanttTask) =>
+    typeOf(task) === "task" || typeOf(task) === "bug";
+
+  if (isEpic(a) && isEpic(b)) {
+    return true;
+  }
+  if (isStory(a) && isStory(b)) {
+    return a.parentId !== undefined && a.parentId === b.parentId;
+  }
+  if (isTaskOrBug(a) && isTaskOrBug(b)) {
+    return a.parentId !== undefined && a.parentId === b.parentId;
+  }
+  return false;
 }
 
 export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
@@ -169,8 +194,9 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
     const existing = new Set(task.dependencies);
     return tasks
       .filter((candidate) => candidate.id !== task.id && !existing.has(candidate.id))
+      .filter((candidate) => canLinkAsDependency(task, candidate))
       .sort((left, right) => left.issueKey.localeCompare(right.issueKey));
-  }, [task.dependencies, task.id, tasks]);
+  }, [task, tasks]);
 
   const runMutation = async (
     action: string,
@@ -466,6 +492,10 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
         ) : (
           <small>No loaded prerequisite links.</small>
         )}
+        <p className="gantt-edit-note">
+          You can only link Epics to Epics, Stories within the same Epic, or Tasks/Bugs
+          within the same Story.
+        </p>
         <div className="gantt-edit-row">
           <label className="gantt-edit-grow">
             Depends on

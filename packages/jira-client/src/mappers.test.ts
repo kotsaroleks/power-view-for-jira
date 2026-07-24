@@ -144,4 +144,56 @@ describe("Jira response mappers", () => {
       },
     });
   });
+
+  function semanticTypeOf(type: { name: string; inward: string; outward: string }) {
+    const fixture = makeJiraIssueFixture(0);
+    const rawIssue = rawJiraIssueSchema.parse({
+      ...fixture,
+      fields: {
+        ...fixture.fields,
+        issuelinks: [
+          { id: "30001", type, outwardIssue: { id: "20002", key: "POWER-2" } },
+        ],
+      },
+    });
+    return mapJiraIssue(rawIssue, { baseUrl: "https://fixture.atlassian.net/" })
+      .issueLinks[0]?.semanticType;
+  }
+
+  it.each([
+    [
+      "finish-finish [GANTT]",
+      "has to be finished together with",
+      "has to be finished together with",
+    ],
+    [
+      "Gantt: finish-finish",
+      "has to be finished together with",
+      "has to be finished together with",
+    ],
+  ] as const)("maps %s to finish-to-finish", (name, inward, outward) => {
+    expect(semanticTypeOf({ name, inward, outward })).toBe("finish-to-finish");
+  });
+
+  it("still maps the literal Blocks type to blocks, not finish-to-finish", () => {
+    expect(
+      semanticTypeOf({ name: "Blocks", inward: "is blocked by", outward: "blocks" }),
+    ).toBe("blocks");
+  });
+
+  it.each([
+    ["finish-start [GANTT]", "has to be done after", "has to be done before"],
+    ["Gantt: finish-start", "has to be done after", "has to be done before"],
+    ["Gantt: start-finish", "start is earliest end of", "earliest end is start of"],
+    [
+      "Gantt: start-start",
+      "has to be started together with",
+      "has to be started together with",
+    ],
+  ] as const)(
+    "leaves out-of-scope %s as unknown (only the literal Blocks type is recognized as FS)",
+    (name, inward, outward) => {
+      expect(semanticTypeOf({ name, inward, outward })).toBe("unknown");
+    },
+  );
 });

@@ -137,6 +137,31 @@ describe("GanttView", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("renders a date-misalignment indicator, composing with the blocked indicator", () => {
+    const misalignedAndBlocked = task({
+      id: "10",
+      issueKey: "POWER-10",
+      name: "Rolled-up epic",
+      hasDateMisalignment: true,
+      isBlocked: true,
+    });
+    const misalignedModel: GanttScheduleModel = {
+      roots: [],
+      tasks: [misalignedAndBlocked],
+      warnings: [],
+      syntheticDateCount: 0,
+      dependencyCount: 0,
+    };
+
+    render(<GanttView model={misalignedModel} today="2026-07-23" />);
+
+    const bar = screen.getByRole("button", {
+      name: /Select POWER-10.*blocked.*date mismatch with rollup/,
+    });
+    expect(bar).toHaveClass("is-blocked");
+    expect(bar).toHaveClass("date-misaligned");
+  });
+
   it("supports zoom, today, task selection, details, warnings, and Jira navigation", () => {
     render(<GanttView model={model} today="2026-07-23" />);
 
@@ -267,13 +292,13 @@ describe("GanttView", () => {
     );
 
     fireEvent.change(screen.getByLabelText("Depends on"), {
-      target: { value: "2" },
+      target: { value: "3" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add dependency" }));
     await waitFor(() =>
       expect(createIssueLink).toHaveBeenCalledWith({
         typeName: "Blocks",
-        inwardIssueKey: "POWER-2",
+        inwardIssueKey: "POWER-3",
         outwardIssueKey: "POWER-1",
       }),
     );

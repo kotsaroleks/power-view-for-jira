@@ -43,6 +43,7 @@ export {
   normalizeDefaultDurations,
   type CalculatedProgressSource,
   type DefaultDurationDays,
+  type DependencyRelationshipType,
   type EndDateSource,
   type GanttDependency,
   type GanttScheduleModel,
@@ -53,6 +54,10 @@ export {
   type ScheduleWarningCode,
   type StartDateSource,
 } from "./schedule";
+export {
+  classifyIssueLinkRelationship,
+  type IssueLinkRelationshipKind,
+} from "./link-classification";
 export type { DiagnosticsSnapshot, RequestDiagnostic } from "./diagnostics";
 export type { ConnectionState } from "./connection";
 export {

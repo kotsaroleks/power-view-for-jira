@@ -25,6 +25,7 @@ export interface NormalizedIssueLink {
     | "duplicates"
     | "is-duplicated-by"
     | "depends-on"
+    | "finish-to-finish"
     | "unknown";
 }
 
