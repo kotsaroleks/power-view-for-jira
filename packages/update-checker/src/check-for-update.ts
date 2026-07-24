@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-export type UpdateCheckStatus =
-  "up-to-date" | "update-available" | "token-missing" | "token-invalid" | "check-failed";
+export type UpdateCheckStatus = "up-to-date" | "update-available" | "check-failed";
 
 export interface UpdateCheckResult {
   schemaVersion: 1;
@@ -13,7 +12,6 @@ export interface UpdateCheckResult {
 }
 
 export interface CheckForUpdateInput {
-  token: string | undefined;
   owner: string;
   repo: string;
   branch: string;
@@ -46,10 +44,6 @@ export async function checkForUpdate(
   const now = input.now ?? (() => new Date());
   const checkedAt = now().toISOString();
 
-  if (!input.token) {
-    return result("token-missing", checkedAt);
-  }
-
   if (input.currentCommitSha === null) {
     return result("check-failed", checkedAt, {
       errorMessage: "Build has no embedded commit info; rebuild to enable update checks.",
@@ -63,7 +57,6 @@ export async function checkForUpdate(
   try {
     response = await fetchImpl(url, {
       headers: {
-        Authorization: `Bearer ${input.token}`,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
       },
@@ -73,10 +66,6 @@ export async function checkForUpdate(
       currentCommitSha,
       errorMessage: "Power View could not reach GitHub.",
     });
-  }
-
-  if (response.status === 401 || response.status === 403) {
-    return result("token-invalid", checkedAt, { currentCommitSha });
   }
 
   if (!response.ok) {

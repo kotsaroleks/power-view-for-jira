@@ -25,7 +25,7 @@ async function updateBadge(status: Awaited<ReturnType<typeof checkForUpdate>>["s
     return;
   }
 
-  if (status === "token-invalid" || status === "check-failed") {
+  if (status === "check-failed") {
     await chrome.action.setBadgeText({ text: "!" });
     await chrome.action.setBadgeBackgroundColor({ color: ATTENTION_BADGE_COLOR });
     return;
@@ -35,13 +35,9 @@ async function updateBadge(status: Awaited<ReturnType<typeof checkForUpdate>>["s
 }
 
 export async function runUpdateCheck(): Promise<void> {
-  const [token, buildInfo] = await Promise.all([
-    updateStore.getToken(),
-    resolveBuildInfo(),
-  ]);
+  const buildInfo = await resolveBuildInfo();
 
   const result = await checkForUpdate({
-    token,
     owner: buildInfo?.repoOwner ?? "",
     repo: buildInfo?.repoName ?? "",
     branch: "main",

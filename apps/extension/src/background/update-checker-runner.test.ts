@@ -91,22 +91,8 @@ describe("registerUpdateChecks", () => {
 });
 
 describe("runUpdateCheck", () => {
-  it("sets an attention badge when no token is configured", async () => {
-    await localStorage.remove(["update:token", "update:token-hint"]);
-    fetchMock.mockResolvedValueOnce(buildInfoResponse());
-
-    await runUpdateCheck();
-
-    expect(setBadgeText).toHaveBeenCalledWith({ text: "" });
-    const store = new UpdateStore(localStorage);
-    await expect(store.getCheckResult()).resolves.toMatchObject({
-      status: "token-missing",
-    });
-  });
-
   it("sets an update badge when a newer commit exists on main", async () => {
     const store = new UpdateStore(localStorage);
-    await store.saveToken("test-token");
     fetchMock
       .mockResolvedValueOnce(buildInfoResponse())
       .mockResolvedValueOnce(commitResponse("newsha1234"));
@@ -122,8 +108,6 @@ describe("runUpdateCheck", () => {
   });
 
   it("clears the badge when the build is up to date", async () => {
-    const store = new UpdateStore(localStorage);
-    await store.saveToken("test-token");
     fetchMock
       .mockResolvedValueOnce(buildInfoResponse())
       .mockResolvedValueOnce(commitResponse(buildInfo.commitSha));
@@ -133,12 +117,10 @@ describe("runUpdateCheck", () => {
     expect(setBadgeText).toHaveBeenCalledWith({ text: "" });
   });
 
-  it("sets an attention badge when the token is invalid", async () => {
-    const store = new UpdateStore(localStorage);
-    await store.saveToken("bad-token");
+  it("sets an attention badge when the check fails", async () => {
     fetchMock
       .mockResolvedValueOnce(buildInfoResponse())
-      .mockResolvedValueOnce(new Response("", { status: 401 }));
+      .mockResolvedValueOnce(new Response("", { status: 500 }));
 
     await runUpdateCheck();
 

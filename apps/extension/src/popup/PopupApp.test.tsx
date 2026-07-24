@@ -34,7 +34,7 @@ describe("PopupApp", () => {
           .fn()
           .mockResolvedValue("https://example.atlassian.net/browse/POWER-42")}
         updatePanelProps={{
-          getUpdateStatus: vi.fn().mockResolvedValue({ hasToken: false }),
+          getCheckResult: vi.fn().mockResolvedValue(undefined),
         }}
       />,
     );
@@ -72,7 +72,7 @@ describe("PopupApp", () => {
           .fn()
           .mockResolvedValue("https://example.atlassian.net/browse/POWER-42")}
         updatePanelProps={{
-          getUpdateStatus: vi.fn().mockResolvedValue({ hasToken: false }),
+          getCheckResult: vi.fn().mockResolvedValue(undefined),
         }}
       />,
     );

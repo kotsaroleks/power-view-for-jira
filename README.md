@@ -68,19 +68,10 @@ so you know when to pull and rebuild — it doesn't replace the manual workflow:
 
 That reloads the unpacked extension in place — no delete or reinstall.
 
-To enable the check, since this repository is private, generate a fine-grained GitHub
-Personal Access Token scoped read-only to it:
-
-1. GitHub → Settings → Developer settings → Fine-grained tokens → **Generate new token**.
-2. Repository access → **Only select repositories** → this repository.
-3. Repository permissions → **Contents** → **Read-only**.
-4. Set a short expiration (e.g. 90 days). When it expires, the popup will show "Token
-   appears invalid" — generate a new one and save it again.
-
-Paste the token into the popup's **Updates** section. It's stored only in
-`chrome.storage.local` on your machine and sent only to `api.github.com`. The extension
-checks hourly in the background (showing a badge on the toolbar icon when an update is
-available) and on demand via **Check now**.
+The extension checks the public GitHub API for the latest commit on `main` — no
+authentication needed. It checks hourly in the background (showing a badge on the toolbar
+icon when an update is available) and on demand via **Check now** in the popup's
+**Updates** section.
 
 ## Development
 
