@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import react from "@vitejs/plugin-react";
-import { copyFile, mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 
@@ -9,12 +9,32 @@ const outputDirectory = resolve(projectRoot, "../../dist/extension");
 const manifestSource = resolve(projectRoot, "src/manifest.json");
 const manifestOutput = resolve(outputDirectory, "manifest.json");
 const buildInfoOutput = resolve(outputDirectory, "build-info.json");
+const iconsSourceDirectory = resolve(projectRoot, "icons");
+const iconsOutputDirectory = resolve(outputDirectory, "icons");
 
 const copyManifest = (): Plugin => ({
   name: "copy-extension-manifest",
   async closeBundle() {
     await mkdir(dirname(manifestOutput), { recursive: true });
     await copyFile(manifestSource, manifestOutput);
+  },
+});
+
+const copyIcons = (): Plugin => ({
+  name: "copy-extension-icons",
+  async closeBundle() {
+    await mkdir(iconsOutputDirectory, { recursive: true });
+    const entries = await readdir(iconsSourceDirectory);
+    await Promise.all(
+      entries
+        .filter((entry) => entry.endsWith(".png"))
+        .map((entry) =>
+          copyFile(
+            resolve(iconsSourceDirectory, entry),
+            resolve(iconsOutputDirectory, entry),
+          ),
+        ),
+    );
   },
 });
 
@@ -63,7 +83,7 @@ const emitBuildInfo = (): Plugin => ({
 
 export default defineConfig({
   base: "./",
-  plugins: [react(), copyManifest(), emitBuildInfo()],
+  plugins: [react(), copyManifest(), copyIcons(), emitBuildInfo()],
   build: {
     emptyOutDir: false,
     outDir: outputDirectory,

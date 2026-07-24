@@ -9,6 +9,10 @@ const requiredFiles = [
   "content/content-script.js",
   "popup/index.html",
   "app/index.html",
+  "icons/icon-16.png",
+  "icons/icon-32.png",
+  "icons/icon-48.png",
+  "icons/icon-128.png",
 ];
 
 await Promise.all(
@@ -59,6 +63,21 @@ if (
 
 if (manifest.externally_connectable || manifest.web_accessible_resources) {
   throw new Error("The production extension must not expose external connection points.");
+}
+
+const expectedIcons = {
+  16: "icons/icon-16.png",
+  32: "icons/icon-32.png",
+  48: "icons/icon-48.png",
+  128: "icons/icon-128.png",
+};
+
+if (JSON.stringify(manifest.icons) !== JSON.stringify(expectedIcons)) {
+  throw new Error("The manifest must declare all four production icon sizes.");
+}
+
+if (JSON.stringify(manifest.action?.default_icon) !== JSON.stringify(expectedIcons)) {
+  throw new Error("The toolbar action must declare all four production icon sizes.");
 }
 
 const contentMatches = manifest.content_scripts?.flatMap(
