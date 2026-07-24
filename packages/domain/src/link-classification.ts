@@ -10,6 +10,13 @@ export function classifyIssueLinkRelationship(
   if (value.includes("block")) {
     return "blocks";
   }
+  if (
+    /finish[- ]?start/.test(value) ||
+    value.includes("done before") ||
+    value.includes("done after")
+  ) {
+    return "blocks";
+  }
   if (/finish[- ]?finish/.test(value) || value.includes("finished together")) {
     return "finish-to-finish";
   }

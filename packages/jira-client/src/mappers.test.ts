@@ -175,15 +175,18 @@ describe("Jira response mappers", () => {
     expect(semanticTypeOf({ name, inward, outward })).toBe("finish-to-finish");
   });
 
-  it("still maps the literal Blocks type to blocks, not finish-to-finish", () => {
-    expect(
-      semanticTypeOf({ name: "Blocks", inward: "is blocked by", outward: "blocks" }),
-    ).toBe("blocks");
-  });
-
   it.each([
+    ["Blocks", "is blocked by", "blocks"],
     ["finish-start [GANTT]", "has to be done after", "has to be done before"],
     ["Gantt: finish-start", "has to be done after", "has to be done before"],
+  ] as const)(
+    "maps %s to blocks (finish-to-start), not finish-to-finish",
+    (name, inward, outward) => {
+      expect(semanticTypeOf({ name, inward, outward })).toBe("blocks");
+    },
+  );
+
+  it.each([
     ["Gantt: start-finish", "start is earliest end of", "earliest end is start of"],
     [
       "Gantt: start-start",
@@ -191,7 +194,7 @@ describe("Jira response mappers", () => {
       "has to be started together with",
     ],
   ] as const)(
-    "leaves out-of-scope %s as unknown (only the literal Blocks type is recognized as FS)",
+    "leaves out-of-scope %s as unknown (only FS and FF are supported kinds)",
     (name, inward, outward) => {
       expect(semanticTypeOf({ name, inward, outward })).toBe("unknown");
     },
