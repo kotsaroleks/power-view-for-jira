@@ -9,6 +9,7 @@ describe("UpdatePanel", () => {
 
     expect(await screen.findByText("Not checked yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Check now" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reload extension" })).toBeInTheDocument();
   });
 
   it("shows the cached result on mount", async () => {
@@ -39,6 +40,7 @@ describe("UpdatePanel", () => {
     );
 
     expect(await screen.findByText(/Update available/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reload extension" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Open chrome://extensions" }),
     ).toBeInTheDocument();

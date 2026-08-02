@@ -97,7 +97,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   tabsSendMessage.mockReset();
-  tabsGet.mockReset();
+  tabsGet.mockReset().mockResolvedValue({ id: TAB_ID, url: context.pageUrl });
   scriptingExecuteScript.mockReset();
   permissionsContains.mockReset().mockResolvedValue(true);
 });
@@ -107,6 +107,12 @@ describe.each(Object.entries(mutationRequests))(
   (_label, mutationRequest) => {
     it("does not fall back to the main-world bridge when the page bridge fails after the request may already have reached Jira", async () => {
       const requestId = crypto.randomUUID();
+      tabsSendMessage.mockResolvedValueOnce({
+        type: "CONTEXT_RESULT",
+        requestId: crypto.randomUUID(),
+        ok: true,
+        context,
+      });
       tabsSendMessage.mockResolvedValueOnce({
         type: "ERROR",
         requestId,
@@ -122,16 +128,21 @@ describe.each(Object.entries(mutationRequests))(
         executeJiraRequest(requestId, mutationRequest, sender),
       ).rejects.toThrow();
 
-      expect(tabsSendMessage).toHaveBeenCalledTimes(1);
+      expect(tabsSendMessage).toHaveBeenCalledTimes(2);
       expect(scriptingExecuteScript).not.toHaveBeenCalled();
     });
 
     it("falls back to the main-world bridge only when the page bridge itself is unreachable", async () => {
       const requestId = crypto.randomUUID();
+      tabsSendMessage.mockResolvedValueOnce({
+        type: "CONTEXT_RESULT",
+        requestId: crypto.randomUUID(),
+        ok: true,
+        context,
+      });
       tabsSendMessage.mockRejectedValueOnce(
         new Error("Could not establish connection. Receiving end does not exist."),
       );
-      tabsGet.mockResolvedValueOnce({ id: TAB_ID, url: context.pageUrl });
       scriptingExecuteScript.mockResolvedValueOnce([
         {
           result: {
@@ -150,7 +161,7 @@ describe.each(Object.entries(mutationRequests))(
         data: { id: "POWER-42" },
         transport: "jira-main-world",
       });
-      expect(tabsSendMessage).toHaveBeenCalledTimes(1);
+      expect(tabsSendMessage).toHaveBeenCalledTimes(2);
       expect(scriptingExecuteScript).toHaveBeenCalledTimes(1);
     });
   },

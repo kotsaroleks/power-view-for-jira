@@ -26,6 +26,10 @@ export function defaultOpenChromeExtensionsPage(): void {
   void chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` });
 }
 
+export function defaultReloadExtension(): void {
+  chrome.runtime.reload();
+}
+
 export async function defaultCopyUpdateCommand(): Promise<void> {
   await navigator.clipboard.writeText("git pull && pnpm build");
 }

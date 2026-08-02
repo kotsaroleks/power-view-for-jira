@@ -7,12 +7,14 @@ import {
   defaultCopyUpdateCommand,
   defaultGetCheckResult,
   defaultOpenChromeExtensionsPage,
+  defaultReloadExtension,
 } from "./update-panel-operations";
 
 export interface UpdatePanelProps {
   getCheckResult?: () => Promise<UpdateCheckResult | undefined>;
   checkForUpdateNow?: () => Promise<UpdateCheckResult>;
   openChromeExtensionsPage?: () => void;
+  reloadExtension?: () => void;
   copyUpdateCommand?: () => Promise<void>;
 }
 
@@ -39,6 +41,7 @@ export function UpdatePanel({
   getCheckResult = defaultGetCheckResult,
   checkForUpdateNow = defaultCheckForUpdateNow,
   openChromeExtensionsPage = defaultOpenChromeExtensionsPage,
+  reloadExtension = defaultReloadExtension,
   copyUpdateCommand = defaultCopyUpdateCommand,
 }: UpdatePanelProps) {
   const [checkResult, setCheckResult] = useState<UpdateCheckResult>();
@@ -81,12 +84,15 @@ export function UpdatePanel({
         <Button disabled={isChecking} onClick={() => void handleCheckNow()} type="button">
           {isChecking ? "Checking…" : "Check now"}
         </Button>
+        <Button onClick={openChromeExtensionsPage} type="button">
+          Open chrome://extensions
+        </Button>
+        <Button onClick={reloadExtension} type="button">
+          Reload extension
+        </Button>
       </div>
       {checkResult?.status === "update-available" ? (
         <div className="update-actions">
-          <Button onClick={openChromeExtensionsPage} type="button">
-            Open chrome://extensions
-          </Button>
           <Button onClick={() => void handleCopyCommand()} type="button">
             {isCopied ? "Copied" : "Copy update command"}
           </Button>

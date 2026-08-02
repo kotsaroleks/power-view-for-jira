@@ -76,7 +76,10 @@ export async function checkForUpdate(
   if (!response.ok) {
     return result("check-failed", checkedAt, {
       currentCommitSha,
-      errorMessage: `GitHub returned an unexpected status (${response.status}).`,
+      errorMessage:
+        response.status === 404
+          ? "Automatic update checks are unavailable because the GitHub repository is private. Pull and rebuild the extension manually."
+          : `GitHub returned an unexpected status (${response.status}).`,
     });
   }
 

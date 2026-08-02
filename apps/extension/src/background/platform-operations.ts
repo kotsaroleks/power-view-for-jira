@@ -616,7 +616,11 @@ async function executeJiraRequest(
   const startedAt = Date.now();
 
   try {
-    const storedContext = await requireActiveJiraContextWithPermission();
+    let storedContext = await requireActiveJiraContextWithPermission();
+    if (request.method !== "GET") {
+      await refreshContext(storedContext.tabId);
+      storedContext = await requireActiveJiraContextWithPermission();
+    }
     const result =
       request.method === "GET"
         ? await executeWithJiraPageFallback(
