@@ -1,6 +1,7 @@
 node_modules/
 .pnpm-store/
 dist/
+.secrets/
 playwright-report/
 test-results/
 coverage/

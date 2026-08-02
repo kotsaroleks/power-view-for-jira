@@ -8,6 +8,37 @@ export async function defaultGetCheckResult(): Promise<UpdateCheckResult | undef
 }
 
 export async function defaultCheckForUpdateNow(): Promise<UpdateCheckResult> {
+  if (typeof chrome.runtime.requestUpdateCheck === "function") {
+    try {
+      const update = await chrome.runtime.requestUpdateCheck();
+      const checkedAt = new Date().toISOString();
+      if (update.status === "update_available") {
+        return {
+          schemaVersion: 1,
+          status: "update-available",
+          checkedAt,
+          ...(update.version ? { latestCommitSha: update.version } : {}),
+        };
+      }
+      if (update.status === "no_update") {
+        return { schemaVersion: 1, status: "up-to-date", checkedAt };
+      }
+      return {
+        schemaVersion: 1,
+        status: "check-failed",
+        checkedAt,
+        errorMessage: "Chrome throttled the update check. Try again later.",
+      };
+    } catch {
+      return {
+        schemaVersion: 1,
+        status: "check-failed",
+        checkedAt: new Date().toISOString(),
+        errorMessage: "Chrome could not contact the enterprise update server.",
+      };
+    }
+  }
+
   const store = new UpdateStore(chrome.storage.local);
   const buildInfo = await getBuildInfo();
 
@@ -27,7 +58,12 @@ export function defaultOpenChromeExtensionsPage(): void {
 }
 
 export function defaultReloadExtension(): void {
-  chrome.runtime.reload();
+  void (async () => {
+    if (typeof chrome.runtime.requestUpdateCheck === "function") {
+      await chrome.runtime.requestUpdateCheck().catch(() => undefined);
+    }
+    chrome.runtime.reload();
+  })();
 }
 
 export async function defaultCopyUpdateCommand(): Promise<void> {

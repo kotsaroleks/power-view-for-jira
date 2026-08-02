@@ -35,6 +35,42 @@ async function updateBadge(status: Awaited<ReturnType<typeof checkForUpdate>>["s
 }
 
 export async function runUpdateCheck(): Promise<void> {
+  if (typeof chrome.runtime.requestUpdateCheck === "function") {
+    try {
+      const update = await chrome.runtime.requestUpdateCheck();
+      const checkedAt = new Date().toISOString();
+      const result =
+        update.status === "update_available"
+          ? {
+              schemaVersion: 1 as const,
+              status: "update-available" as const,
+              checkedAt,
+              ...(update.version ? { latestCommitSha: update.version } : {}),
+            }
+          : update.status === "no_update"
+            ? { schemaVersion: 1 as const, status: "up-to-date" as const, checkedAt }
+            : {
+                schemaVersion: 1 as const,
+                status: "check-failed" as const,
+                checkedAt,
+                errorMessage: "Chrome throttled the enterprise update check.",
+              };
+      await updateStore.saveCheckResult(result);
+      await updateBadge(result.status);
+      return;
+    } catch {
+      const result = {
+        schemaVersion: 1 as const,
+        status: "check-failed" as const,
+        checkedAt: new Date().toISOString(),
+        errorMessage: "Chrome could not contact the enterprise update server.",
+      };
+      await updateStore.saveCheckResult(result);
+      await updateBadge(result.status);
+      return;
+    }
+  }
+
   const buildInfo = await resolveBuildInfo();
 
   const result = await checkForUpdate({

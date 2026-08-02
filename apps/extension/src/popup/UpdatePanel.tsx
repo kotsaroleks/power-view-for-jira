@@ -27,7 +27,7 @@ function statusMessage(result: UpdateCheckResult | undefined): string {
     case "up-to-date":
       return "Up to date.";
     case "update-available":
-      return `Update available — new commit ${result.latestCommitSha?.slice(0, 7) ?? "?"}.`;
+      return `Update available — new extension build ${result.latestCommitSha ?? "?"}.`;
     case "check-failed":
       return result.errorMessage
         ? `Check failed: ${result.errorMessage}`
