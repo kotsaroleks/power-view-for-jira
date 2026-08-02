@@ -63,6 +63,9 @@ jobs:
           EXTENSION_CRX_URL: https://kotsaroleks.github.io/power-view-for-jira/power-view-for-jira.crx
         run: pnpm package:enterprise
 
+      - name: Add privacy policy page
+        run: cp docs/privacy.html dist/enterprise/privacy.html
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
