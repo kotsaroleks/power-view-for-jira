@@ -1,4 +1,4 @@
-name: Publish enterprise extension update
+name: Verify and publish enterprise extension
 
 on:
   push:
@@ -45,6 +45,15 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
 
       - name: Build extension
         run: pnpm build
