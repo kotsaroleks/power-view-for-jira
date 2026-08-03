@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { GanttView } from "./gantt/GanttView";
+import { BoardHealthReportView } from "./reports/BoardHealthReport";
 import { SetupPanel, type ReadyGanttSchedule } from "./SetupPanel";
 import { ReportsView } from "./reporting/ReportsView";
 
@@ -490,6 +491,19 @@ function AppContent({
                 <p>Generate decision-ready team updates from live Jira data.</p>
               </div>
             </div>
+            <BoardHealthReportView
+              issues={readySchedule.issues}
+              model={readySchedule.model}
+              projectKey={readySchedule.projectKey}
+              projectName={readySchedule.projectName}
+              jql={readySchedule.jql}
+              loadedAt={readySchedule.loadedAt}
+              truncated={readySchedule.truncated}
+              sprintDataAvailable={readySchedule.sprintDataAvailable}
+              storyPointsDataAvailable={readySchedule.storyPointsDataAvailable}
+              {...(context.boardId ? { preferredBoardId: context.boardId } : {})}
+              {...(context.sprintId ? { preferredSprintId: context.sprintId } : {})}
+            />
             <ReportsView
               client={jiraClient!}
               baseUrl={context.baseUrl}

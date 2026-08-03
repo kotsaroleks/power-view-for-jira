@@ -16,12 +16,27 @@ export {
   MAX_CONFIGURABLE_ISSUES,
   type IssueSearchResult,
   type JiraIssueType,
+  type JiraIssueSprint,
+  type JiraSprintState,
   type JiraStatusCategory,
   type NormalizedIssue,
   type NormalizedIssueLink,
   type PageProgress,
   type SearchIssuesRequest,
 } from "./jira-issue";
+export {
+  buildBoardHealthReport,
+  buildSprintHealthReport,
+  relevantActiveSprints,
+  reportPercentage,
+  type BoardHealthOptions,
+  type BoardHealthReport,
+  type PlanningBuckets,
+  type ReportStatusBuckets,
+  type SprintHealthReport,
+  type SprintMeasureBuckets,
+  type SprintPersonBreakdown,
+} from "./report";
 export {
   rankDateFieldCandidates,
   validateFieldMapping,

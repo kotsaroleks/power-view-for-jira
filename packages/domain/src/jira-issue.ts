@@ -12,6 +12,18 @@ export interface JiraIssueType {
 
 export type JiraStatusCategory = "to-do" | "in-progress" | "done" | "unknown";
 
+export type JiraSprintState = "active" | "future" | "closed" | "unknown";
+
+export interface JiraIssueSprint {
+  id: string;
+  name: string;
+  state: JiraSprintState;
+  boardId?: string;
+  startDate?: string;
+  endDate?: string;
+  completeDate?: string;
+}
+
 export interface NormalizedIssueLink {
   id?: string;
   typeName: string;
@@ -53,6 +65,8 @@ export interface NormalizedIssue {
   startDate?: string;
   dueDate?: string;
   resolvedAt?: string;
+  storyPoints?: number;
+  sprints?: JiraIssueSprint[];
   progress?: {
     completed: number;
     total: number;
