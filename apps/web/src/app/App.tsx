@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { GanttView } from "./gantt/GanttView";
+import { BoardHealthReportView } from "./reports/BoardHealthReport";
 import { SetupPanel, type ReadyGanttSchedule } from "./SetupPanel";
 
 interface ClipboardWriter {
@@ -201,6 +202,7 @@ function AppContent({
         </a>
         <nav className="top-navigation" aria-label="Power View navigation">
           <a href="#setup">Setup</a>
+          {readySchedule ? <a href="#reports">Reports</a> : null}
           {readySchedule ? <a href="#gantt">Gantt</a> : null}
           <a href="#diagnostics">Diagnostics</a>
         </nav>
@@ -415,6 +417,22 @@ function AppContent({
             )}
           </aside>
         </div>
+
+        {readySchedule ? (
+          <BoardHealthReportView
+            issues={readySchedule.issues}
+            model={readySchedule.model}
+            projectKey={readySchedule.projectKey}
+            projectName={readySchedule.projectName}
+            jql={readySchedule.jql}
+            loadedAt={readySchedule.loadedAt}
+            truncated={readySchedule.truncated}
+            sprintDataAvailable={readySchedule.sprintDataAvailable}
+            storyPointsDataAvailable={readySchedule.storyPointsDataAvailable}
+            {...(context?.boardId ? { preferredBoardId: context.boardId } : {})}
+            {...(context?.sprintId ? { preferredSprintId: context.sprintId } : {})}
+          />
+        ) : null}
 
         {readySchedule ? (
           <GanttView

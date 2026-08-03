@@ -99,6 +99,7 @@ function issueFields(mapping?: FieldMapping): string[] {
       mapping?.endDateFieldId,
       mapping?.hierarchyFieldId,
       mapping?.storyPointsFieldId,
+      mapping?.sprintFieldId,
     ]),
   ].filter((field): field is string => typeof field === "string");
 }

@@ -32,6 +32,7 @@ const fieldMappingSchema = z
     endDateFieldId: z.string().min(1).max(512).optional(),
     hierarchyFieldId: z.string().min(1).max(512).optional(),
     storyPointsFieldId: z.string().min(1).max(512).optional(),
+    sprintFieldId: z.string().min(1).max(512).optional(),
   })
   .strict();
 
@@ -178,6 +179,9 @@ const setupConfigurationSchema = z
         : {}),
       ...(configuration.fieldMapping.storyPointsFieldId
         ? { storyPointsFieldId: configuration.fieldMapping.storyPointsFieldId }
+        : {}),
+      ...(configuration.fieldMapping.sprintFieldId
+        ? { sprintFieldId: configuration.fieldMapping.sprintFieldId }
         : {}),
     },
     ...(configuration.defaultDurations

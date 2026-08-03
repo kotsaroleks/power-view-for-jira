@@ -10,6 +10,7 @@ import {
   type GanttScheduleModel,
   type IssueSearchResult,
   type JiraField,
+  type NormalizedIssue,
   type JiraPageContext,
   type JiraProject,
   type PaginatedResult,
@@ -39,9 +40,16 @@ export interface SetupPanelProps {
 
 export interface ReadyGanttSchedule {
   model: GanttScheduleModel;
+  issues: NormalizedIssue[];
   queryKey: string;
   jiraBaseUrl: string;
   projectKey: string;
+  projectName: string;
+  jql: string;
+  loadedAt: string;
+  truncated: boolean;
+  sprintDataAvailable: boolean;
+  storyPointsDataAvailable: boolean;
   editing: {
     client: JiraClient;
     fieldMapping: FieldMapping;
@@ -63,6 +71,22 @@ const EMPTY_PROJECT_PAGE: PaginatedResult<JiraProject> = {
 function fieldOptionLabel(field: JiraField): string {
   const type = field.schema?.type ? ` · ${field.schema.type}` : "";
   return `${field.name}${type} · ${field.id}`;
+}
+
+function inferredReportFieldMapping(fields: JiraField[]): FieldMapping {
+  const normalizedName = (field: JiraField) => field.name.trim().toLowerCase();
+  const sprint = fields.find(
+    (field) =>
+      normalizedName(field) === "sprint" ||
+      field.schema?.custom?.toLowerCase().includes("gh-sprint"),
+  );
+  const storyPoints = fields.find((field) =>
+    ["story points", "story point estimate"].includes(normalizedName(field)),
+  );
+  return {
+    ...(sprint ? { sprintFieldId: sprint.id } : {}),
+    ...(storyPoints ? { storyPointsFieldId: storyPoints.id } : {}),
+  };
 }
 
 export function SetupPanel({
@@ -101,6 +125,7 @@ export function SetupPanel({
   const [issueLoadState, setIssueLoadState] = useState<IssueLoadState>("idle");
   const [issueProgress, setIssueProgress] = useState<PageProgress>();
   const [issueResult, setIssueResult] = useState<IssueSearchResult>();
+  const [issueLoadedAt, setIssueLoadedAt] = useState<string>();
   const [issueLoadError, setIssueLoadError] = useState<string>();
   const scheduleModel = useMemo(
     () =>
@@ -260,7 +285,10 @@ export function SetupPanel({
           return;
         }
         setRecentJql(storedRecentJql);
-        setFieldMapping(storedSetup?.fieldMapping ?? {});
+        setFieldMapping({
+          ...inferredReportFieldMapping(fields),
+          ...(storedSetup?.fieldMapping ?? {}),
+        });
         setDefaultDurations(
           storedSetup?.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
         );
@@ -271,6 +299,7 @@ export function SetupPanel({
         client.clearIssueCache();
         setIssueLoadState("idle");
         setIssueResult(undefined);
+        setIssueLoadedAt(undefined);
       })
       .catch(() => {
         if (isCurrent) {
@@ -283,7 +312,7 @@ export function SetupPanel({
     return () => {
       isCurrent = false;
     };
-  }, [client, context.baseUrl, selectedProject, settingsStore]);
+  }, [client, context.baseUrl, fields, selectedProject, settingsStore]);
 
   useEffect(
     () => () => {
@@ -299,6 +328,7 @@ export function SetupPanel({
     setIssueLoadState("idle");
     setIssueProgress(undefined);
     setIssueResult(undefined);
+    setIssueLoadedAt(undefined);
     setIssueLoadError(undefined);
   };
 
@@ -415,6 +445,7 @@ export function SetupPanel({
         return;
       }
       setIssueResult(result);
+      setIssueLoadedAt(new Date().toISOString());
       setIssueLoadState("ready");
       reportIssueLoad(result.values.length, "ready");
     } catch (error) {
@@ -459,6 +490,7 @@ export function SetupPanel({
         return;
       }
       setIssueResult(result);
+      setIssueLoadedAt(new Date().toISOString());
       setIssueLoadState("ready");
       reportIssueLoad(result.values.length, "ready");
     } catch (error) {
@@ -478,12 +510,19 @@ export function SetupPanel({
 
   useEffect(() => {
     onScheduleReady?.(
-      scheduleModel
+      scheduleModel && issueResult && issueLoadedAt && selectedProject
         ? {
             model: scheduleModel,
+            issues: issueResult.values,
             queryKey: scheduleQueryKey,
             jiraBaseUrl: context.baseUrl,
             projectKey: selectedProjectKey,
+            projectName: selectedProject.name,
+            jql: jql.trim(),
+            loadedAt: issueLoadedAt,
+            truncated: issueResult.truncated,
+            sprintDataAvailable: Boolean(fieldMapping.sprintFieldId),
+            storyPointsDataAvailable: Boolean(fieldMapping.storyPointsFieldId),
             editing: {
               client,
               fieldMapping,
@@ -496,10 +535,14 @@ export function SetupPanel({
     client,
     context.baseUrl,
     fieldMapping,
+    issueLoadedAt,
+    issueResult,
+    jql,
     onScheduleReady,
     refreshLoadedIssues,
     scheduleModel,
     scheduleQueryKey,
+    selectedProject,
     selectedProjectKey,
   ]);
 
@@ -698,7 +741,26 @@ export function SetupPanel({
           </fieldset>
 
           <details className="optional-fields">
-            <summary>Optional hierarchy and story-point fields</summary>
+            <summary>Optional reporting, hierarchy, and story-point fields</summary>
+            <p className="field-help">
+              Map Sprint to enable planning coverage and the current-sprint report.
+              Missing report data is shown as unavailable, never as zero.
+            </p>
+            <label>
+              <span>Sprint field</span>
+              <select
+                aria-label="Sprint field"
+                value={fieldMapping.sprintFieldId ?? ""}
+                onChange={(event) => updateMapping("sprintFieldId", event.target.value)}
+              >
+                <option value="">Not configured</option>
+                {allFields.map((field) => (
+                  <option key={field.id} value={field.id}>
+                    {fieldOptionLabel(field)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               <span>Hierarchy field</span>
               <select

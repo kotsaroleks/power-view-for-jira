@@ -145,6 +145,43 @@ describe("Jira response mappers", () => {
     });
   });
 
+  it("normalizes Sprint values from Cloud and legacy Data Center shapes", () => {
+    const fixture = makeJiraIssueFixture(0);
+    const rawIssue = rawJiraIssueSchema.parse({
+      ...fixture,
+      fields: {
+        ...fixture.fields,
+        customfield_10020: [
+          {
+            id: 101,
+            name: "Sprint 8.1",
+            state: "ACTIVE",
+            boardId: 7,
+            startDate: "2026-08-01T00:00:00.000Z",
+          },
+          "com.atlassian.greenhopper.service.sprint.Sprint@1[id=102,rapidViewId=7,state=FUTURE,name=Sprint 8.2]",
+        ],
+        customfield_10016: 5,
+      },
+    });
+
+    expect(
+      mapJiraIssue(rawIssue, {
+        baseUrl: "https://fixture.atlassian.net/",
+        fieldMapping: {
+          sprintFieldId: "customfield_10020",
+          storyPointsFieldId: "customfield_10016",
+        },
+      }),
+    ).toMatchObject({
+      storyPoints: 5,
+      sprints: [
+        { id: "101", name: "Sprint 8.1", state: "active", boardId: "7" },
+        { id: "102", name: "Sprint 8.2", state: "future", boardId: "7" },
+      ],
+    });
+  });
+
   function semanticTypeOf(type: { name: string; inward: string; outward: string }) {
     const fixture = makeJiraIssueFixture(0);
     const rawIssue = rawJiraIssueSchema.parse({

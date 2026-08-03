@@ -5,6 +5,8 @@ import {
   type JiraField,
   type JiraProject,
   type JiraServerInfo,
+  type JiraSprint,
+  type JiraSprintState,
   type JiraStatusCategory,
   type JiraUser,
   type NormalizedIssue,
@@ -138,6 +140,103 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+function optionalNumber(value: unknown): number | undefined {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function sprintState(value: unknown): JiraSprintState {
+  switch (optionalString(value)?.toLowerCase()) {
+    case "active":
+      return "active";
+    case "future":
+      return "future";
+    case "closed":
+      return "closed";
+    default:
+      return "unknown";
+  }
+}
+
+function objectSprint(value: object): JiraSprint | undefined {
+  const record = value as Record<string, unknown>;
+  const id =
+    typeof record.id === "number" ? String(record.id) : optionalString(record.id);
+  const name = optionalString(record.name);
+  if (!id || !name) {
+    return undefined;
+  }
+  const rawBoardId = record.boardId ?? record.rapidViewId;
+  const boardId =
+    typeof rawBoardId === "number" ? String(rawBoardId) : optionalString(rawBoardId);
+  const startDate = optionalString(record.startDate);
+  const endDate = optionalString(record.endDate);
+  const completeDate = optionalString(record.completeDate);
+  return {
+    id,
+    name,
+    state: sprintState(record.state),
+    ...(boardId ? { boardId } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(completeDate ? { completeDate } : {}),
+  };
+}
+
+function legacySprint(value: string): JiraSprint | undefined {
+  const details = value.match(/\[([^\]]+)]/)?.[1];
+  if (!details) {
+    return undefined;
+  }
+  const fields: Record<string, string> = Object.fromEntries(
+    details
+      .split(/,(?=[A-Za-z][A-Za-z0-9]*=)/)
+      .map((part): [string, string] => {
+        const [key, fieldValue = ""] = part.split(/=(.*)/s);
+        return [key ?? "", fieldValue];
+      })
+      .filter(([key, fieldValue]) => Boolean(key && fieldValue)),
+  );
+  const id = optionalString(fields.id);
+  const name = optionalString(fields.name);
+  if (!id || !name) {
+    return undefined;
+  }
+  const boardId = optionalString(fields.rapidViewId ?? fields.boardId);
+  const startDate = optionalString(fields.startDate);
+  const endDate = optionalString(fields.endDate);
+  const completeDate = optionalString(fields.completeDate);
+  return {
+    id,
+    name,
+    state: sprintState(fields.state),
+    ...(boardId ? { boardId } : {}),
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(completeDate ? { completeDate } : {}),
+  };
+}
+
+function mapSprints(value: unknown): JiraSprint[] {
+  const values: unknown[] = Array.isArray(value)
+    ? (value as unknown[])
+    : value == null
+      ? []
+      : [value];
+  const sprints = values.flatMap((candidate) => {
+    if (typeof candidate === "string") {
+      const sprint = legacySprint(candidate);
+      return sprint ? [sprint] : [];
+    }
+    if (candidate && typeof candidate === "object") {
+      const sprint = objectSprint(candidate);
+      return sprint ? [sprint] : [];
+    }
+    return [];
+  });
+  return [...new Map(sprints.map((sprint) => [sprint.id, sprint])).values()];
+}
+
 function referencedIssueKey(value: unknown): string | undefined {
   if (typeof value === "string") {
     return optionalString(value);
@@ -238,6 +337,12 @@ export function mapJiraIssue(
   const configuredHierarchy = context.fieldMapping?.hierarchyFieldId
     ? fields[context.fieldMapping.hierarchyFieldId]
     : undefined;
+  const storyPoints = context.fieldMapping?.storyPointsFieldId
+    ? optionalNumber(fields[context.fieldMapping.storyPointsFieldId])
+    : undefined;
+  const sprints = context.fieldMapping?.sprintFieldId
+    ? mapSprints(fields[context.fieldMapping.sprintFieldId])
+    : [];
   const startDate = optionalString(configuredStart) ?? optionalString(fields.startdate);
   const dueDate = optionalString(configuredEnd) ?? optionalString(fields.duedate);
   const parentKey = fields.parent?.key;
@@ -288,6 +393,8 @@ export function mapJiraIssue(
     ...(startDate ? { startDate } : {}),
     ...(dueDate ? { dueDate } : {}),
     ...(fields.resolutiondate ? { resolvedAt: fields.resolutiondate } : {}),
+    ...(storyPoints === undefined ? {} : { storyPoints }),
+    ...(sprints.length > 0 ? { sprints } : {}),
     progress: mapProgress(rawIssue, category),
     labels: [...(fields.labels ?? [])],
     components: (fields.components ?? []).map((component) => component.name),
