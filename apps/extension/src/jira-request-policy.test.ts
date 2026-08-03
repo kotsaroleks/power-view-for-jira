@@ -144,4 +144,54 @@ describe("Jira request policy", () => {
       ),
     ).toThrow();
   });
+
+  it("allows read-only reporting endpoints and strict bulk changelog reads", () => {
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...request, path: "/rest/agile/1.0/board/7/configuration" },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...request,
+          path: "/rest/agile/1.0/board/7/issue",
+          query: { maxResults: 100, startAt: 0 },
+        },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...request,
+          method: "POST",
+          path: "/rest/api/3/changelog/bulkfetch",
+          body: { issueIdsOrKeys: ["10001"], fieldIds: ["status"], maxResults: 1000 },
+        },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...request,
+          method: "POST",
+          path: "/rest/api/3/changelog/bulkfetch",
+          body: {
+            issueIdsOrKeys: ["10001"],
+            fieldIds: ["status"],
+            maxResults: 1000,
+            jql: "project = POWER",
+          },
+        },
+        request.baseUrl,
+        false,
+      ),
+    ).toThrow();
+  });
 });

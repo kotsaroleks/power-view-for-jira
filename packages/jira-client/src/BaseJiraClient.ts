@@ -7,6 +7,7 @@ import type {
   JiraServerInfo,
   JiraUser,
   NormalizedIssue,
+  ReportWorklog,
   PageProgress,
   PaginatedResult,
   ProjectSearchOptions,
@@ -26,6 +27,18 @@ import type {
   UpdateIssueDatesRequest,
 } from "./JiraClient";
 import type { JiraTransport } from "./JiraTransport";
+import type {
+  GetBoardIssuesRequest,
+  GetBoardsRequest,
+  GetBoardSprintsRequest,
+  GetIssueChangelogsRequest,
+  GetIssueWorklogsRequest,
+  GetSprintIssuesRequest,
+  JiraBoardConfiguration,
+  JiraBoardPage,
+  JiraSprintPage,
+  ReportingIssuePage,
+} from "./reporting-api";
 import { JiraClientError } from "./errors";
 import { mapJiraField, mapJiraIssue, mapJiraServerInfo, mapJiraUser } from "./mappers";
 import {
@@ -36,7 +49,28 @@ import {
   rawJiraServerInfoSchema,
   rawJiraUserSchema,
   rawJiraUsersSchema,
+  rawJiraIssueSchema,
 } from "./schemas";
+import {
+  rawJiraBoardPageSchema as reportingBoardPageSchema,
+  rawJiraBoardSchema as reportingBoardSchema,
+  rawJiraBoardConfigurationSchema as reportingBoardConfigurationSchema,
+  rawJiraSprintPageSchema as reportingSprintPageSchema,
+  rawJiraSprintSchema as reportingSprintSchema,
+  rawCloudReportingIssuePageSchema as reportingCloudIssuePageSchema,
+  rawDataCenterReportingIssuePageSchema as reportingDataCenterIssuePageSchema,
+  rawJiraIssueChangelogPageSchema as reportingIssueChangelogPageSchema,
+  rawCloudBulkChangelogSchema as reportingBulkChangelogSchema,
+  rawJiraWorklogPageSchema as reportingWorklogPageSchema,
+} from "./reporting-schemas";
+import {
+  mapBoardConfiguration,
+  mapChangelogEntry,
+  mapJiraBoard,
+  mapJiraSprint,
+  mapReportingIssue,
+  mapWorklog,
+} from "./reporting-mappers";
 import { z } from "zod";
 
 const ISSUE_CACHE_TTL_MS = 5 * 60 * 1_000;
@@ -61,6 +95,10 @@ const STANDARD_ISSUE_FIELDS = [
   "progress",
   "issuelinks",
   "subtasks",
+  "sprint",
+  "timetracking",
+  "timeoriginalestimate",
+  "timespent",
 ] as const;
 
 export type IssuePageCursor = string | number | undefined;
@@ -298,6 +336,349 @@ export abstract class BaseJiraClient implements JiraClient {
       result,
     });
     return result;
+  }
+
+  async getBoards(
+    request: GetBoardsRequest = {},
+    signal?: AbortSignal,
+  ): Promise<JiraBoardPage> {
+    const startAt = Math.max(0, request.startAt ?? 0);
+    const maxResults = Math.min(50, Math.max(1, request.maxResults ?? 25));
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: "/rest/agile/1.0/board",
+        query: {
+          startAt,
+          maxResults,
+          ...(request.projectKeyOrId ? { projectKeyOrId: request.projectKeyOrId } : {}),
+        },
+        headers: { Accept: "application/json" },
+      },
+      reportingBoardPageSchema,
+      signal,
+    );
+    return {
+      values: raw.values.map(mapJiraBoard),
+      startAt: raw.startAt,
+      maxResults: raw.maxResults,
+      total: raw.total,
+      isLast: raw.startAt + raw.values.length >= raw.total,
+    };
+  }
+
+  async getBoard(boardId: string, signal?: AbortSignal) {
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/agile/1.0/board/${boardId}`,
+        headers: { Accept: "application/json" },
+      },
+      reportingBoardSchema,
+      signal,
+    );
+    return mapJiraBoard(raw);
+  }
+
+  async getBoardConfiguration(
+    boardId: string,
+    signal?: AbortSignal,
+  ): Promise<JiraBoardConfiguration> {
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/agile/1.0/board/${boardId}/configuration`,
+        headers: { Accept: "application/json" },
+      },
+      reportingBoardConfigurationSchema,
+      signal,
+    );
+    return mapBoardConfiguration(raw);
+  }
+
+  async getBoardIssues(
+    request: GetBoardIssuesRequest,
+    signal?: AbortSignal,
+  ): Promise<ReportingIssuePage> {
+    const fields = [
+      ...STANDARD_ISSUE_FIELDS,
+      ...(request.fields ?? []),
+      ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
+    ];
+    const path =
+      this.deploymentType === "cloud"
+        ? `/rest/software/1.0/board/${request.boardId}/issue`
+        : `/rest/agile/1.0/board/${request.boardId}/issue`;
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path,
+        query: {
+          maxResults: Math.min(100, Math.max(1, request.pageSize ?? 100)),
+          fields: [...new Set(fields)].join(","),
+          ...(request.jql ? { jql: request.jql, validateQuery: true } : {}),
+          ...(this.deploymentType === "cloud" && typeof request.cursor === "string"
+            ? { nextPageToken: request.cursor }
+            : {}),
+          ...(this.deploymentType !== "cloud" && typeof request.cursor === "number"
+            ? { startAt: request.cursor }
+            : {}),
+        },
+        headers: { Accept: "application/json" },
+      },
+      this.deploymentType === "cloud"
+        ? reportingCloudIssuePageSchema
+        : reportingDataCenterIssuePageSchema,
+      signal,
+    );
+    const rawIssues = raw.issues.map((issue) => rawJiraIssueSchema.parse(issue));
+    const values = rawIssues.map((issue) =>
+      mapReportingIssue(issue, this.baseUrl, request.storyPointsFieldId),
+    );
+    if (!("startAt" in raw)) {
+      const nextPageToken =
+        "nextPageToken" in raw && typeof raw.nextPageToken === "string"
+          ? raw.nextPageToken
+          : undefined;
+      return {
+        values,
+        startAt: 0,
+        maxResults: values.length,
+        total: values.length,
+        isLast: "isLast" in raw ? (raw.isLast ?? !nextPageToken) : !nextPageToken,
+        ...(nextPageToken ? { nextCursor: nextPageToken } : {}),
+      };
+    }
+    const dataCenterRaw = reportingDataCenterIssuePageSchema.parse(raw);
+    const nextStart = dataCenterRaw.startAt + values.length;
+    return {
+      values,
+      startAt: dataCenterRaw.startAt,
+      maxResults: dataCenterRaw.maxResults,
+      total: dataCenterRaw.total,
+      isLast: nextStart >= dataCenterRaw.total || values.length === 0,
+      ...(nextStart < dataCenterRaw.total ? { nextCursor: nextStart } : {}),
+    };
+  }
+
+  async getBoardSprints(
+    request: GetBoardSprintsRequest,
+    signal?: AbortSignal,
+  ): Promise<JiraSprintPage> {
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/agile/1.0/board/${request.boardId}/sprint`,
+        query: {
+          startAt: Math.max(0, request.startAt ?? 0),
+          maxResults: Math.min(50, Math.max(1, request.maxResults ?? 25)),
+          ...(request.state?.length ? { state: request.state.join(",") } : {}),
+        },
+        headers: { Accept: "application/json" },
+      },
+      reportingSprintPageSchema,
+      signal,
+    );
+    return {
+      values: raw.values.map(mapJiraSprint),
+      startAt: raw.startAt,
+      maxResults: raw.maxResults,
+      total: raw.total,
+      isLast: raw.isLast ?? raw.startAt + raw.values.length >= raw.total,
+    };
+  }
+
+  async getSprint(sprintId: string, signal?: AbortSignal) {
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/agile/1.0/sprint/${sprintId}`,
+        headers: { Accept: "application/json" },
+      },
+      reportingSprintSchema,
+      signal,
+    );
+    return mapJiraSprint(raw);
+  }
+
+  async getSprintIssues(
+    request: GetSprintIssuesRequest,
+    signal?: AbortSignal,
+  ): Promise<ReportingIssuePage> {
+    const fields = [
+      ...STANDARD_ISSUE_FIELDS,
+      ...(request.fields ?? []),
+      ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
+    ];
+    const path =
+      this.deploymentType === "cloud"
+        ? `/rest/software/1.0/board/${request.boardId}/sprint/${request.sprintId}/issue`
+        : `/rest/agile/1.0/board/${request.boardId}/sprint/${request.sprintId}/issue`;
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path,
+        query: {
+          maxResults: Math.min(100, Math.max(1, request.pageSize ?? 100)),
+          fields: [...new Set(fields)].join(","),
+          ...(request.jql ? { jql: request.jql, validateQuery: true } : {}),
+          ...(this.deploymentType === "cloud" && typeof request.cursor === "string"
+            ? { nextPageToken: request.cursor }
+            : {}),
+          ...(this.deploymentType !== "cloud" && typeof request.cursor === "number"
+            ? { startAt: request.cursor }
+            : {}),
+        },
+        headers: { Accept: "application/json" },
+      },
+      this.deploymentType === "cloud"
+        ? reportingCloudIssuePageSchema
+        : reportingDataCenterIssuePageSchema,
+      signal,
+    );
+    const rawIssues = raw.issues.map((issue) => rawJiraIssueSchema.parse(issue));
+    const values = rawIssues.map((issue) =>
+      mapReportingIssue(issue, this.baseUrl, request.storyPointsFieldId),
+    );
+    if (!("startAt" in raw)) {
+      const nextPageToken =
+        "nextPageToken" in raw && typeof raw.nextPageToken === "string"
+          ? raw.nextPageToken
+          : undefined;
+      return {
+        values,
+        startAt: 0,
+        maxResults: values.length,
+        total: values.length,
+        isLast: "isLast" in raw ? (raw.isLast ?? !nextPageToken) : !nextPageToken,
+        ...(nextPageToken ? { nextCursor: nextPageToken } : {}),
+      };
+    }
+    const dataCenterRaw = reportingDataCenterIssuePageSchema.parse(raw);
+    const nextStart = dataCenterRaw.startAt + values.length;
+    return {
+      values,
+      startAt: dataCenterRaw.startAt,
+      maxResults: dataCenterRaw.maxResults,
+      total: dataCenterRaw.total,
+      isLast: nextStart >= dataCenterRaw.total || values.length === 0,
+      ...(nextStart < dataCenterRaw.total ? { nextCursor: nextStart } : {}),
+    };
+  }
+
+  async getIssueChangelogs(request: GetIssueChangelogsRequest) {
+    const fieldIds = [
+      "status",
+      "assignee",
+      "Sprint",
+      "timeoriginalestimate",
+      ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
+    ];
+    const events = [] as ReturnType<typeof mapChangelogEntry>;
+    if (this.deploymentType === "cloud") {
+      let nextPageToken: string | undefined;
+      do {
+        const raw = await this.transport.request(
+          {
+            baseUrl: this.baseUrl,
+            method: "POST",
+            path: "/rest/api/3/changelog/bulkfetch",
+            headers: { Accept: "application/json" },
+            body: {
+              issueIdsOrKeys: request.issues.map((issue) => issue.id),
+              fieldIds: [...new Set(fieldIds)].slice(0, 10),
+              maxResults: 1000,
+              ...(nextPageToken ? { nextPageToken } : {}),
+            },
+          },
+          reportingBulkChangelogSchema,
+          request.signal,
+        );
+        const keyById = new Map(request.issues.map((issue) => [issue.id, issue.key]));
+        for (const issueLog of raw.issueChangeLogs) {
+          const issueId = String(issueLog.issueId);
+          const key = keyById.get(issueId);
+          if (!key) continue;
+          for (const entry of issueLog.changeHistories) {
+            events.push(...mapChangelogEntry(entry, { id: issueId, key }, request));
+          }
+        }
+        nextPageToken = raw.nextPageToken;
+      } while (nextPageToken);
+      return events;
+    }
+    for (const issue of request.issues) {
+      let startAt = 0;
+      let isLast = false;
+      while (!isLast) {
+        const raw = await this.transport.request(
+          {
+            baseUrl: this.baseUrl,
+            method: "GET",
+            path: `/rest/api/${this.apiVersion}/issue/${issue.key}/changelog`,
+            query: { startAt, maxResults: 100 },
+            headers: { Accept: "application/json" },
+          },
+          reportingIssueChangelogPageSchema,
+          request.signal,
+        );
+        for (const entry of raw.values)
+          events.push(...mapChangelogEntry(entry, issue, request));
+        const loaded = startAt + raw.values.length;
+        isLast =
+          raw.isLast ?? (raw.values.length === 0 || loaded >= (raw.total ?? loaded));
+        startAt = loaded;
+      }
+    }
+    return events;
+  }
+
+  async getIssueWorklogs(request: GetIssueWorklogsRequest) {
+    const worklogs: ReportWorklog[] = [];
+    for (const issue of request.issues) {
+      let startAt = 0;
+      let isLast = false;
+      while (!isLast) {
+        const raw = await this.transport.request(
+          {
+            baseUrl: this.baseUrl,
+            method: "GET",
+            path: `/rest/api/${this.apiVersion}/issue/${issue.key}/worklog`,
+            query: {
+              startAt,
+              maxResults: 100,
+              ...(this.deploymentType === "cloud" && request.periodStart
+                ? { startedAfter: new Date(request.periodStart).getTime() }
+                : {}),
+              ...(this.deploymentType === "cloud" && request.periodEnd
+                ? { startedBefore: new Date(request.periodEnd).getTime() }
+                : {}),
+            },
+            headers: { Accept: "application/json" },
+          },
+          reportingWorklogPageSchema,
+          request.signal,
+        );
+        for (const rawWorklog of raw.worklogs) {
+          const normalized = mapWorklog(
+            { ...rawWorklog, issueId: rawWorklog.issueId ?? issue.id },
+            issue.key,
+          );
+          if (normalized) worklogs.push(normalized);
+        }
+        const loaded = startAt + raw.worklogs.length;
+        isLast = raw.worklogs.length === 0 || loaded >= raw.total;
+        startAt = loaded;
+      }
+    }
+    return worklogs;
   }
 
   async getIssueEditMetadata(

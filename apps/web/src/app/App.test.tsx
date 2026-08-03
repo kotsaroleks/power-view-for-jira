@@ -86,7 +86,7 @@ describe("App", () => {
     }));
     render(<App runtime={runtime} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Test Jira connection" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Connect to Jira" }));
 
     expect(await screen.findByText("Connected as Alex Rivera")).toBeInTheDocument();
     expect(screen.getByText(/Example Jira · cloud · 1001\.0\.0/)).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe("App", () => {
     );
     render(<App runtime={runtime} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Test Jira connection" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Connect to Jira" }));
 
     expect(await screen.findByText(message)).toBeInTheDocument();
     expect(screen.getByText(`Error code: ${code}`)).toBeInTheDocument();

@@ -35,6 +35,7 @@ export interface SetupPanelProps {
   settingsStore?: SettingsStore;
   onDiagnosticsChanged?: () => void;
   onScheduleReady?: (schedule: ReadyGanttSchedule | undefined) => void;
+  onSetupComplete?: (schedule: ReadyGanttSchedule) => void;
 }
 
 export interface ReadyGanttSchedule {
@@ -71,6 +72,7 @@ export function SetupPanel({
   settingsStore,
   onDiagnosticsChanged,
   onScheduleReady,
+  onSetupComplete,
 }: SetupPanelProps) {
   const client = useMemo(
     () =>
@@ -110,13 +112,6 @@ export function SetupPanel({
     [defaultDurations, issueResult],
   );
   const scheduleQueryKey = `${context.baseUrl}\n${selectedProjectKey}\n${jql.trim()}`;
-
-  useEffect(
-    () => () => {
-      onScheduleReady?.(undefined);
-    },
-    [onScheduleReady],
-  );
 
   const selectedProject = projectPage.values.find(
     (project) => project.key === selectedProjectKey,
@@ -416,6 +411,19 @@ export function SetupPanel({
       }
       setIssueResult(result);
       setIssueLoadState("ready");
+      const readySchedule: ReadyGanttSchedule = {
+        model: buildGanttScheduleModel(result.values, { defaultDurations }),
+        queryKey: scheduleQueryKey,
+        jiraBaseUrl: context.baseUrl,
+        projectKey: selectedProjectKey,
+        editing: {
+          client,
+          fieldMapping,
+          refresh: refreshLoadedIssues,
+        },
+      };
+      onScheduleReady?.(readySchedule);
+      onSetupComplete?.(readySchedule);
       reportIssueLoad(result.values.length, "ready");
     } catch (error) {
       if (controller.signal.aborted) {
@@ -538,7 +546,7 @@ export function SetupPanel({
           className="setup-form"
           onSubmit={(event) => {
             event.preventDefault();
-            void saveSetup();
+            void loadIssues();
           }}
         >
           <label>
@@ -781,12 +789,14 @@ export function SetupPanel({
             <button
               className="primary-button"
               type="submit"
-              disabled={saveStatus === "saving"}
+              disabled={saveStatus === "saving" || issueLoadState === "loading"}
             >
-              {saveStatus === "saving" ? "Saving setup…" : "Save setup"}
+              {saveStatus === "saving" || issueLoadState === "loading"
+                ? "Preparing workspace…"
+                : "Save and continue"}
             </button>
             {saveStatus === "saved" ? (
-              <span role="status">Setup is ready for issue loading.</span>
+              <span role="status">Setup saved. Preparing your workspace…</span>
             ) : null}
           </div>
 
@@ -802,7 +812,7 @@ export function SetupPanel({
                 disabled={issueLoadState === "loading"}
                 onClick={() => void loadIssues()}
               >
-                {issueLoadState === "loading" ? "Loading issues…" : "Load issue preview"}
+                {issueLoadState === "loading" ? "Loading issues…" : "Preview issues"}
               </button>
             </div>
 
