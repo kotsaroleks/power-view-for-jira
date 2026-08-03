@@ -17,6 +17,7 @@ const ALLOWED_READ_ROUTES = new Map<string, ReadonlySet<string>>([
     new Set(["jql", "nextPageToken", "maxResults", "fields", "fieldsByKeys", "failFast"]),
   ],
   ["/rest/api/3/project/search", new Set(["startAt", "maxResults", "orderBy", "query"])],
+  ["/rest/agile/1.0/board", new Set(["startAt", "maxResults", "type", "name", "projectKeyOrId"])],
 ]);
 
 const ISSUE_KEY_PATTERN = "[A-Z][A-Z0-9_]*-\\d+";
@@ -95,9 +96,37 @@ function validIssueLinkBody(value: unknown): boolean {
   );
 }
 
+function validBulkChangelogBody(value: unknown): boolean {
+  if (!isRecord(value) || !hasOnlyKeys(value, ["issueIdsOrKeys", "fieldIds", "maxResults", "nextPageToken"])) {
+    return false;
+  }
+  const issueIds = value.issueIdsOrKeys;
+  const fieldIds = value.fieldIds;
+  const maxResults = value.maxResults;
+  const nextPageToken = value.nextPageToken;
+  return (
+    Array.isArray(issueIds) &&
+    issueIds.length > 0 &&
+    issueIds.length <= 1_000 &&
+    issueIds.every((item) => typeof item === "string" && item.length > 0 && item.length <= 255) &&
+    Array.isArray(fieldIds) &&
+    fieldIds.length <= 10 &&
+    fieldIds.every((item) => typeof item === "string" && item.length > 0 && item.length <= 512) &&
+    typeof maxResults === "number" &&
+    Number.isInteger(maxResults) &&
+    maxResults >= 1 &&
+    maxResults <= 1_000 &&
+    (nextPageToken === undefined ||
+      (typeof nextPageToken === "string" && nextPageToken.length > 0 && nextPageToken.length <= 4_096))
+  );
+}
+
 function allowedQueryParameters(
   request: JiraTransportRequest,
 ): ReadonlySet<string> | undefined {
+  if (request.method === "POST" && request.path === "/rest/api/3/changelog/bulkfetch") {
+    return new Set();
+  }
   if (request.method !== "GET") {
     return new Set();
   }
@@ -118,6 +147,25 @@ function allowedQueryParameters(
 
   if (/^\/rest\/api\/[23]\/user\/assignable\/search$/.test(request.path)) {
     return new Set(["issueKey", "query", "username", "startAt", "maxResults"]);
+  }
+
+  if (/^\/rest\/agile\/1\.0\/board\/\d+$/.test(request.path)) return new Set();
+  if (/^\/rest\/agile\/1\.0\/board\/\d+\/configuration$/.test(request.path)) return new Set();
+  if (/^\/rest\/(?:agile|software)\/1\.0\/board\/\d+\/issue$/.test(request.path)) {
+    return new Set(["startAt", "nextPageToken", "maxResults", "jql", "validateQuery", "fields", "expand"]);
+  }
+  if (/^\/rest\/agile\/1\.0\/board\/\d+\/sprint$/.test(request.path)) {
+    return new Set(["startAt", "maxResults", "state"]);
+  }
+  if (/^\/rest\/agile\/1\.0\/sprint\/\d+$/.test(request.path)) return new Set();
+  if (/^\/rest\/(?:agile|software)\/1\.0\/board\/\d+\/sprint\/\d+\/issue$/.test(request.path)) {
+    return new Set(["startAt", "nextPageToken", "maxResults", "jql", "validateQuery", "fields", "expand"]);
+  }
+  if (new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/changelog$`).test(request.path)) {
+    return new Set(["startAt", "maxResults"]);
+  }
+  if (new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/worklog$`).test(request.path)) {
+    return new Set(["startAt", "maxResults", "startedAfter", "startedBefore", "expand"]);
   }
 
   return undefined;
@@ -176,7 +224,9 @@ export function validatedJiraRequestUrl(
   const requestIsAllowed =
     request.method === "GET"
       ? request.body === undefined && allowedQuery !== undefined
-      : validMutationRequest(request);
+      : request.method === "POST" && request.path === "/rest/api/3/changelog/bulkfetch"
+        ? validBulkChangelogBody(request.body)
+        : validMutationRequest(request);
 
   if (
     !requestIsAllowed ||

@@ -15,6 +15,7 @@ import type {
 import { JiraCloudClient } from "./JiraCloudClient";
 import { JiraDataCenterClient } from "./JiraDataCenterClient";
 import type { JiraTransport } from "./JiraTransport";
+import type { ReportingJiraClient } from "./reporting-api";
 
 export interface JiraIssueEditField {
   id: string;
@@ -47,7 +48,7 @@ export interface CreateIssueLinkRequest {
   outwardIssueKey: string;
 }
 
-export interface JiraClient {
+export interface JiraClient extends ReportingJiraClient {
   getCurrentUser(signal?: AbortSignal): Promise<JiraUser>;
   getServerInfo(signal?: AbortSignal): Promise<JiraServerInfo>;
   getProjects(

@@ -16,6 +16,31 @@ export {
   type RuntimeJiraTransportOptions,
 } from "./RuntimeJiraTransport";
 export type { JiraTransport } from "./JiraTransport";
+export type {
+  GetBoardIssuesRequest,
+  GetBoardsRequest,
+  GetBoardSprintsRequest,
+  GetIssueChangelogsRequest,
+  GetIssueWorklogsRequest,
+  GetSprintIssuesRequest,
+  JiraBoardConfiguration,
+  JiraBoardPage,
+  JiraSprintPage,
+  ReportingIssuePage,
+  ReportingJiraClient,
+} from "./reporting-api";
+export {
+  rawCloudBulkChangelogSchema,
+  rawCloudReportingIssuePageSchema,
+  rawDataCenterReportingIssuePageSchema,
+  rawJiraBoardConfigurationSchema,
+  rawJiraBoardPageSchema,
+  rawJiraBoardSchema,
+  rawJiraIssueChangelogPageSchema,
+  rawJiraSprintPageSchema,
+  rawJiraSprintSchema,
+  rawJiraWorklogPageSchema,
+} from "./reporting-schemas";
 export {
   rawCloudIssueSearchPageSchema,
   rawCloudProjectPageSchema,

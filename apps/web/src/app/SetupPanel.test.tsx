@@ -189,10 +189,10 @@ describe("SetupPanel", () => {
     fireEvent.change(screen.getByRole("spinbutton", { name: "Story default duration" }), {
       target: { value: "8" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
 
     expect(
-      await screen.findByText("Setup is ready for issue loading."),
+      await screen.findByText("Setup saved. Preparing your workspace…"),
     ).toBeInTheDocument();
     await expect(
       store.getSetup("https://example.atlassian.net", "POWER"),
@@ -205,8 +205,6 @@ describe("SetupPanel", () => {
       },
       defaultDurations: { story: 8 },
     });
-
-    fireEvent.click(screen.getByRole("button", { name: "Load issue preview" }));
 
     expect(await screen.findByText("2 normalized issues ready")).toBeInTheDocument();
     expect(screen.getByText("2 deterministic Gantt tasks")).toBeInTheDocument();
@@ -238,7 +236,7 @@ describe("SetupPanel", () => {
         target: { value: "duedate" },
       });
     }
-    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
 
     expect(
       await screen.findByText("Start and end dates must use different fields."),
@@ -266,7 +264,7 @@ describe("SetupPanel", () => {
       target: { value: 'project = "POWER" AND status = MissingStatus' },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Load issue preview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview issues" }));
 
     expect(
       await screen.findByText("The status value is not valid for this project."),

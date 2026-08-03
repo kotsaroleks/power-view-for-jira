@@ -28,6 +28,7 @@ export interface FieldMapping {
   endDateFieldId?: string;
   hierarchyFieldId?: string;
   storyPointsFieldId?: string;
+  sprintFieldId?: string;
 }
 
 function normalizedName(value: string): string {
@@ -150,6 +151,7 @@ export function validateFieldMapping(
   for (const [label, fieldId] of [
     ["Hierarchy", mapping.hierarchyFieldId],
     ["Story points", mapping.storyPointsFieldId],
+    ["Sprint", mapping.sprintFieldId],
   ] as const) {
     if (fieldId && !fieldsById.has(fieldId)) {
       errors.push(`${label} field is no longer available in Jira.`);

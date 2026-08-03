@@ -65,6 +65,13 @@ const rawAppErrorSchema = z
       "INVALID_JQL",
       "FIELD_MAPPING_REQUIRED",
       "TOO_MANY_ISSUES",
+      "BOARD_NOT_FOUND",
+      "SPRINT_NOT_FOUND",
+      "STATUS_MAPPING_REQUIRED",
+      "STATUS_MAPPING_STALE",
+      "REPORT_GENERATION_CANCELLED",
+      "REPORT_STORAGE_QUOTA_EXCEEDED",
+      "PDF_GENERATION_FAILED",
       "UNKNOWN",
     ]),
     message: z.string().min(1),
@@ -94,7 +101,16 @@ export const jiraTransportRequestSchema = z
   .object({
     baseUrl: z.url().max(2048),
     method: z.enum(["GET", "POST", "PUT", "DELETE"]),
-    path: z.string().startsWith("/rest/api/").max(512),
+    path: z
+      .string()
+      .max(512)
+      .refine(
+        (value) =>
+          value.startsWith("/rest/api/") ||
+          value.startsWith("/rest/agile/1.0/") ||
+          value.startsWith("/rest/software/1.0/"),
+        "The Jira path is outside supported REST API families.",
+      ),
     query: z.record(z.string().max(128), queryValueSchema).optional(),
     headers: z.record(z.string().max(128), z.string().max(2048)).optional(),
     body: z.record(z.string().max(128), z.unknown()).optional(),
