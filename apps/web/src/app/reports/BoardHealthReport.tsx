@@ -455,6 +455,9 @@ export function BoardHealthReportView({
     return grouped;
   }, [completedStatusIds, completedStatusNames, selectedSprint, sprintScopedIssues]);
   const [expandedPeople, setExpandedPeople] = useState<Set<string>>(new Set());
+  const [showFinishedByPerson, setShowFinishedByPerson] = useState<Set<string>>(
+    new Set(),
+  );
   const planning = report.planning;
   const planned = planning ? planning.currentSprint + planning.futureSprint : undefined;
 
@@ -818,42 +821,77 @@ export function BoardHealthReportView({
                     <span role="cell">{person.issues.notStarted}</span>
                     <strong role="cell">{person.issues.total}</strong>
                   </div>
-                  {expandedPeople.has(person.key) ? (
-                    <div
-                      className="people-report-detail"
-                      id={`person-issues-${person.key}`}
-                      role="region"
-                      aria-label={`${person.name} issues`}
-                    >
-                      <div className="people-report-detail-heading">
-                        <strong>
-                          {person.name} · {person.issues.total} issues
-                        </strong>
-                        <span>Click an issue to open it in Jira</span>
-                      </div>
-                      <div className="people-report-issues">
-                        {(sprintIssuesByPerson.get(person.key) ?? []).map((issue) => (
-                          <a
-                            className="people-report-issue"
-                            href={issue.browseUrl}
-                            key={issue.id}
-                            rel="noreferrer"
-                            target="_blank"
+                  {expandedPeople.has(person.key)
+                    ? (() => {
+                        const personIssues = sprintIssuesByPerson.get(person.key) ?? [];
+                        const showFinished = showFinishedByPerson.has(person.key);
+                        const isFinished = (issue: NormalizedIssue) =>
+                          boardHealthStatusCategory(issue, {
+                            completedStatusIds,
+                            completedStatusNames,
+                          }) === "done";
+                        const visibleIssues = showFinished
+                          ? personIssues
+                          : personIssues.filter((issue) => !isFinished(issue));
+                        const finishedCount = personIssues.length - visibleIssues.length;
+                        return (
+                          <div
+                            className="people-report-detail"
+                            id={`person-issues-${person.key}`}
+                            role="region"
+                            aria-label={`${person.name} issues`}
                           >
-                            <span>
-                              <strong>{issue.key}</strong>
-                              <span>{issue.summary}</span>
-                            </span>
-                            <span
-                              className={`gantt-status status-${issue.status.category ?? "unknown"}`}
-                            >
-                              {issue.status.name}
-                            </span>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
+                            <div className="people-report-detail-heading">
+                              <strong>
+                                {person.name} · {visibleIssues.length} issues
+                              </strong>
+                              <label className="report-show-finished">
+                                <input
+                                  type="checkbox"
+                                  checked={showFinished}
+                                  onChange={() =>
+                                    setShowFinishedByPerson((current) => {
+                                      const next = new Set(current);
+                                      if (next.has(person.key)) next.delete(person.key);
+                                      else next.add(person.key);
+                                      return next;
+                                    })
+                                  }
+                                />
+                                <span>
+                                  Show finished
+                                  {!showFinished && finishedCount > 0
+                                    ? ` (${finishedCount})`
+                                    : ""}
+                                </span>
+                              </label>
+                              <span>Click an issue to open it in Jira</span>
+                            </div>
+                            <div className="people-report-issues">
+                              {visibleIssues.map((issue) => (
+                                <a
+                                  className="people-report-issue"
+                                  href={issue.browseUrl}
+                                  key={issue.id}
+                                  rel="noreferrer"
+                                  target="_blank"
+                                >
+                                  <span>
+                                    <strong>{issue.key}</strong>
+                                    <span>{issue.summary}</span>
+                                  </span>
+                                  <span
+                                    className={`gantt-status status-${issue.status.category ?? "unknown"}`}
+                                  >
+                                    {issue.status.name}
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    : null}
                 </div>
               ))}
             </div>

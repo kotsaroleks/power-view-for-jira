@@ -1303,6 +1303,7 @@ h1 {
 .people-report-detail-heading {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
@@ -1313,6 +1314,21 @@ h1 {
 .people-report-detail-heading span {
   color: #626f86;
   font-size: 10px;
+}
+
+.report-show-finished {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: auto;
+  color: #44546f;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.report-show-finished input {
+  margin: 0;
 }
 
 .people-report-issues {

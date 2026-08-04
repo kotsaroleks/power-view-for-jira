@@ -121,6 +121,11 @@ describe("BoardHealthReportView", () => {
     fireEvent.click(toggle);
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.queryByRole("link", { name: /POWER-1 Ship the report/ }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Show finished/ }));
     expect(screen.getByRole("link", { name: /POWER-1 Ship the report/ })).toHaveAttribute(
       "href",
       "https://jira.example.test/browse/POWER-1",
@@ -133,6 +138,46 @@ describe("BoardHealthReportView", () => {
     expect(screen.getAllByRole("link", { name: /POWER-1 Ship the report/ })).toHaveLength(
       2,
     );
+  });
+
+  it("hides finished issues in a person's list by default, with a toggle to reveal them", () => {
+    render(
+      <BoardHealthReportView
+        issues={[
+          makeIssue("POWER-1", "done", {
+            summary: "Shipped work",
+            assignee: { accountId: "alex", displayName: "Alex" },
+            sprints: [sprint],
+          }),
+          makeIssue("POWER-2", "in-progress", {
+            summary: "Ongoing work",
+            assignee: { accountId: "alex", displayName: "Alex" },
+            sprints: [sprint],
+          }),
+        ]}
+        model={emptyModel}
+        projectKey="POWER"
+        projectName="Power View"
+        jql={'project = "POWER"'}
+        loadedAt="2026-08-03T10:00:00.000Z"
+        truncated={false}
+        sprintDataAvailable
+        storyPointsDataAvailable={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Alex" }));
+
+    expect(screen.getByText(/Ongoing work/)).toBeInTheDocument();
+    expect(screen.queryByText(/Shipped work/)).not.toBeInTheDocument();
+    const toggle = screen.getByRole("checkbox", { name: /Show finished \(1\)/ });
+    expect(toggle).not.toBeChecked();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toBeChecked();
+    expect(screen.getByText(/Shipped work/)).toBeInTheDocument();
+    expect(screen.getByText(/Ongoing work/)).toBeInTheDocument();
   });
 
   it("uses the sprint-scoped Jira issue response for the team breakdown", async () => {
