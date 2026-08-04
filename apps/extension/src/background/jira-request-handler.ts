@@ -7,7 +7,7 @@ import {
 import { jiraStatusError } from "../jira-response-policy";
 import { ExtensionOperationError } from "./message-handler";
 
-const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_MAX_CONCURRENT_REQUESTS = 4;
 const DEFAULT_MAX_AUTOMATIC_RETRY_DELAY_MS = 10_000;
@@ -181,65 +181,38 @@ export class JiraRequestHandler {
 
     const controller = new AbortController();
     this.activeRequests.set(requestId, controller);
-    const timeout = setTimeout(() => controller.abort("timeout"), this.timeoutMs);
     let release: () => void = () => undefined;
 
     try {
       release = await this.semaphore.acquire(controller.signal);
+      const timeout = setTimeout(() => controller.abort("timeout"), this.timeoutMs);
 
-      while (true) {
-        let response: Response;
-        try {
-          response = await this.fetchImplementation(url, {
-            method: request.method,
-            credentials: "include",
-            redirect: "manual",
-            headers: sanitizedJiraRequestHeaders(request),
-            ...(request.body === undefined ? {} : { body: JSON.stringify(request.body) }),
-            signal: controller.signal,
-          });
-        } catch {
-          if (controller.signal.aborted) {
-            const timedOut = controller.signal.reason === "timeout";
-            throw new JiraRequestExecutionError(
-              {
-                code: timedOut ? "TIMEOUT" : "NETWORK_ERROR",
-                message: timedOut
-                  ? "The Jira request timed out."
-                  : "The Jira request was cancelled.",
-                details: timedOut
-                  ? "Jira did not respond within the 15-second request window."
-                  : "Retry the connection test if it is still needed.",
-                retryable: true,
-              },
-              this.now() - startedAt,
-              retryCount,
-            );
-          }
-          throw new JiraRequestExecutionError(
-            {
-              code: "NETWORK_ERROR",
-              message: "Power View could not reach Jira.",
-              details: "Check the Jira URL, browser network connection, and host access.",
-              retryable: true,
-            },
-            this.now() - startedAt,
-            retryCount,
-          );
-        }
-
-        if (response.ok) {
-          let data: unknown;
+      try {
+        while (true) {
+          let response: Response;
           try {
-            const responseText = await response.text();
-            data = responseText.trim() ? JSON.parse(responseText) : null;
+            response = await this.fetchImplementation(url, {
+              method: request.method,
+              credentials: "include",
+              redirect: "manual",
+              headers: sanitizedJiraRequestHeaders(request),
+              ...(request.body === undefined
+                ? {}
+                : { body: JSON.stringify(request.body) }),
+              signal: controller.signal,
+            });
           } catch {
-            if (controller.signal.reason === "timeout") {
+            if (controller.signal.aborted) {
+              const timedOut = controller.signal.reason === "timeout";
               throw new JiraRequestExecutionError(
                 {
-                  code: "TIMEOUT",
-                  message: "The Jira request timed out.",
-                  details: "Jira did not respond within the 15-second request window.",
+                  code: timedOut ? "TIMEOUT" : "NETWORK_ERROR",
+                  message: timedOut
+                    ? "The Jira request timed out."
+                    : "The Jira request was cancelled.",
+                  details: timedOut
+                    ? "Jira did not respond within the 30-second request window."
+                    : "Retry the connection test if it is still needed.",
                   retryable: true,
                 },
                 this.now() - startedAt,
@@ -248,47 +221,85 @@ export class JiraRequestHandler {
             }
             throw new JiraRequestExecutionError(
               {
-                code: "INVALID_RESPONSE",
-                message: "Jira returned malformed JSON.",
-                details: "The endpoint response could not be validated.",
+                code: "NETWORK_ERROR",
+                message: "Power View could not reach Jira.",
+                details:
+                  "Check the Jira URL, browser network connection, and host access.",
                 retryable: true,
-                httpStatus: response.status,
               },
               this.now() - startedAt,
               retryCount,
             );
           }
 
-          return {
-            status: response.status,
-            data,
-            durationMs: this.now() - startedAt,
-            retryCount,
-            transport: "service-worker",
-          };
-        }
+          if (response.ok) {
+            let data: unknown;
+            try {
+              const responseText = await response.text();
+              data = responseText.trim() ? JSON.parse(responseText) : null;
+            } catch {
+              if (controller.signal.reason === "timeout") {
+                throw new JiraRequestExecutionError(
+                  {
+                    code: "TIMEOUT",
+                    message: "The Jira request timed out.",
+                    details: "Jira did not respond within the 30-second request window.",
+                    retryable: true,
+                  },
+                  this.now() - startedAt,
+                  retryCount,
+                );
+              }
+              throw new JiraRequestExecutionError(
+                {
+                  code: "INVALID_RESPONSE",
+                  message: "Jira returned malformed JSON.",
+                  details: "The endpoint response could not be validated.",
+                  retryable: true,
+                  httpStatus: response.status,
+                },
+                this.now() - startedAt,
+                retryCount,
+              );
+            }
 
-        const isRetryableStatus = response.status === 429 || response.status >= 500;
-        if (isRetryableStatus && retryCount < this.maxRetries) {
-          const headerDelay = retryAfterMs(
-            response.headers.get("Retry-After"),
-            this.now(),
-          );
-          const exponentialDelay = 500 * 2 ** retryCount;
-          const jitteredDelay = Math.round(
-            exponentialDelay * (0.8 + this.random() * 0.4),
-          );
-          const delay = headerDelay ?? jitteredDelay;
-
-          if (request.method === "GET" && delay <= this.maxAutomaticRetryDelayMs) {
-            retryCount += 1;
-            await wait(delay, controller.signal);
-            continue;
+            return {
+              status: response.status,
+              data,
+              durationMs: this.now() - startedAt,
+              retryCount,
+              transport: "service-worker",
+            };
           }
-        }
 
-        const mapped = jiraStatusError(response.status, isRetryableStatus, request.path);
-        throw new JiraRequestExecutionError(mapped, this.now() - startedAt, retryCount);
+          const isRetryableStatus = response.status === 429 || response.status >= 500;
+          if (isRetryableStatus && retryCount < this.maxRetries) {
+            const headerDelay = retryAfterMs(
+              response.headers.get("Retry-After"),
+              this.now(),
+            );
+            const exponentialDelay = 500 * 2 ** retryCount;
+            const jitteredDelay = Math.round(
+              exponentialDelay * (0.8 + this.random() * 0.4),
+            );
+            const delay = headerDelay ?? jitteredDelay;
+
+            if (request.method === "GET" && delay <= this.maxAutomaticRetryDelayMs) {
+              retryCount += 1;
+              await wait(delay, controller.signal);
+              continue;
+            }
+          }
+
+          const mapped = jiraStatusError(
+            response.status,
+            isRetryableStatus,
+            request.path,
+          );
+          throw new JiraRequestExecutionError(mapped, this.now() - startedAt, retryCount);
+        }
+      } finally {
+        clearTimeout(timeout);
       }
     } catch (error) {
       if (error instanceof JiraRequestExecutionError) {
@@ -307,7 +318,6 @@ export class JiraRequestHandler {
         retryCount,
       );
     } finally {
-      clearTimeout(timeout);
       release();
       this.activeRequests.delete(requestId);
     }

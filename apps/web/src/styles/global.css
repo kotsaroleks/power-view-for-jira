@@ -996,6 +996,27 @@ h1 {
   grid-template-columns: 8px minmax(0, 1fr) auto auto;
 }
 
+.report-legend-toggle {
+  display: grid;
+  align-items: center;
+  column-gap: 6px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #44546f;
+  font: inherit;
+  font-size: 11px;
+  grid-template-columns: 8px minmax(0, 1fr) auto auto;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-legend-toggle:hover,
+.report-legend-toggle:focus-visible {
+  color: #0c66e4;
+  text-decoration: underline;
+}
+
 .report-legend i {
   width: 8px;
   height: 8px;
@@ -1010,6 +1031,40 @@ h1 {
 .report-legend small {
   color: #8993a4;
   font-size: 10px;
+}
+
+.report-segment-details {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #dfe1e6;
+  padding-top: 12px;
+}
+
+.report-segment-details-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #172b4d;
+  font-size: 11px;
+}
+
+.report-segment-details-heading span,
+.report-segment-empty {
+  color: #626f86;
+  font-size: 10px;
+}
+
+.report-segment-issues {
+  display: grid;
+  max-height: 310px;
+  gap: 7px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.report-segment-empty {
+  margin: 0;
 }
 
 .segment-todo {
@@ -1149,6 +1204,113 @@ h1 {
   color: #172b4d;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.people-report-expand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #172b4d;
+  font: inherit;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.people-report-expand:hover strong,
+.people-report-expand:focus-visible strong {
+  color: #0c66e4;
+  text-decoration: underline;
+}
+
+.people-report-chevron {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  place-items: center;
+  border: 1px solid #b3b9c4;
+  border-radius: 4px;
+  color: #626f86;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.people-report-detail {
+  grid-column: 1 / -1;
+  border-top: 1px solid #dfe1e6;
+  padding: 14px 13px 15px 26px;
+  background: #f7f8fa;
+}
+
+.people-report-detail-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #172b4d;
+  font-size: 11px;
+}
+
+.people-report-detail-heading span {
+  color: #626f86;
+  font-size: 10px;
+}
+
+.people-report-issues {
+  display: grid;
+  gap: 7px;
+}
+
+.people-report-issue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #ffffff;
+  color: #172b4d;
+  text-decoration: none;
+}
+
+.people-report-issue:hover,
+.people-report-issue:focus-visible {
+  border-color: #0c66e4;
+  box-shadow: 0 0 0 2px rgb(12 102 228 / 12%);
+}
+
+.people-report-issue > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.people-report-issue strong,
+.people-report-issue > span:first-child > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-report-issue strong {
+  color: #0c66e4;
+  font-size: 11px;
+}
+
+.people-report-issue > span:first-child > span {
+  color: #44546f;
+  font-size: 12px;
+}
+
+.people-report-issue .gantt-status {
+  flex: 0 0 auto;
 }
 
 .people-mini-bar {
@@ -1994,6 +2156,103 @@ h1 {
   gap: 12px;
   border-top: 1px solid #f1f2f4;
   padding-top: 10px;
+}
+
+/* Daily and weekly reports use the same scan-friendly dashboard rhythm as Board Health. */
+.daily-weekly-workspace {
+  display: grid;
+  gap: 20px;
+}
+
+.daily-weekly-workspace .reporting-output-header {
+  align-items: flex-start;
+  padding: 0 0 18px;
+}
+
+.daily-weekly-workspace .reporting-output-header h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.daily-weekly-workspace .reporting-output-header p {
+  margin: 5px 0 0;
+  color: #626f86;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.daily-weekly-workspace .report-kpis,
+.daily-weekly-workspace .report-panels {
+  padding: 0;
+}
+
+.daily-weekly-workspace .report-alert {
+  margin: 0;
+}
+
+.daily-weekly-workspace .report-alert ul {
+  margin: 0;
+  padding-left: 17px;
+}
+
+.report-activity-list,
+.report-pulse-list {
+  display: grid;
+  gap: 13px;
+}
+
+.report-activity-row {
+  display: grid;
+  gap: 7px;
+}
+
+.report-activity-row > div,
+.report-pulse-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #44546f;
+  font-size: 12px;
+}
+
+.report-activity-row strong,
+.report-pulse-list strong {
+  color: #172b4d;
+}
+
+.report-activity-track {
+  display: block;
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: #f1f2f4;
+}
+
+.report-activity-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #0c66e4;
+}
+
+.report-pulse-list div {
+  border-bottom: 1px solid #f1f2f4;
+  padding-bottom: 11px;
+}
+
+.report-pulse-list div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.daily-weekly-people {
+  gap: 12px;
+}
+
+.daily-weekly-people .people-report-row {
+  min-width: 0;
+  grid-template-columns: minmax(180px, 1fr) 120px 120px 100px;
 }
 
 .reporting-history-open {

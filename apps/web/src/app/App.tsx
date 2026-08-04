@@ -492,6 +492,8 @@ function AppContent({
               </div>
             </div>
             <BoardHealthReportView
+              client={jiraClient!}
+              {...(context.boardId ? { boardId: context.boardId } : {})}
               issues={readySchedule.issues}
               model={readySchedule.model}
               projectKey={readySchedule.projectKey}

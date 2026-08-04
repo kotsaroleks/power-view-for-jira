@@ -1,6 +1,7 @@
 import type { GanttScheduleModel, NormalizedIssue } from "@power-view/domain";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import type { JiraClient } from "@power-view/jira-client";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { BoardHealthReportView } from "./BoardHealthReport";
 
@@ -90,5 +91,93 @@ describe("BoardHealthReportView", () => {
 
     expect(screen.getAllByText(/Sprint data unavailable/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Current-sprint data is unavailable/)).toBeInTheDocument();
+  });
+
+  it("expands a person row to show that person's sprint issues", () => {
+    render(
+      <BoardHealthReportView
+        issues={[
+          makeIssue("POWER-1", "done", {
+            summary: "Ship the report",
+            assignee: { accountId: "alex", displayName: "Alex" },
+            sprints: [sprint],
+          }),
+        ]}
+        model={emptyModel}
+        projectKey="POWER"
+        projectName="Power View"
+        jql={'project = "POWER"'}
+        loadedAt="2026-08-03T10:00:00.000Z"
+        truncated={false}
+        sprintDataAvailable
+        storyPointsDataAvailable={false}
+      />,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Alex" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Ship the report")).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("link", { name: /POWER-1 Ship the report/ })).toHaveAttribute(
+      "href",
+      "https://jira.example.test/browse/POWER-1",
+    );
+
+    const doneStatus = screen.getByRole("button", { name: /Done/ });
+    expect(doneStatus).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(doneStatus);
+    expect(doneStatus).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("link", { name: /POWER-1 Ship the report/ })).toHaveLength(
+      2,
+    );
+  });
+
+  it("uses the sprint-scoped Jira issue response for the team breakdown", async () => {
+    const client = {
+      getSprintIssues: vi.fn().mockResolvedValue({
+        values: [{ id: "POWER-1" }],
+        isLast: true,
+      }),
+    } as unknown as JiraClient;
+
+    render(
+      <BoardHealthReportView
+        client={client}
+        boardId="7"
+        issues={[
+          makeIssue("POWER-1", "done", {
+            assignee: { accountId: "alex", displayName: "Alex" },
+            sprints: [sprint],
+          }),
+          makeIssue("POWER-2", "done", {
+            assignee: { accountId: "eboni", displayName: "Eboni Obanero" },
+            sprints: [sprint],
+          }),
+        ]}
+        model={emptyModel}
+        projectKey="POWER"
+        projectName="Power View"
+        jql={'project = "POWER"'}
+        loadedAt="2026-08-03T10:00:00.000Z"
+        truncated={false}
+        sprintDataAvailable
+        storyPointsDataAvailable={false}
+        preferredSprintId={sprint.id}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(client.getSprintIssues).toHaveBeenCalledWith(
+        expect.objectContaining({ boardId: "7", sprintId: "101" }),
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Alex")).toBeInTheDocument();
+      expect(screen.queryByText("Eboni Obanero")).not.toBeInTheDocument();
+    });
   });
 });

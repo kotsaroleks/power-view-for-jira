@@ -83,6 +83,125 @@ function printableReport(
   printWindow.print();
 }
 
+function reportDateRange(snapshot: GeneratedReportSnapshot): string {
+  return `${formatDate(snapshot.request.period.start)} — ${formatDate(snapshot.request.period.end)}`;
+}
+
+function activityLabel(type: GeneratedReportSnapshot["changes"][number]["type"]): string {
+  return {
+    "issue-created": "Created",
+    "issue-completed": "Completed",
+    "issue-reopened": "Reopened",
+    "status-changed": "Status changed",
+    "assignee-changed": "Assignment changed",
+    "story-points-changed": "Story points changed",
+    "original-estimate-changed": "Estimate changed",
+    "sprint-added": "Added to sprint",
+    "sprint-removed": "Removed from sprint",
+  }[type];
+}
+
+function DailyWeeklyOutput({
+  snapshot,
+  language,
+  setStatusMessage,
+}: {
+  snapshot: GeneratedReportSnapshot;
+  language: ReportLanguage;
+  setStatusMessage: (message: string) => void;
+}) {
+  const summary = snapshot.result.executiveSummary;
+  const activity = Object.entries(
+    snapshot.result.activity.reduce<Record<string, number>>((counts, event) => {
+      const label = activityLabel(event.type);
+      counts[label] = (counts[label] ?? 0) + 1;
+      return counts;
+    }, {}),
+  ).sort((left, right) => right[1] - left[1]);
+  const maxActivity = Math.max(...activity.map(([, count]) => count), 1);
+
+  return (
+    <div className="daily-weekly-workspace">
+      <header className="reporting-output-header">
+        <div>
+          <p className="report-eyebrow">{snapshot.request.type.toUpperCase()} REPORT</p>
+          <h3>{snapshot.board.name}</h3>
+          <p>{reportDateRange(snapshot)} · Data as of {formatDate(snapshot.request.period.dataCutoff)}</p>
+        </div>
+        <div className="connection-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() =>
+              void navigator.clipboard
+                .writeText(renderStandupText(snapshot, language))
+                .then(() => setStatusMessage("Stand-up text copied."))
+            }
+          >
+            Copy stand-up
+          </button>
+          <button className="secondary-button" type="button" onClick={() => printableReport(snapshot, language)}>
+            Generate PDF
+          </button>
+        </div>
+      </header>
+
+      {snapshot.completeness.warnings.length > 0 ? (
+        <div className="report-alert report-alert-warning" role="alert">
+          <strong>Data quality needs attention</strong>
+          <ul>
+            {snapshot.completeness.warnings.map((warning) => (
+              <li key={warning.code}>{warning.message}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="report-kpis" aria-label={`${snapshot.request.type} report summary`}>
+        <article className="report-metric"><span>Issues in scope</span><strong>{summary.totalIssues}</strong><small>{summary.incompleteIssues} still open</small></article>
+        <article className="report-metric report-metric-success"><span>Completed</span><strong>{summary.completedDuringPeriod}</strong><small>{summary.completedIssues} completed in scope</small></article>
+        <article className="report-metric"><span>Created</span><strong>{summary.createdIssues}</strong><small>Added during this period</small></article>
+        <article className="report-metric"><span>Worklog</span><strong>{(summary.worklogSeconds / 3600).toFixed(1)}h</strong><small>Logged during this period</small></article>
+        <article className={`report-metric ${summary.unassignedIssues ? "report-metric-warning" : ""}`}><span>Unassigned</span><strong>{summary.unassignedIssues}</strong><small>Issues without an owner</small></article>
+      </div>
+
+      <div className="report-panels">
+        <article className="report-panel">
+          <div className="report-panel-heading"><div><h3>Period activity</h3><p>Changes recorded in Jira during the selected period.</p></div><strong>{snapshot.result.activity.length} events</strong></div>
+          {activity.length ? (
+            <div className="report-activity-list">
+              {activity.map(([label, count]) => (
+                <div className="report-activity-row" key={label}>
+                  <div><span>{label}</span><strong>{count}</strong></div>
+                  <span className="report-activity-track"><i style={{ width: `${(count / maxActivity) * 100}%` }} /></span>
+                </div>
+              ))}
+            </div>
+          ) : <div className="report-unavailable"><strong>No activity recorded</strong><p>There were no tracked changes in this period.</p></div>}
+        </article>
+        <article className="report-panel">
+          <div className="report-panel-heading"><div><h3>Delivery pulse</h3><p>How work moved through the period.</p></div></div>
+          <div className="report-pulse-list">
+            <div><span>Completed</span><strong>{summary.completedDuringPeriod}</strong></div>
+            <div><span>Reopened</span><strong>{summary.reopenedDuringPeriod}</strong></div>
+            <div><span>Created</span><strong>{summary.createdIssues}</strong></div>
+            <div><span>Time spent</span><strong>{(summary.totalTimeSpentSeconds / 3600).toFixed(1)}h</strong></div>
+          </div>
+        </article>
+      </div>
+
+      <section className="reporting-people daily-weekly-people">
+        <div className="people-report-heading"><div><h3>People</h3><p>Ownership and contribution for this report.</p></div><span>{snapshot.result.people.length} contributors</span></div>
+        <div className="people-report-table" role="table" aria-label="Report contributors">
+          <div className="people-report-row people-report-header" role="row"><span>Person</span><span>Assigned work</span><span>Completed</span><span>Worklog</span></div>
+          {snapshot.result.people.map((person) => <div className="people-report-row" role="row" key={person.user.id}><strong>{person.user.displayName}</strong><span>{person.assignedIssues.length}</span><span>{person.completedIssues.length}</span><span>{(person.worklogSeconds / 3600).toFixed(1)}h</span></div>)}
+          <div className="people-report-row" role="row"><strong>Unassigned</strong><span>{snapshot.result.unassigned.issues.length}</span><span>—</span><span>—</span></div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function ReportsView({
   client,
   baseUrl,
@@ -489,7 +608,14 @@ export function ReportsView({
 
       {snapshot ? (
         <div className="reporting-output" aria-live="polite">
-          <div className="reporting-output-header">
+          {snapshot.request.type !== "sprint" ? (
+            <DailyWeeklyOutput
+              snapshot={snapshot}
+              language={language}
+              setStatusMessage={setStatusMessage}
+            />
+          ) : null}
+          {snapshot.request.type === "sprint" ? <div className="reporting-output-header">
             <div>
               <p className="setup-step">GENERATED {formatDate(snapshot.generatedAt)}</p>
               <h3>
@@ -516,7 +642,8 @@ export function ReportsView({
                 Generate PDF
               </button>
             </div>
-          </div>
+          </div> : null}
+          {snapshot.request.type === "sprint" ? <>
           <div className="reporting-summary-grid">
             <div>
               <span>Issues</span>
@@ -580,7 +707,7 @@ export function ReportsView({
                 ))}
               </ul>
             </div>
-          ) : null}
+          ) : null}</> : null}
         </div>
       ) : null}
 

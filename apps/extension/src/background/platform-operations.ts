@@ -468,7 +468,7 @@ async function executeJiraMainWorldBridge(
         request.method,
         sanitizedJiraRequestHeaders(request),
         request.body === undefined ? null : JSON.stringify(request.body),
-        15_000,
+        30_000,
       ],
     });
     rawResult = injectionResults[0]?.result;
@@ -526,7 +526,7 @@ async function executeJiraMainWorldBridge(
       ? {
           code: "TIMEOUT" as const,
           message: "The Jira compatibility request timed out.",
-          details: "Jira did not respond within the 15-second request window.",
+          details: "Jira did not respond within the 30-second request window.",
           retryable: true,
         }
       : result.reason === "redirect"

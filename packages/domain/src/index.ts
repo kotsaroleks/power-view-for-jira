@@ -1,5 +1,5 @@
 export const PRODUCT_NAME = "Power View for Jira";
-export const PRODUCT_VERSION = "0.1.0";
+export const PRODUCT_VERSION = "0.2.1";
 
 export type { AppErrorCode, SerializableAppError } from "./errors";
 export type {

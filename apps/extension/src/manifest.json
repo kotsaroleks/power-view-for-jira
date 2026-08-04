@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Power View for Jira",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "update_url": "https://kotsaroleks.github.io/power-view-for-jira/updates.xml",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4E83yG4F8XnZKDBBu2kdh0aYE1dVAE7Xcmy0J2+pr22AJhegco0H+0GNvn3YxFJK7+4YB+sONDObzNJfBYL2Rn4BcAxC8pBO3ScPFdnRZ6yTYPgNEBPTIU+8VpNaSChILzUr9yCzxE52VE8iHuSaBNbMf1LVZmLFoUiYHSLSLier+ry8vuExW44p+O1fEQYxKw+Ycih5EXxSpOC7anjBskctHRdGaOIDktBLXmeDk2CXbNYZL9cipoC5tiIYpynDDtg64ClipxWsav2pKU5SiWchfCa/jymHcBUnJNZeJw2v5UBygEf1fpdx53DTJfOQmLipbMPcVxim0pszwLf8+QIDAQAB",
   "description": "Advanced Jira planning views with explicit, allowlisted editing.",

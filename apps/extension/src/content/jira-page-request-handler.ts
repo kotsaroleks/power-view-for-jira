@@ -7,7 +7,7 @@ import {
 } from "../jira-request-policy";
 import { jiraStatusError } from "../jira-response-policy";
 
-const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 type FetchImplementation = (
   input: string | URL | Request,
@@ -97,7 +97,7 @@ export class JiraPageRequestHandler {
               ? "The Jira page request timed out."
               : "The Jira page could not complete the REST request.",
             details: timedOut
-              ? "Jira did not respond within the 15-second request window."
+              ? "Jira did not respond within the 30-second request window."
               : "Reload Jira, confirm that you are signed in, then retry.",
             retryable: true,
           },

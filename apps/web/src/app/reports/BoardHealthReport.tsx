@@ -7,9 +7,12 @@ import {
   type NormalizedIssue,
   type SprintMeasureBuckets,
 } from "@power-view/domain";
-import { useMemo, useState, type CSSProperties } from "react";
+import type { JiraClient } from "@power-view/jira-client";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 export interface BoardHealthReportProps {
+  client?: JiraClient;
+  boardId?: string;
   issues: NormalizedIssue[];
   model: GanttScheduleModel;
   projectKey: string;
@@ -33,11 +36,16 @@ function SegmentBar({
   label,
   total,
   segments,
+  issueDetails,
 }: {
   label: string;
   total: number;
   segments: Segment[];
+  issueDetails?: Record<string, NormalizedIssue[]>;
 }) {
+  const [expandedSegment, setExpandedSegment] = useState<string>();
+  const expandedIssues = expandedSegment ? (issueDetails?.[expandedSegment] ?? []) : [];
+
   return (
     <div className="report-segment-group">
       <div
@@ -61,15 +69,70 @@ function SegmentBar({
           ))}
       </div>
       <div className="report-legend">
-        {segments.map((segment) => (
-          <span key={segment.label}>
-            <i className={segment.className} aria-hidden="true" />
-            {segment.label}
-            <strong>{reportPercentage(segment.value, total)}%</strong>
-            <small>{segment.value}</small>
-          </span>
-        ))}
+        {segments.map((segment) => {
+          const details = issueDetails?.[segment.label];
+          const content = (
+            <>
+              <i className={segment.className} aria-hidden="true" />
+              {segment.label}
+              <strong>{reportPercentage(segment.value, total)}%</strong>
+              <small>{segment.value}</small>
+            </>
+          );
+          return details ? (
+            <button
+              className="report-legend-toggle"
+              type="button"
+              key={segment.label}
+              aria-expanded={expandedSegment === segment.label}
+              onClick={() =>
+                setExpandedSegment((current) =>
+                  current === segment.label ? undefined : segment.label,
+                )
+              }
+            >
+              {content}
+            </button>
+          ) : (
+            <span key={segment.label}>{content}</span>
+          );
+        })}
       </div>
+      {expandedSegment ? (
+        <div className="report-segment-details">
+          <div className="report-segment-details-heading">
+            <strong>
+              {expandedSegment} · {expandedIssues.length} issues
+            </strong>
+            <span>Click an issue to open it in Jira</span>
+          </div>
+          {expandedIssues.length > 0 ? (
+            <div className="report-segment-issues">
+              {expandedIssues.map((issue) => (
+                <a
+                  className="people-report-issue"
+                  href={issue.browseUrl}
+                  key={issue.id}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <span>
+                    <strong>{issue.key}</strong>
+                    <span>{issue.summary}</span>
+                  </span>
+                  <span
+                    className={`gantt-status status-${issue.status.category ?? "unknown"}`}
+                  >
+                    {issue.status.name}
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="report-segment-empty">No issues in this status.</p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -157,7 +220,18 @@ function personSegments(buckets: SprintMeasureBuckets): Segment[] {
   ];
 }
 
+function issueAssigneeKey(issue: NormalizedIssue): string {
+  return (
+    issue.assignee?.accountId ??
+    issue.assignee?.username ??
+    issue.assignee?.displayName ??
+    "__unassigned__"
+  );
+}
+
 export function BoardHealthReportView({
+  client,
+  boardId,
   issues,
   model,
   projectKey,
@@ -179,10 +253,87 @@ export function BoardHealthReportView({
       }),
     [issues, preferredBoardId, preferredSprintId, sprintDataAvailable],
   );
+  const [boardActiveSprints, setBoardActiveSprints] = useState<JiraIssueSprint[]>();
+  useEffect(() => {
+    if (!client || !boardId || typeof client.getBoardSprints !== "function") {
+      setBoardActiveSprints(undefined);
+      return;
+    }
+    const controller = new AbortController();
+    void client
+      .getBoardSprints({ boardId, state: ["active"], maxResults: 50 }, controller.signal)
+      .then((page) => {
+        if (!controller.signal.aborted) setBoardActiveSprints(page.values);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setBoardActiveSprints(undefined);
+      });
+    return () => controller.abort();
+  }, [boardId, client]);
+  const availableSprints = boardActiveSprints ?? report.activeSprints;
   const [selectedSprintId, setSelectedSprintId] = useState(preferredSprintId ?? "");
   const selectedSprint =
-    report.activeSprints.find((sprint) => sprint.id === selectedSprintId) ??
-    report.activeSprints[0];
+    availableSprints.find((sprint) => sprint.id === selectedSprintId) ??
+    availableSprints[0];
+  const sprintBoardId = boardId ?? selectedSprint?.boardId;
+  const [sprintIssueIds, setSprintIssueIds] = useState<Set<string>>();
+  const [sprintIssueLoading, setSprintIssueLoading] = useState(false);
+  const [sprintIssueLoadError, setSprintIssueLoadError] = useState(false);
+  useEffect(() => {
+    if (!selectedSprint || !client || !sprintBoardId) {
+      setSprintIssueIds(undefined);
+      setSprintIssueLoading(false);
+      setSprintIssueLoadError(false);
+      return;
+    }
+    const controller = new AbortController();
+    setSprintIssueLoading(true);
+    setSprintIssueIds(undefined);
+    setSprintIssueLoadError(false);
+    void (async () => {
+      try {
+        const ids = new Set<string>();
+        let cursor: string | number | undefined;
+        let isLast = false;
+        while (!isLast) {
+          const page = await client.getSprintIssues(
+            {
+              boardId: sprintBoardId,
+              sprintId: selectedSprint.id,
+              pageSize: 100,
+              ...(cursor === undefined ? {} : { cursor }),
+            },
+            controller.signal,
+          );
+          page.values.forEach((issue) => ids.add(issue.id));
+          cursor = page.nextCursor;
+          isLast = page.isLast || cursor === undefined;
+        }
+        if (!controller.signal.aborted) setSprintIssueIds(ids);
+      } catch {
+        if (!controller.signal.aborted) {
+          setSprintIssueIds(new Set());
+          setSprintIssueLoadError(true);
+        }
+      } finally {
+        if (!controller.signal.aborted) setSprintIssueLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [client, selectedSprint, sprintBoardId]);
+  const sprintScopedIssues = useMemo(
+    () =>
+      client && sprintBoardId && sprintIssueIds !== undefined
+        ? issues.filter((issue) => sprintIssueIds.has(issue.id))
+        : client && sprintBoardId
+          ? []
+          : selectedSprint
+            ? issues.filter((issue) =>
+                issue.sprints?.some((candidate) => candidate.id === selectedSprint.id),
+              )
+            : [],
+    [client, issues, selectedSprint, sprintBoardId, sprintIssueIds],
+  );
   const blockedIssueIds = useMemo(
     () => new Set(model.tasks.filter((task) => task.isBlocked).map((task) => task.id)),
     [model.tasks],
@@ -190,15 +341,45 @@ export function BoardHealthReportView({
   const sprintReport = useMemo(
     () =>
       selectedSprint
-        ? buildSprintHealthReport(issues, selectedSprint, blockedIssueIds)
+        ? buildSprintHealthReport(sprintScopedIssues, selectedSprint, blockedIssueIds)
         : undefined,
-    [blockedIssueIds, issues, selectedSprint],
+    [blockedIssueIds, selectedSprint, sprintScopedIssues],
   );
+  const sprintIssuesByPerson = useMemo(() => {
+    const grouped = new Map<string, NormalizedIssue[]>();
+    if (!selectedSprint) return grouped;
+    for (const issue of sprintScopedIssues) {
+      const key = issueAssigneeKey(issue);
+      grouped.set(key, [...(grouped.get(key) ?? []), issue]);
+    }
+    return grouped;
+  }, [selectedSprint, sprintScopedIssues]);
+  const sprintIssuesByStatus = useMemo(() => {
+    const grouped: Record<string, NormalizedIssue[]> = {};
+    if (!selectedSprint) return grouped;
+    for (const issue of sprintScopedIssues) {
+      const label =
+        issue.status.category === "done"
+          ? "Done"
+          : issue.status.category === "in-progress"
+            ? "In progress"
+            : issue.status.category === "to-do"
+              ? "Not started"
+              : "Unknown";
+      grouped[label] = [...(grouped[label] ?? []), issue];
+    }
+    return grouped;
+  }, [selectedSprint, sprintScopedIssues]);
+  const [expandedPeople, setExpandedPeople] = useState<Set<string>>(new Set());
   const planning = report.planning;
   const planned = planning ? planning.currentSprint + planning.futureSprint : undefined;
 
   return (
-    <section id="board-health" className="report-workspace" aria-labelledby="report-title">
+    <section
+      id="board-health"
+      className="report-workspace"
+      aria-labelledby="report-title"
+    >
       <header className="report-titlebar">
         <div>
           <p className="report-eyebrow">BOARD HEALTH</p>
@@ -350,14 +531,14 @@ export function BoardHealthReportView({
                 : "The report will appear when the loaded issues contain an active sprint."}
             </p>
           </div>
-          {report.activeSprints.length > 1 ? (
+          {availableSprints.length > 1 ? (
             <label className="sprint-selector">
               <span>Active sprint</span>
               <select
                 value={selectedSprint?.id ?? ""}
                 onChange={(event) => setSelectedSprintId(event.target.value)}
               >
-                {report.activeSprints.map((sprint) => (
+                {availableSprints.map((sprint) => (
                   <option key={sprint.id} value={sprint.id}>
                     {sprint.name}
                   </option>
@@ -373,6 +554,18 @@ export function BoardHealthReportView({
             <p>
               Configure the Sprint field in Project setup. The UI intentionally does not
               replace missing data with zeroes.
+            </p>
+          </div>
+        ) : sprintIssueLoading ? (
+          <div className="report-unavailable report-unavailable-large">
+            <strong>Loading current-sprint issues</strong>
+            <p>Jira is verifying the issues currently assigned to this sprint.</p>
+          </div>
+        ) : sprintIssueLoadError ? (
+          <div className="report-unavailable report-unavailable-large">
+            <strong>Current-sprint issues could not be loaded</strong>
+            <p>
+              Refresh the report to retry. Sprint metrics are intentionally not estimated.
             </p>
           </div>
         ) : sprintReport && sprintReport.issues.total > 0 ? (
@@ -418,6 +611,7 @@ export function BoardHealthReportView({
                 label="Sprint progress"
                 total={sprintReport.issues.total}
                 segments={personSegments(sprintReport.issues)}
+                issueDetails={sprintIssuesByStatus}
               />
             </article>
 
@@ -448,24 +642,80 @@ export function BoardHealthReportView({
                 <span role="columnheader">Total</span>
               </div>
               {sprintReport.people.map((person) => (
-                <div className="people-report-row" role="row" key={person.key}>
-                  <strong role="cell">{person.name}</strong>
-                  <div className="people-mini-bar" role="cell">
-                    {personSegments(person.issues)
-                      .filter((segment) => segment.value > 0)
-                      .map((segment) => (
-                        <span
-                          key={segment.label}
-                          className={segment.className}
-                          style={{ "--segment-size": segment.value } as CSSProperties}
-                          title={`${segment.label}: ${segment.value}`}
-                        />
-                      ))}
+                <div className="people-report-person" key={person.key}>
+                  <div className="people-report-row" role="row">
+                    <button
+                      className="people-report-expand"
+                      type="button"
+                      aria-expanded={expandedPeople.has(person.key)}
+                      aria-controls={`person-issues-${person.key}`}
+                      onClick={() =>
+                        setExpandedPeople((current) => {
+                          const next = new Set(current);
+                          if (next.has(person.key)) next.delete(person.key);
+                          else next.add(person.key);
+                          return next;
+                        })
+                      }
+                    >
+                      <span className="people-report-chevron" aria-hidden="true">
+                        {expandedPeople.has(person.key) ? "⌄" : "›"}
+                      </span>
+                      <strong>{person.name}</strong>
+                    </button>
+                    <div className="people-mini-bar" role="cell">
+                      {personSegments(person.issues)
+                        .filter((segment) => segment.value > 0)
+                        .map((segment) => (
+                          <span
+                            key={segment.label}
+                            className={segment.className}
+                            style={{ "--segment-size": segment.value } as CSSProperties}
+                            title={`${segment.label}: ${segment.value}`}
+                          />
+                        ))}
+                    </div>
+                    <span role="cell">{person.issues.done}</span>
+                    <span role="cell">{person.issues.inProgress}</span>
+                    <span role="cell">{person.issues.notStarted}</span>
+                    <strong role="cell">{person.issues.total}</strong>
                   </div>
-                  <span role="cell">{person.issues.done}</span>
-                  <span role="cell">{person.issues.inProgress}</span>
-                  <span role="cell">{person.issues.notStarted}</span>
-                  <strong role="cell">{person.issues.total}</strong>
+                  {expandedPeople.has(person.key) ? (
+                    <div
+                      className="people-report-detail"
+                      id={`person-issues-${person.key}`}
+                      role="region"
+                      aria-label={`${person.name} issues`}
+                    >
+                      <div className="people-report-detail-heading">
+                        <strong>
+                          {person.name} · {person.issues.total} issues
+                        </strong>
+                        <span>Click an issue to open it in Jira</span>
+                      </div>
+                      <div className="people-report-issues">
+                        {(sprintIssuesByPerson.get(person.key) ?? []).map((issue) => (
+                          <a
+                            className="people-report-issue"
+                            href={issue.browseUrl}
+                            key={issue.id}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            <span>
+                              <strong>{issue.key}</strong>
+                              <span>{issue.summary}</span>
+                            </span>
+                            <span
+                              className={`gantt-status status-${issue.status.category ?? "unknown"}`}
+                            >
+                              {issue.status.name}
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
