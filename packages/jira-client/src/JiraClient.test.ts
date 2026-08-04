@@ -3,6 +3,7 @@ import { makeJiraIssueFixtures } from "@power-view/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import type { z } from "zod";
 
+import { JiraClientError } from "./errors";
 import { createJiraClient } from "./JiraClient";
 import type { JiraTransport } from "./JiraTransport";
 
@@ -440,12 +441,54 @@ describe("createJiraClient", () => {
 
     await client.getIssueChangelogs({ issues });
 
-    expect(requestMock).toHaveBeenCalledTimes(3);
+    expect(requestMock).toHaveBeenCalledTimes(6);
     for (const call of requestMock.mock.calls) {
       const body = (call[0] as JiraTransportRequest).body as {
         issueIdsOrKeys: string[];
       };
-      expect(body.issueIdsOrKeys.length).toBeLessThanOrEqual(50);
+      expect(body.issueIdsOrKeys.length).toBeLessThanOrEqual(20);
     }
+  });
+
+  it("retries a changelog batch once on a retryable network failure", async () => {
+    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
+    requestMock.mockRejectedValueOnce(
+      new JiraClientError({
+        code: "NETWORK_ERROR",
+        message: "The Jira page could not complete the REST request.",
+        retryable: true,
+      }),
+    );
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    const events = await client.getIssueChangelogs({
+      issues: [{ id: "10001", key: "POWER-1" }],
+    });
+
+    expect(events).toEqual([]);
+    expect(requestMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up after repeated retryable failures for a changelog batch", async () => {
+    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
+    requestMock.mockRejectedValue(
+      new JiraClientError({
+        code: "NETWORK_ERROR",
+        message: "The Jira page could not complete the REST request.",
+        retryable: true,
+      }),
+    );
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    await expect(
+      client.getIssueChangelogs({ issues: [{ id: "10001", key: "POWER-1" }] }),
+    ).rejects.toThrow("The Jira page could not complete the REST request.");
+    expect(requestMock).toHaveBeenCalledTimes(3);
   });
 });

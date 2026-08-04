@@ -40,7 +40,7 @@ import type {
   JiraSprintPage,
   ReportingIssuePage,
 } from "./reporting-api";
-import { JiraClientError } from "./errors";
+import { JiraClientError, isJiraClientError } from "./errors";
 import { mapJiraField, mapJiraIssue, mapJiraServerInfo, mapJiraUser } from "./mappers";
 import {
   type RawJiraIssue,
@@ -584,33 +584,51 @@ export abstract class BaseJiraClient implements JiraClient {
     ];
     const events = [] as ReturnType<typeof mapChangelogEntry>;
     if (this.deploymentType === "cloud") {
-      // Bulkfetching changelogs for hundreds of issues in one request risks a
-      // heavy, slow response that the Jira page's fetch can drop before it
-      // completes (observed as a generic network failure, not a timeout or
-      // HTTP error status). Chunk into smaller batches so one slow/failed
-      // batch doesn't wipe out changelog data for the whole report.
-      const CHANGELOG_BATCH_SIZE = 50;
+      // Bulkfetching changelogs for many issues (or issues with deep history) in
+      // one request risks a heavy, slow response that the Jira page's fetch can
+      // drop before it completes (observed as a generic network failure, not a
+      // timeout or HTTP error status). Chunk into small batches with a modest
+      // per-page result cap, and retry a batch a couple of times on a retryable
+      // network failure, so one slow/dropped batch doesn't wipe out changelog
+      // data for the whole report.
+      const CHANGELOG_BATCH_SIZE = 20;
+      const CHANGELOG_BATCH_RETRIES = 2;
       const keyById = new Map(request.issues.map((issue) => [issue.id, issue.key]));
       for (let start = 0; start < request.issues.length; start += CHANGELOG_BATCH_SIZE) {
         const batch = request.issues.slice(start, start + CHANGELOG_BATCH_SIZE);
         let nextPageToken: string | undefined;
         do {
-          const raw = await this.transport.request(
-            {
-              baseUrl: this.baseUrl,
-              method: "POST",
-              path: "/rest/api/3/changelog/bulkfetch",
-              headers: { Accept: "application/json" },
-              body: {
-                issueIdsOrKeys: batch.map((issue) => issue.id),
-                fieldIds: [...new Set(fieldIds)].slice(0, 10),
-                maxResults: 1000,
-                ...(nextPageToken ? { nextPageToken } : {}),
+          const requestBatch = async () =>
+            this.transport.request(
+              {
+                baseUrl: this.baseUrl,
+                method: "POST",
+                path: "/rest/api/3/changelog/bulkfetch",
+                headers: { Accept: "application/json" },
+                body: {
+                  issueIdsOrKeys: batch.map((issue) => issue.id),
+                  fieldIds: [...new Set(fieldIds)].slice(0, 10),
+                  maxResults: 200,
+                  ...(nextPageToken ? { nextPageToken } : {}),
+                },
               },
-            },
-            reportingBulkChangelogSchema,
-            request.signal,
-          );
+              reportingBulkChangelogSchema,
+              request.signal,
+            );
+          let raw: Awaited<ReturnType<typeof requestBatch>>;
+          let attempt = 0;
+          for (;;) {
+            try {
+              raw = await requestBatch();
+              break;
+            } catch (cause) {
+              const retryable =
+                isJiraClientError(cause) && cause.appError.retryable === true;
+              if (!retryable || attempt >= CHANGELOG_BATCH_RETRIES) throw cause;
+              attempt += 1;
+              await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+            }
+          }
           for (const issueLog of raw.issueChangeLogs) {
             const issueId = String(issueLog.issueId);
             const key = keyById.get(issueId);
