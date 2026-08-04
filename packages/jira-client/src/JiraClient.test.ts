@@ -1,4 +1,5 @@
 import type { JiraTransportRequest } from "@power-view/extension-messaging";
+import { makeJiraIssueFixtures } from "@power-view/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import type { z } from "zod";
 
@@ -22,6 +23,33 @@ function transportWith(data: unknown): {
 }
 
 describe("createJiraClient", () => {
+  it("uses public Agile REST for Cloud board and sprint issue scopes", async () => {
+    const { transport, requestMock } = transportWith({
+      issues: makeJiraIssueFixtures(1),
+      isLast: true,
+    });
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    await client.getBoardIssues({ boardId: "7", jql: "filter = 9001" });
+    await client.getSprintIssues({
+      boardId: "7",
+      sprintId: "101",
+      jql: "filter = 9001",
+    });
+
+    expect(requestMock.mock.calls[0]?.[0]).toMatchObject({
+      path: "/rest/agile/1.0/board/7/issue",
+      query: { jql: "filter = 9001", validateQuery: true },
+    });
+    expect(requestMock.mock.calls[1]?.[0]).toMatchObject({
+      path: "/rest/agile/1.0/board/7/sprint/101/issue",
+      query: { jql: "filter = 9001", validateQuery: true },
+    });
+  });
+
   it("uses REST v3 for Jira Cloud", async () => {
     const { transport, requestMock } = transportWith({
       accountId: "a1",

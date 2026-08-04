@@ -2086,7 +2086,8 @@ h1 {
 }
 
 .reporting-grid select,
-.reporting-grid input {
+.reporting-grid input,
+.reporting-context-value {
   width: 100%;
   min-height: 38px;
   border: 1px solid #b3b9c4;
@@ -2095,6 +2096,13 @@ h1 {
   background: #ffffff;
   color: #172b4d;
   font-size: 13px;
+}
+
+.reporting-context-value {
+  display: flex;
+  align-items: center;
+  background: #f7f8f9;
+  font-weight: 700;
 }
 
 .reporting-status-fieldset {

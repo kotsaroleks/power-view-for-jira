@@ -439,9 +439,9 @@ describe("GanttView", () => {
     );
   });
 
-  it("loads and saves project-scoped filter preferences", async () => {
+  it("loads and saves board-scoped workspace filter preferences", async () => {
     const store = new SettingsStore(new MemoryStorage());
-    await store.saveGanttFilters("https://example.atlassian.net", "POWER", {
+    await store.saveGanttFilters("https://example.atlassian.net", "POWER:7", {
       ...DEFAULT_GANTT_FILTERS,
       search: "Publish notes",
     });
@@ -452,7 +452,7 @@ describe("GanttView", () => {
         filterPersistence={{
           store,
           jiraBaseUrl: "https://example.atlassian.net",
-          projectKey: "POWER",
+          workspaceKey: "POWER:7",
         }}
       />,
     );
@@ -467,7 +467,7 @@ describe("GanttView", () => {
     });
     await waitFor(() =>
       expect(
-        store.getGanttFilters("https://example.atlassian.net", "POWER"),
+        store.getGanttFilters("https://example.atlassian.net", "POWER:7"),
       ).resolves.toMatchObject({ search: "Plan release" }),
     );
   });

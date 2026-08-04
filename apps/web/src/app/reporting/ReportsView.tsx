@@ -13,35 +13,22 @@ import type { JiraClient } from "@power-view/jira-client";
 import {
   IndexedDbReportHistoryStore,
   MemoryReportHistoryStore,
-  ReportSettingsStore,
   type ReportHistoryItem,
   type ReportHistoryStore,
 } from "@power-view/storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { loadReportBoards } from "./load-report-boards";
 import { generateReport } from "./reporting-generator";
 import { renderStandupText } from "./standup";
-
-interface StatusOption {
-  id: string;
-  name: string;
-}
 
 export interface ReportsViewProps {
   client: JiraClient;
   baseUrl: string;
   deploymentType: "cloud" | "data-center" | "server" | "unknown";
-  projectKeyOrId?: string;
-  currentBoardId?: string;
-  settingsStore?: ReportSettingsStore;
+  board: JiraBoard;
+  jql: string;
+  statusMapping: BoardReportConfiguration;
   historyStore?: ReportHistoryStore;
-}
-
-function defaultSettingsStore(): ReportSettingsStore | undefined {
-  return typeof chrome !== "undefined" && chrome.storage?.local
-    ? new ReportSettingsStore(chrome.storage.local)
-    : undefined;
 }
 
 function defaultHistoryStore(): ReportHistoryStore {
@@ -126,7 +113,10 @@ function DailyWeeklyOutput({
         <div>
           <p className="report-eyebrow">{snapshot.request.type.toUpperCase()} REPORT</p>
           <h3>{snapshot.board.name}</h3>
-          <p>{reportDateRange(snapshot)} · Data as of {formatDate(snapshot.request.period.dataCutoff)}</p>
+          <p>
+            {reportDateRange(snapshot)} · Data as of{" "}
+            {formatDate(snapshot.request.period.dataCutoff)}
+          </p>
         </div>
         <div className="connection-actions">
           <button
@@ -140,7 +130,11 @@ function DailyWeeklyOutput({
           >
             Copy stand-up
           </button>
-          <button className="secondary-button" type="button" onClick={() => printableReport(snapshot, language)}>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => printableReport(snapshot, language)}
+          >
             Generate PDF
           </button>
         </div>
@@ -158,44 +152,126 @@ function DailyWeeklyOutput({
       ) : null}
 
       <div className="report-kpis" aria-label={`${snapshot.request.type} report summary`}>
-        <article className="report-metric"><span>Issues in scope</span><strong>{summary.totalIssues}</strong><small>{summary.incompleteIssues} still open</small></article>
-        <article className="report-metric report-metric-success"><span>Completed</span><strong>{summary.completedDuringPeriod}</strong><small>{summary.completedIssues} completed in scope</small></article>
-        <article className="report-metric"><span>Created</span><strong>{summary.createdIssues}</strong><small>Added during this period</small></article>
-        <article className="report-metric"><span>Worklog</span><strong>{(summary.worklogSeconds / 3600).toFixed(1)}h</strong><small>Logged during this period</small></article>
-        <article className={`report-metric ${summary.unassignedIssues ? "report-metric-warning" : ""}`}><span>Unassigned</span><strong>{summary.unassignedIssues}</strong><small>Issues without an owner</small></article>
+        <article className="report-metric">
+          <span>Issues in scope</span>
+          <strong>{summary.totalIssues}</strong>
+          <small>{summary.incompleteIssues} still open</small>
+        </article>
+        <article className="report-metric report-metric-success">
+          <span>Completed</span>
+          <strong>{summary.completedDuringPeriod}</strong>
+          <small>{summary.completedIssues} completed in scope</small>
+        </article>
+        <article className="report-metric">
+          <span>Created</span>
+          <strong>{summary.createdIssues}</strong>
+          <small>Added during this period</small>
+        </article>
+        <article className="report-metric">
+          <span>Worklog</span>
+          <strong>{(summary.worklogSeconds / 3600).toFixed(1)}h</strong>
+          <small>Logged during this period</small>
+        </article>
+        <article
+          className={`report-metric ${summary.unassignedIssues ? "report-metric-warning" : ""}`}
+        >
+          <span>Unassigned</span>
+          <strong>{summary.unassignedIssues}</strong>
+          <small>Issues without an owner</small>
+        </article>
       </div>
 
       <div className="report-panels">
         <article className="report-panel">
-          <div className="report-panel-heading"><div><h3>Period activity</h3><p>Changes recorded in Jira during the selected period.</p></div><strong>{snapshot.result.activity.length} events</strong></div>
+          <div className="report-panel-heading">
+            <div>
+              <h3>Period activity</h3>
+              <p>Changes recorded in Jira during the selected period.</p>
+            </div>
+            <strong>{snapshot.result.activity.length} events</strong>
+          </div>
           {activity.length ? (
             <div className="report-activity-list">
               {activity.map(([label, count]) => (
                 <div className="report-activity-row" key={label}>
-                  <div><span>{label}</span><strong>{count}</strong></div>
-                  <span className="report-activity-track"><i style={{ width: `${(count / maxActivity) * 100}%` }} /></span>
+                  <div>
+                    <span>{label}</span>
+                    <strong>{count}</strong>
+                  </div>
+                  <span className="report-activity-track">
+                    <i style={{ width: `${(count / maxActivity) * 100}%` }} />
+                  </span>
                 </div>
               ))}
             </div>
-          ) : <div className="report-unavailable"><strong>No activity recorded</strong><p>There were no tracked changes in this period.</p></div>}
+          ) : (
+            <div className="report-unavailable">
+              <strong>No activity recorded</strong>
+              <p>There were no tracked changes in this period.</p>
+            </div>
+          )}
         </article>
         <article className="report-panel">
-          <div className="report-panel-heading"><div><h3>Delivery pulse</h3><p>How work moved through the period.</p></div></div>
+          <div className="report-panel-heading">
+            <div>
+              <h3>Delivery pulse</h3>
+              <p>How work moved through the period.</p>
+            </div>
+          </div>
           <div className="report-pulse-list">
-            <div><span>Completed</span><strong>{summary.completedDuringPeriod}</strong></div>
-            <div><span>Reopened</span><strong>{summary.reopenedDuringPeriod}</strong></div>
-            <div><span>Created</span><strong>{summary.createdIssues}</strong></div>
-            <div><span>Time spent</span><strong>{(summary.totalTimeSpentSeconds / 3600).toFixed(1)}h</strong></div>
+            <div>
+              <span>Completed</span>
+              <strong>{summary.completedDuringPeriod}</strong>
+            </div>
+            <div>
+              <span>Reopened</span>
+              <strong>{summary.reopenedDuringPeriod}</strong>
+            </div>
+            <div>
+              <span>Created</span>
+              <strong>{summary.createdIssues}</strong>
+            </div>
+            <div>
+              <span>Time spent</span>
+              <strong>{(summary.totalTimeSpentSeconds / 3600).toFixed(1)}h</strong>
+            </div>
           </div>
         </article>
       </div>
 
       <section className="reporting-people daily-weekly-people">
-        <div className="people-report-heading"><div><h3>People</h3><p>Ownership and contribution for this report.</p></div><span>{snapshot.result.people.length} contributors</span></div>
-        <div className="people-report-table" role="table" aria-label="Report contributors">
-          <div className="people-report-row people-report-header" role="row"><span>Person</span><span>Assigned work</span><span>Completed</span><span>Worklog</span></div>
-          {snapshot.result.people.map((person) => <div className="people-report-row" role="row" key={person.user.id}><strong>{person.user.displayName}</strong><span>{person.assignedIssues.length}</span><span>{person.completedIssues.length}</span><span>{(person.worklogSeconds / 3600).toFixed(1)}h</span></div>)}
-          <div className="people-report-row" role="row"><strong>Unassigned</strong><span>{snapshot.result.unassigned.issues.length}</span><span>—</span><span>—</span></div>
+        <div className="people-report-heading">
+          <div>
+            <h3>People</h3>
+            <p>Ownership and contribution for this report.</p>
+          </div>
+          <span>{snapshot.result.people.length} contributors</span>
+        </div>
+        <div
+          className="people-report-table"
+          role="table"
+          aria-label="Report contributors"
+        >
+          <div className="people-report-row people-report-header" role="row">
+            <span>Person</span>
+            <span>Assigned work</span>
+            <span>Completed</span>
+            <span>Worklog</span>
+          </div>
+          {snapshot.result.people.map((person) => (
+            <div className="people-report-row" role="row" key={person.user.id}>
+              <strong>{person.user.displayName}</strong>
+              <span>{person.assignedIssues.length}</span>
+              <span>{person.completedIssues.length}</span>
+              <span>{(person.worklogSeconds / 3600).toFixed(1)}h</span>
+            </div>
+          ))}
+          <div className="people-report-row" role="row">
+            <strong>Unassigned</strong>
+            <span>{snapshot.result.unassigned.issues.length}</span>
+            <span>—</span>
+            <span>—</span>
+          </div>
         </div>
       </section>
     </div>
@@ -206,19 +282,14 @@ export function ReportsView({
   client,
   baseUrl,
   deploymentType,
-  projectKeyOrId,
-  currentBoardId,
-  settingsStore = defaultSettingsStore(),
+  board,
+  jql,
+  statusMapping,
   historyStore = defaultHistoryStore(),
 }: ReportsViewProps) {
-  const [boards, setBoards] = useState<JiraBoard[]>([]);
-  const [boardId, setBoardId] = useState("");
-  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [assigneeOptions, setAssigneeOptions] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const [completedStatusIds, setCompletedStatusIds] = useState<string[]>([]);
-  const [storedMapping, setStoredMapping] = useState<BoardReportConfiguration>();
   const [sprints, setSprints] = useState<
     Array<{ id: string; name: string; state: string }>
   >([]);
@@ -235,63 +306,30 @@ export function ReportsView({
   const [snapshot, setSnapshot] = useState<GeneratedReportSnapshot>();
   const [history, setHistory] = useState<ReportHistoryItem[]>([]);
 
-  const selectedBoard = boards.find((board) => board.id === boardId);
   const refreshHistory = useCallback(async () => {
     try {
-      setHistory(await historyStore.list({ jiraBaseUrl: baseUrl }));
+      setHistory(await historyStore.list({ jiraBaseUrl: baseUrl, boardId: board.id }));
     } catch {
       setHistory([]);
     }
-  }, [baseUrl, historyStore]);
+  }, [baseUrl, board.id, historyStore]);
 
   useEffect(() => {
-    let current = true;
-    void (async () => {
-      try {
-        const loadedBoards = await loadReportBoards(
-          client,
-          projectKeyOrId,
-          currentBoardId,
-        );
-        if (!current) return;
-        setBoards(loadedBoards);
-        const initialBoard =
-          loadedBoards.find((board) => board.id === currentBoardId) ?? loadedBoards[0];
-        if (initialBoard) setBoardId(initialBoard.id);
-      } catch (cause) {
-        if (current)
-          setError(
-            cause instanceof Error ? cause.message : "Could not load Jira boards.",
-          );
-      }
-      await refreshHistory();
-    })();
-    return () => {
-      current = false;
-    };
-  }, [client, currentBoardId, projectKeyOrId, refreshHistory]);
+    void refreshHistory();
+  }, [refreshHistory]);
 
   useEffect(() => {
-    if (!boardId) return;
     let current = true;
     void (async () => {
       setError(undefined);
       try {
-        const [board, boardConfiguration, issuePage] = await Promise.all([
-          client.getBoard(boardId),
-          client.getBoardConfiguration(boardId),
-          client.getBoardIssues({ boardId, pageSize: 100 }),
+        const [issuePage, sprintPage] = await Promise.all([
+          client.getBoardIssues({ boardId: board.id, pageSize: 100 }),
+          board.type === "scrum"
+            ? client.getBoardSprints({ boardId: board.id, maxResults: 50 })
+            : Promise.resolve(undefined),
         ]);
         if (!current) return;
-        const statuses = [
-          ...new Map(
-            issuePage.values.map((issue) => {
-              const id = issue.status.id ?? issue.status.name;
-              return [id, { id, name: issue.status.name }];
-            }),
-          ).values(),
-        ].sort((left, right) => left.name.localeCompare(right.name));
-        setStatusOptions(statuses);
         setAssigneeOptions(
           [
             ...new Map(
@@ -308,23 +346,8 @@ export function ReportsView({
             ).values(),
           ].sort((left, right) => left.name.localeCompare(right.name)),
         );
-        const stored = await settingsStore?.getBoardConfiguration(baseUrl, boardId);
-        if (!current) return;
-        setStoredMapping(stored);
-        setCompletedStatusIds(
-          stored?.completedStatusIds ??
-            statuses
-              .filter((status) => status.name === "Done" || status.name === "In Review")
-              .map((status) => status.id),
-        );
-        const sprintPage =
-          board.type === "scrum"
-            ? await client.getBoardSprints({ boardId, maxResults: 50 })
-            : undefined;
-        if (!current) return;
         setSprints(sprintPage?.values ?? []);
         if (sprintPage?.values[0]) setSprintId(sprintPage.values[0].id);
-        void boardConfiguration;
       } catch (cause) {
         if (current)
           setError(
@@ -337,32 +360,11 @@ export function ReportsView({
     return () => {
       current = false;
     };
-  }, [baseUrl, boardId, client, settingsStore]);
-
-  const saveMapping = async () => {
-    if (!boardId || !selectedBoard) return;
-    const names = statusOptions
-      .filter((status) => completedStatusIds.includes(status.id))
-      .map((status) => status.name);
-    const mapping: BoardReportConfiguration = {
-      schemaVersion: 1,
-      jiraBaseUrl: baseUrl,
-      boardId,
-      completedStatusIds,
-      completedStatusNames: names,
-      ...(storedMapping?.storyPointsFieldId
-        ? { storyPointsFieldId: storedMapping.storyPointsFieldId }
-        : {}),
-      updatedAt: new Date().toISOString(),
-    };
-    await settingsStore?.saveBoardConfiguration(mapping);
-    setStoredMapping(mapping);
-    setStatusMessage("Status mapping saved locally.");
-  };
+  }, [board.id, board.type, client]);
 
   const generate = async () => {
-    if (!boardId || completedStatusIds.length === 0) {
-      setError("Select at least one completed status before generating a report.");
+    if (statusMapping.completedStatusIds.length === 0) {
+      setError("Configure at least one completed status in Workspace Settings.");
       return;
     }
     if (type === "sprint" && !sprintId) {
@@ -374,33 +376,20 @@ export function ReportsView({
     setError(undefined);
     setStatusMessage(undefined);
     try {
-      const names = statusOptions
-        .filter((status) => completedStatusIds.includes(status.id))
-        .map((status) => status.name);
-      const mapping: BoardReportConfiguration = {
-        schemaVersion: 1,
-        jiraBaseUrl: baseUrl,
-        boardId,
-        completedStatusIds,
-        completedStatusNames: names,
-        ...(storedMapping?.storyPointsFieldId
-          ? { storyPointsFieldId: storedMapping.storyPointsFieldId }
-          : {}),
-        updatedAt: new Date().toISOString(),
-      };
       const nextSnapshot = await generateReport({
         client,
         baseUrl,
         deploymentType,
         request: {
           type,
-          boardId,
+          boardId: board.id,
+          jql,
           ...(type === "sprint" ? { sprintId } : {}),
           localDate,
           scope,
           language,
           ...(type === "sprint" ? { progressMode } : {}),
-          statusMapping: mapping,
+          statusMapping,
         },
         onProgress: (progress) => setLoadingMessage(progress.stage),
         signal: controller.signal,
@@ -461,15 +450,8 @@ export function ReportsView({
             </select>
           </label>
           <label>
-            <span>Board</span>
-            <select value={boardId} onChange={(event) => setBoardId(event.target.value)}>
-              <option value="">Select board</option>
-              {boards.map((board) => (
-                <option key={board.id} value={board.id}>
-                  {board.name}
-                </option>
-              ))}
-            </select>
+            <span>Workspace board</span>
+            <output className="reporting-context-value">{board.name}</output>
           </label>
           <label>
             <span>Scope</span>
@@ -546,44 +528,10 @@ export function ReportsView({
             Period: {formatDate(periodPreview.start)} — {formatDate(periodPreview.end)}
           </p>
         ) : null}
-        <fieldset className="reporting-status-fieldset">
-          <legend>Completed statuses</legend>
-          <p className="field-help">
-            Choose exact Jira statuses treated as completed for this board. The mapping is
-            stored only in this browser.
-          </p>
-          <div className="reporting-status-list">
-            {statusOptions.map((status) => (
-              <label key={status.id}>
-                <input
-                  type="checkbox"
-                  checked={completedStatusIds.includes(status.id)}
-                  onChange={() =>
-                    setCompletedStatusIds((current) =>
-                      current.includes(status.id)
-                        ? current.filter((id) => id !== status.id)
-                        : [...current, status.id],
-                    )
-                  }
-                />
-                <span>{status.name}</span>
-              </label>
-            ))}
-          </div>
-          <div className="setup-save-row">
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => void saveMapping()}
-              disabled={!selectedBoard || completedStatusIds.length === 0}
-            >
-              Save mapping
-            </button>
-            {storedMapping ? (
-              <span>Saved locally {formatDate(storedMapping.updatedAt)}</span>
-            ) : null}
-          </div>
-        </fieldset>
+        <p className="field-help">
+          Board and completed statuses are inherited from Workspace Settings:{" "}
+          {statusMapping.completedStatusNames.join(", ")}.
+        </p>
         {error ? (
           <div className="setup-errors" role="alert">
             {error}
@@ -598,7 +546,7 @@ export function ReportsView({
           <button
             className="primary-button"
             type="button"
-            disabled={loading || !boardId || completedStatusIds.length === 0}
+            disabled={loading || statusMapping.completedStatusIds.length === 0}
             onClick={() => void generate()}
           >
             {loading ? `Generating… ${loadingMessage}` : "Generate report"}
@@ -615,99 +563,104 @@ export function ReportsView({
               setStatusMessage={setStatusMessage}
             />
           ) : null}
-          {snapshot.request.type === "sprint" ? <div className="reporting-output-header">
-            <div>
-              <p className="setup-step">GENERATED {formatDate(snapshot.generatedAt)}</p>
-              <h3>
-                {snapshot.board.name} · {snapshot.request.type.toUpperCase()}
-              </h3>
-            </div>
-            <div className="connection-actions">
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() =>
-                  void navigator.clipboard
-                    .writeText(renderStandupText(snapshot, language))
-                    .then(() => setStatusMessage("Stand-up text copied."))
-                }
-              >
-                Copy stand-up
-              </button>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => printableReport(snapshot, language)}
-              >
-                Generate PDF
-              </button>
-            </div>
-          </div> : null}
-          {snapshot.request.type === "sprint" ? <>
-          <div className="reporting-summary-grid">
-            <div>
-              <span>Issues</span>
-              <strong>{snapshot.result.executiveSummary.totalIssues}</strong>
-            </div>
-            <div>
-              <span>Completed</span>
-              <strong>{snapshot.result.executiveSummary.completedIssues}</strong>
-            </div>
-            <div>
-              <span>Worklog</span>
-              <strong>
-                {(snapshot.result.executiveSummary.worklogSeconds / 3600).toFixed(1)}h
-              </strong>
-            </div>
-            <div>
-              <span>Unassigned</span>
-              <strong>{snapshot.result.executiveSummary.unassignedIssues}</strong>
-            </div>
-            {snapshot.result.sprint ? (
+          {snapshot.request.type === "sprint" ? (
+            <div className="reporting-output-header">
               <div>
-                <span>Sprint completion</span>
-                <strong>
-                  {percentage(snapshot.result.sprint.completion.percentage)}
-                </strong>
+                <p className="setup-step">GENERATED {formatDate(snapshot.generatedAt)}</p>
+                <h3>
+                  {snapshot.board.name} · {snapshot.request.type.toUpperCase()}
+                </h3>
               </div>
-            ) : null}
-          </div>
-          {snapshot.result.sprint ? (
-            <div className="reporting-scope">
-              <h4>Sprint scope changes</h4>
-              <p>
-                Added after start: {snapshot.result.sprint.addedAfterStart.length} ·
-                Removed after start: {snapshot.result.sprint.removedAfterStart.length}
-              </p>
+              <div className="connection-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() =>
+                    void navigator.clipboard
+                      .writeText(renderStandupText(snapshot, language))
+                      .then(() => setStatusMessage("Stand-up text copied."))
+                  }
+                >
+                  Copy stand-up
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => printableReport(snapshot, language)}
+                >
+                  Generate PDF
+                </button>
+              </div>
             </div>
           ) : null}
-          <div className="reporting-people">
-            <h4>People</h4>
-            {snapshot.result.people.map((person) => (
-              <article key={person.user.id}>
-                <strong>{person.user.displayName}</strong>
-                <span>
-                  Tasks: {person.assignedIssues.length} · Completed:{" "}
-                  {person.completedIssues.length} · Worklog:{" "}
-                  {(person.worklogSeconds / 3600).toFixed(1)}h
-                </span>
-              </article>
-            ))}
-            <article>
-              <strong>Unassigned</strong>
-              <span>Tasks: {snapshot.result.unassigned.issues.length}</span>
-            </article>
-          </div>
-          {snapshot.completeness.warnings.length > 0 ? (
-            <div className="setup-errors">
-              <strong>Warnings</strong>
-              <ul>
-                {snapshot.completeness.warnings.map((warning) => (
-                  <li key={warning.code}>{warning.message}</li>
+          {snapshot.request.type === "sprint" ? (
+            <>
+              <div className="reporting-summary-grid">
+                <div>
+                  <span>Issues</span>
+                  <strong>{snapshot.result.executiveSummary.totalIssues}</strong>
+                </div>
+                <div>
+                  <span>Completed</span>
+                  <strong>{snapshot.result.executiveSummary.completedIssues}</strong>
+                </div>
+                <div>
+                  <span>Worklog</span>
+                  <strong>
+                    {(snapshot.result.executiveSummary.worklogSeconds / 3600).toFixed(1)}h
+                  </strong>
+                </div>
+                <div>
+                  <span>Unassigned</span>
+                  <strong>{snapshot.result.executiveSummary.unassignedIssues}</strong>
+                </div>
+                {snapshot.result.sprint ? (
+                  <div>
+                    <span>Sprint completion</span>
+                    <strong>
+                      {percentage(snapshot.result.sprint.completion.percentage)}
+                    </strong>
+                  </div>
+                ) : null}
+              </div>
+              {snapshot.result.sprint ? (
+                <div className="reporting-scope">
+                  <h4>Sprint scope changes</h4>
+                  <p>
+                    Added after start: {snapshot.result.sprint.addedAfterStart.length} ·
+                    Removed after start: {snapshot.result.sprint.removedAfterStart.length}
+                  </p>
+                </div>
+              ) : null}
+              <div className="reporting-people">
+                <h4>People</h4>
+                {snapshot.result.people.map((person) => (
+                  <article key={person.user.id}>
+                    <strong>{person.user.displayName}</strong>
+                    <span>
+                      Tasks: {person.assignedIssues.length} · Completed:{" "}
+                      {person.completedIssues.length} · Worklog:{" "}
+                      {(person.worklogSeconds / 3600).toFixed(1)}h
+                    </span>
+                  </article>
                 ))}
-              </ul>
-            </div>
-          ) : null}</> : null}
+                <article>
+                  <strong>Unassigned</strong>
+                  <span>Tasks: {snapshot.result.unassigned.issues.length}</span>
+                </article>
+              </div>
+              {snapshot.completeness.warnings.length > 0 ? (
+                <div className="setup-errors">
+                  <strong>Warnings</strong>
+                  <ul>
+                    {snapshot.completeness.warnings.map((warning) => (
+                      <li key={warning.code}>{warning.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </>
+          ) : null}
         </div>
       ) : null}
 

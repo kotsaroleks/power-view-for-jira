@@ -125,6 +125,26 @@ describe("report metrics", () => {
     ]);
   });
 
+  it("uses the workspace completed-status mapping in board and sprint metrics", () => {
+    const review = issue("POWER-5", "in-progress", {
+      status: { id: "review", name: "In Review", category: "in-progress" },
+      sprints: [activeSprint],
+    });
+    const mapping = {
+      completedStatusIds: ["review"],
+      completedStatusNames: ["In Review"],
+    };
+
+    expect(buildBoardHealthReport([review], mapping)).toMatchObject({
+      open: 0,
+      done: 1,
+      statuses: { done: 1, inProgress: 0 },
+    });
+    expect(
+      buildSprintHealthReport([review], activeSprint, new Set(), mapping).issues,
+    ).toMatchObject({ done: 1, inProgress: 0 });
+  });
+
   it("does not invent a percentage for an empty denominator", () => {
     expect(reportPercentage(5, 0)).toBe(0);
   });

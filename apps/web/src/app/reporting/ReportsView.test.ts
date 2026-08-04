@@ -2,13 +2,13 @@ import type { JiraBoard } from "@power-view/domain";
 import type { JiraClient, JiraBoardPage } from "@power-view/jira-client";
 import { describe, expect, it, vi } from "vitest";
 
-import { loadReportBoards } from "./load-report-boards";
+import { loadProjectBoards } from "../load-project-boards";
 
 function board(id: string): JiraBoard {
   return { id, name: `Board ${id}`, type: "scrum", projectKeys: ["LBR"] };
 }
 
-describe("loadReportBoards", () => {
+describe("loadProjectBoards", () => {
   it("loads every page for the detected project", async () => {
     const getBoards = vi
       .fn()
@@ -28,7 +28,7 @@ describe("loadReportBoards", () => {
       } satisfies JiraBoardPage);
     const client = { getBoards } as unknown as JiraClient;
 
-    await expect(loadReportBoards(client, "LBR", "1296")).resolves.toEqual([
+    await expect(loadProjectBoards(client, "LBR", "1296")).resolves.toEqual([
       board("1"),
       board("1296"),
     ]);
@@ -56,7 +56,7 @@ describe("loadReportBoards", () => {
       getBoard: vi.fn().mockResolvedValue(board("1296")),
     } as unknown as JiraClient;
 
-    await expect(loadReportBoards(client, "LBR", "1296")).resolves.toEqual([
+    await expect(loadProjectBoards(client, "LBR", "1296")).resolves.toEqual([
       board("1"),
       board("1296"),
     ]);

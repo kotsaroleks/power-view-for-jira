@@ -17,7 +17,7 @@ import {
   RuntimeJiraTransport,
   type JiraClient,
 } from "@power-view/jira-client";
-import { ReportSettingsStore, SettingsStore } from "@power-view/storage";
+import { SettingsStore } from "@power-view/storage";
 import { useEffect, useRef, useState } from "react";
 
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
@@ -41,11 +41,6 @@ export interface AppProps {
 const browserSettingsStore =
   typeof chrome !== "undefined" && chrome.storage?.local
     ? new SettingsStore(chrome.storage.local)
-    : undefined;
-
-const browserReportSettingsStore =
-  typeof chrome !== "undefined" && chrome.storage?.local
-    ? new ReportSettingsStore(chrome.storage.local)
     : undefined;
 
 const UNKNOWN_CONNECTION_ERROR: SerializableAppError = {
@@ -228,7 +223,9 @@ function AppContent({
           </span>
           <span className="brand-copy">
             <strong>{PRODUCT_NAME}</strong>
-            <small>{context?.projectKey ?? "Jira workspace"}</small>
+            <small>
+              {readySchedule?.projectKey ?? context?.projectKey ?? "Jira workspace"}
+            </small>
           </span>
         </button>
         {workspaceReady ? (
@@ -493,7 +490,7 @@ function AppContent({
             </div>
             <BoardHealthReportView
               client={jiraClient!}
-              {...(context.boardId ? { boardId: context.boardId } : {})}
+              boardId={readySchedule.board.id}
               issues={readySchedule.issues}
               model={readySchedule.model}
               projectKey={readySchedule.projectKey}
@@ -503,22 +500,33 @@ function AppContent({
               truncated={readySchedule.truncated}
               sprintDataAvailable={readySchedule.sprintDataAvailable}
               storyPointsDataAvailable={readySchedule.storyPointsDataAvailable}
-              {...(context.boardId ? { preferredBoardId: context.boardId } : {})}
-              {...(context.sprintId ? { preferredSprintId: context.sprintId } : {})}
+              completedStatusIds={readySchedule.reporting.completedStatusIds}
+              completedStatusNames={readySchedule.reporting.completedStatusNames}
+              preferredBoardId={readySchedule.board.id}
+              {...(context.boardId === readySchedule.board.id && context.sprintId
+                ? { preferredSprintId: context.sprintId }
+                : {})}
             />
             <ReportsView
               client={jiraClient!}
               baseUrl={context.baseUrl}
               deploymentType={context.deploymentType}
-              {...(context.projectKey
-                ? { projectKeyOrId: context.projectKey }
-                : context.projectId
-                  ? { projectKeyOrId: context.projectId }
-                  : {})}
-              {...(context.boardId ? { currentBoardId: context.boardId } : {})}
-              {...(browserReportSettingsStore
-                ? { settingsStore: browserReportSettingsStore }
-                : {})}
+              board={readySchedule.board}
+              jql={readySchedule.jql}
+              statusMapping={{
+                schemaVersion: 1,
+                jiraBaseUrl: context.baseUrl,
+                boardId: readySchedule.board.id,
+                completedStatusIds: readySchedule.reporting.completedStatusIds,
+                completedStatusNames: readySchedule.reporting.completedStatusNames,
+                ...(readySchedule.editing.fieldMapping.storyPointsFieldId
+                  ? {
+                      storyPointsFieldId:
+                        readySchedule.editing.fieldMapping.storyPointsFieldId,
+                    }
+                  : {}),
+                updatedAt: readySchedule.loadedAt,
+              }}
             />
           </section>
         ) : null}
@@ -549,7 +557,7 @@ function AppContent({
                       filterPersistence: {
                         store: settingsStore,
                         jiraBaseUrl: readySchedule.jiraBaseUrl,
-                        projectKey: readySchedule.projectKey,
+                        workspaceKey: `${readySchedule.projectKey}:${readySchedule.board.id}`,
                       },
                     }
                   : {})}

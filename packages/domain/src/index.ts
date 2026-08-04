@@ -26,6 +26,7 @@ export {
 } from "./jira-issue";
 export {
   buildBoardHealthReport,
+  boardHealthStatusCategory,
   buildSprintHealthReport,
   relevantActiveSprints,
   reportPercentage,

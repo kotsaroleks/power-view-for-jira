@@ -83,6 +83,51 @@ const issueSearchPage = {
   isLast: true,
 } as const;
 
+const boardPage = {
+  values: [
+    {
+      id: 7,
+      name: "Power Delivery Board",
+      type: "scrum",
+      location: { projectKey: "POWER" },
+    },
+  ],
+  startAt: 0,
+  maxResults: 50,
+  total: 1,
+};
+
+const boardConfiguration = {
+  id: 7,
+  name: "Power Delivery Board",
+  filter: { id: 9001 },
+  columnConfig: {
+    columns: [{ statuses: [{ id: "1" }, { id: "2" }, { id: "3" }] }],
+  },
+};
+
+const boardIssuePage = {
+  issues: [
+    issueSearchPage.issues[0],
+    issueSearchPage.issues[1],
+    {
+      ...issueSearchPage.issues[0],
+      id: "20003",
+      key: "POWER-3",
+      fields: {
+        ...issueSearchPage.issues[0].fields,
+        summary: "Completed release",
+        status: {
+          id: "3",
+          name: "Done",
+          statusCategory: { key: "done" },
+        },
+      },
+    },
+  ],
+  isLast: true,
+};
+
 class MemoryStorage implements StorageArea {
   private readonly values = new Map<string, unknown>();
 
@@ -128,16 +173,24 @@ function setupRuntime(options: { invalidJql?: boolean } = {}): ExtensionRuntime 
             },
           });
         }
+        const path = request.payload.path;
+        const data = path.endsWith("/field")
+          ? fields
+          : path === "/rest/agile/1.0/board"
+            ? boardPage
+            : path.endsWith("/board/7/configuration")
+              ? boardConfiguration
+              : path.endsWith("/board/7/issue")
+                ? boardIssuePage
+                : path.endsWith("/search/jql")
+                  ? issueSearchPage
+                  : projects;
         return Promise.resolve({
           type: "JIRA_RESPONSE",
           requestId: request.requestId,
           ok: true,
           status: 200,
-          data: request.payload.path.endsWith("/field")
-            ? fields
-            : request.payload.path.endsWith("/search/jql")
-              ? issueSearchPage
-              : projects,
+          data,
           durationMs: 12,
           retryCount: 0,
         });
@@ -173,9 +226,13 @@ describe("SetupPanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Planned Start")).toBeInTheDocument();
     expect(screen.getByText("Due date")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", { name: "Power Delivery Board · scrum" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole("checkbox", { name: "Done" })).toBeChecked();
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "JQL query" })).toHaveValue(
-        'project = "POWER" ORDER BY Rank ASC',
+        "filter = 9001 ORDER BY Rank ASC",
       ),
     );
 
@@ -198,7 +255,9 @@ describe("SetupPanel", () => {
       store.getSetup("https://example.atlassian.net", "POWER"),
     ).resolves.toMatchObject({
       project: { key: "POWER" },
-      jql: 'project = "POWER" ORDER BY Rank ASC',
+      board: { id: "7", name: "Power Delivery Board", type: "scrum" },
+      jql: "filter = 9001 ORDER BY Rank ASC",
+      reporting: { completedStatusIds: ["3"], completedStatusNames: ["Done"] },
       fieldMapping: {
         startDateFieldId: "customfield_10010",
         endDateFieldId: "duedate",
@@ -213,7 +272,8 @@ describe("SetupPanel", () => {
         "POWER-1",
       ),
     );
-    expect(readySchedule?.queryKey).toContain('project = "POWER"');
+    expect(readySchedule?.queryKey).toContain("filter = 9001");
+    expect(readySchedule?.board.id).toBe("7");
     expect(screen.getByRole("link", { name: "POWER-1" })).toHaveAttribute(
       "href",
       "https://example.atlassian.net/browse/POWER-1",
@@ -227,6 +287,7 @@ describe("SetupPanel", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Load projects and fields" }));
     await screen.findByRole("option", { name: "POWER · Power View" });
+    await screen.findByRole("checkbox", { name: "Done" });
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "JQL query" })).not.toHaveValue(""),
     );
@@ -257,6 +318,7 @@ describe("SetupPanel", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Load projects and fields" }));
     await screen.findByRole("option", { name: "POWER · Power View" });
+    await screen.findByRole("checkbox", { name: "Done" });
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "JQL query" })).not.toHaveValue(""),
     );

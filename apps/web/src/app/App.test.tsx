@@ -1,8 +1,31 @@
 import type { ExtensionRuntime } from "@power-view/extension-messaging";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { SettingsStore, type StorageArea } from "@power-view/storage";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
+
+class MemoryStorage implements StorageArea {
+  private readonly values = new Map<string, unknown>();
+
+  get(keys: string | string[]): Promise<Record<string, unknown>> {
+    const selected = Array.isArray(keys) ? keys : [keys];
+    return Promise.resolve(
+      Object.fromEntries(selected.map((key) => [key, this.values.get(key)])),
+    );
+  }
+
+  set(items: Record<string, unknown>): Promise<void> {
+    Object.entries(items).forEach(([key, value]) => this.values.set(key, value));
+    return Promise.resolve();
+  }
+
+  remove(keys: string | string[]): Promise<void> {
+    const selected = Array.isArray(keys) ? keys : [keys];
+    selected.forEach((key) => this.values.delete(key));
+    return Promise.resolve();
+  }
+}
 
 const context = {
   baseUrl: "https://example.atlassian.net",
@@ -149,5 +172,145 @@ describe("App", () => {
     const copied = String(writeText.mock.calls[0]?.[0]);
     expect(copied).toContain('"extensionVersion": "0.1.0"');
     expect(copied).not.toMatch(/cookie|authorization|session/i);
+  });
+
+  it("cascades the Setup board into Board Health and Reports without re-selection", async () => {
+    const jiraRequest = vi.fn((path: string, requestId: string) => {
+      const common = {
+        type: "JIRA_RESPONSE" as const,
+        requestId,
+        ok: true as const,
+        status: 200,
+        durationMs: 10,
+        retryCount: 0,
+      };
+      if (path.endsWith("/myself")) {
+        return { ...common, data: { accountId: "alex", displayName: "Alex" } };
+      }
+      if (path.endsWith("/serverInfo")) {
+        return {
+          ...common,
+          data: {
+            baseUrl: context.baseUrl,
+            deploymentType: "Cloud",
+            versionNumbers: [1001, 0, 0],
+          },
+        };
+      }
+      if (path.endsWith("/project/search")) {
+        return {
+          ...common,
+          data: {
+            values: [{ id: "10000", key: "POWER", name: "Power View" }],
+            startAt: 0,
+            maxResults: 25,
+            total: 1,
+            isLast: true,
+          },
+        };
+      }
+      if (path.endsWith("/field")) {
+        return {
+          ...common,
+          data: [
+            { id: "duedate", name: "Due date", custom: false, schema: { type: "date" } },
+            {
+              id: "customfield_10020",
+              name: "Sprint",
+              custom: true,
+              schema: { type: "array", custom: "com.pyxis.greenhopper.jira:gh-sprint" },
+            },
+          ],
+        };
+      }
+      if (path === "/rest/agile/1.0/board") {
+        return {
+          ...common,
+          data: {
+            values: [
+              {
+                id: 7,
+                name: "Power Delivery Board",
+                type: "scrum",
+                location: { projectKey: "POWER" },
+              },
+            ],
+            startAt: 0,
+            maxResults: 50,
+            total: 1,
+          },
+        };
+      }
+      if (path.endsWith("/board/7/configuration")) {
+        return {
+          ...common,
+          data: {
+            id: 7,
+            name: "Power Delivery Board",
+            filter: { id: 9001 },
+            columnConfig: { columns: [{ statuses: [{ id: "3" }] }] },
+          },
+        };
+      }
+      if (path.endsWith("/board/7/sprint")) {
+        return {
+          ...common,
+          data: {
+            values: [{ id: 101, name: "Sprint 101", state: "active", originBoardId: 7 }],
+            startAt: 0,
+            maxResults: 50,
+            total: 1,
+            isLast: true,
+          },
+        };
+      }
+      const rawIssue = {
+        id: "20001",
+        key: "POWER-1",
+        fields: {
+          summary: "Release task",
+          issuetype: { id: "1", name: "Task", subtask: false },
+          status: { id: "3", name: "Done", statusCategory: { key: "done" } },
+          project: { id: "10000", key: "POWER", name: "Power View" },
+          sprint: [{ id: 101, name: "Sprint 101", state: "active", boardId: 7 }],
+        },
+      };
+      if (path.endsWith("/board/7/issue") || path.endsWith("/sprint/101/issue")) {
+        return { ...common, data: { issues: [rawIssue], isLast: true } };
+      }
+      if (path.endsWith("/search/jql")) {
+        return { ...common, data: { issues: [rawIssue], isLast: true } };
+      }
+      return { ...common, data: {} };
+    });
+    const store = new SettingsStore(new MemoryStorage());
+    render(<App runtime={runtimeFor(jiraRequest)} settingsStore={store} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Connect to Jira" }));
+    await screen.findByText("Connected as Alex");
+    fireEvent.click(screen.getByRole("button", { name: "Load projects and fields" }));
+    expect(
+      await screen.findByRole("option", { name: "Power Delivery Board · scrum" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole("checkbox", { name: "Done" })).toBeChecked();
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "JQL query" })).toHaveValue(
+        "filter = 9001 ORDER BY Rank ASC",
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reports" }));
+
+    expect(await screen.findAllByText("Power Delivery Board")).not.toHaveLength(0);
+    expect(screen.queryByRole("combobox", { name: "Board" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Save mapping" }),
+    ).not.toBeInTheDocument();
+    await expect(store.getSetup(context.baseUrl, "POWER")).resolves.toMatchObject({
+      board: { id: "7", name: "Power Delivery Board" },
+      reporting: { completedStatusIds: ["3"], completedStatusNames: ["Done"] },
+      jql: "filter = 9001 ORDER BY Rank ASC",
+    });
   });
 });

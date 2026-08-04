@@ -3,9 +3,7 @@ import type { JiraDeploymentType } from "./jira-context";
 export type ReportType = "daily" | "weekly" | "sprint";
 export type ReportLanguage = "en" | "uk";
 export type SprintProgressMode = "issue-count" | "story-points" | "original-estimate";
-export type ReportScope =
-  | { kind: "team" }
-  | { kind: "assignee"; userId: string };
+export type ReportScope = { kind: "team" } | { kind: "assignee"; userId: string };
 
 export interface ReportPeriod {
   timeZone: "Europe/Kyiv";
@@ -195,6 +193,7 @@ export interface GeneratedReportSnapshot {
   request: {
     type: ReportType;
     boardId: string;
+    jql?: string;
     sprintId?: string;
     scope: ReportScope;
     period: ReportPeriod;

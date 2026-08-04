@@ -1,6 +1,7 @@
 import {
   buildBoardHealthReport,
   buildSprintHealthReport,
+  boardHealthStatusCategory,
   MAX_CONFIGURABLE_ISSUES,
   reportPercentage,
   type GanttScheduleModel,
@@ -23,6 +24,8 @@ export interface BoardHealthReportProps {
   truncated: boolean;
   sprintDataAvailable: boolean;
   storyPointsDataAvailable: boolean;
+  completedStatusIds?: string[];
+  completedStatusNames?: string[];
   preferredBoardId?: string;
   preferredSprintId?: string;
 }
@@ -242,6 +245,8 @@ export function BoardHealthReportView({
   truncated,
   sprintDataAvailable,
   storyPointsDataAvailable,
+  completedStatusIds = [],
+  completedStatusNames = [],
   preferredBoardId,
   preferredSprintId,
 }: BoardHealthReportProps) {
@@ -249,10 +254,19 @@ export function BoardHealthReportView({
     () =>
       buildBoardHealthReport(issues, {
         sprintDataAvailable,
+        completedStatusIds,
+        completedStatusNames,
         ...(preferredBoardId ? { preferredBoardId } : {}),
         ...(preferredSprintId ? { preferredSprintId } : {}),
       }),
-    [issues, preferredBoardId, preferredSprintId, sprintDataAvailable],
+    [
+      completedStatusIds,
+      completedStatusNames,
+      issues,
+      preferredBoardId,
+      preferredSprintId,
+      sprintDataAvailable,
+    ],
   );
   const [boardActiveSprints, setBoardActiveSprints] = useState<JiraIssueSprint[]>();
   const [boardSprintsLoading, setBoardSprintsLoading] = useState(
@@ -362,9 +376,18 @@ export function BoardHealthReportView({
   const sprintReport = useMemo(
     () =>
       selectedSprint
-        ? buildSprintHealthReport(sprintScopedIssues, selectedSprint, blockedIssueIds)
+        ? buildSprintHealthReport(sprintScopedIssues, selectedSprint, blockedIssueIds, {
+            completedStatusIds,
+            completedStatusNames,
+          })
         : undefined,
-    [blockedIssueIds, selectedSprint, sprintScopedIssues],
+    [
+      blockedIssueIds,
+      completedStatusIds,
+      completedStatusNames,
+      selectedSprint,
+      sprintScopedIssues,
+    ],
   );
   const activeSprintReports = useMemo(
     () =>
@@ -379,10 +402,22 @@ export function BoardHealthReportView({
                 );
         return {
           sprint,
-          report: buildSprintHealthReport(sprintIssues, sprint, blockedIssueIds),
+          report: buildSprintHealthReport(sprintIssues, sprint, blockedIssueIds, {
+            completedStatusIds,
+            completedStatusNames,
+          }),
         };
       }),
-    [availableSprints, boardId, blockedIssueIds, client, issues, sprintIssueIdsById],
+    [
+      availableSprints,
+      boardId,
+      blockedIssueIds,
+      client,
+      completedStatusIds,
+      completedStatusNames,
+      issues,
+      sprintIssueIdsById,
+    ],
   );
   const sprintIssuesByPerson = useMemo(() => {
     const grouped = new Map<string, NormalizedIssue[]>();
@@ -397,18 +432,22 @@ export function BoardHealthReportView({
     const grouped: Record<string, NormalizedIssue[]> = {};
     if (!selectedSprint) return grouped;
     for (const issue of sprintScopedIssues) {
+      const category = boardHealthStatusCategory(issue, {
+        completedStatusIds,
+        completedStatusNames,
+      });
       const label =
-        issue.status.category === "done"
+        category === "done"
           ? "Done"
-          : issue.status.category === "in-progress"
+          : category === "in-progress"
             ? "In progress"
-            : issue.status.category === "to-do"
+            : category === "to-do"
               ? "Not started"
               : "Unknown";
       grouped[label] = [...(grouped[label] ?? []), issue];
     }
     return grouped;
-  }, [selectedSprint, sprintScopedIssues]);
+  }, [completedStatusIds, completedStatusNames, selectedSprint, sprintScopedIssues]);
   const [expandedPeople, setExpandedPeople] = useState<Set<string>>(new Set());
   const planning = report.planning;
   const planned = planning ? planning.currentSprint + planning.futureSprint : undefined;

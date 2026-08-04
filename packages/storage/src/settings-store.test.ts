@@ -31,12 +31,22 @@ function configuration(jql: string): SetupConfiguration {
   return {
     jiraBaseUrl: "https://example.atlassian.net",
     project: { id: "10000", key: "POWER", name: "Power View" },
+    board: {
+      id: "7",
+      name: "Power Delivery Board",
+      type: "scrum",
+      projectKeys: ["POWER"],
+    },
     jql,
     fieldMapping: {
       startDateFieldId: "customfield_10010",
       endDateFieldId: "duedate",
     },
     defaultDurations: DEFAULT_DURATION_DAYS,
+    reporting: {
+      completedStatusIds: ["3"],
+      completedStatusNames: ["Done"],
+    },
     updatedAt: "2026-07-23T01:00:00.000Z",
   };
 }
@@ -50,6 +60,11 @@ describe("SettingsStore", () => {
       store.getSetup("https://example.atlassian.net/", "POWER"),
     ).resolves.toMatchObject({
       project: { key: "POWER" },
+      board: { id: "7", name: "Power Delivery Board", type: "scrum" },
+      reporting: {
+        completedStatusIds: ["3"],
+        completedStatusNames: ["Done"],
+      },
       fieldMapping: { endDateFieldId: "duedate" },
       defaultDurations: DEFAULT_DURATION_DAYS,
     });

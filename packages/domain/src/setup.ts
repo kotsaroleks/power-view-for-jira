@@ -1,5 +1,6 @@
 import type { FieldMapping } from "./jira-field";
 import type { JiraProject } from "./jira-project";
+import type { JiraBoard } from "./reporting";
 import type { DefaultDurationDays } from "./schedule";
 
 const PROJECT_KEY_PATTERN = /^[A-Z][A-Z0-9_]*$/;
@@ -7,9 +8,13 @@ const PROJECT_KEY_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 export interface SetupConfiguration {
   jiraBaseUrl: string;
   project: JiraProject;
-  boardId?: string;
+  board?: JiraBoard;
   jql: string;
   fieldMapping: FieldMapping;
+  reporting?: {
+    completedStatusIds: string[];
+    completedStatusNames: string[];
+  };
   defaultDurations?: DefaultDurationDays;
   updatedAt: string;
 }

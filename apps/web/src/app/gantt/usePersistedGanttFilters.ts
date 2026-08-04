@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 export interface GanttFilterPersistence {
   store: SettingsStore;
   jiraBaseUrl: string;
-  projectKey: string;
+  workspaceKey: string;
 }
 
 export function usePersistedGanttFilters(persistence?: GanttFilterPersistence): {
@@ -19,17 +19,17 @@ export function usePersistedGanttFilters(persistence?: GanttFilterPersistence): 
   const [hydrated, setHydrated] = useState(!persistence);
   const store = persistence?.store;
   const jiraBaseUrl = persistence?.jiraBaseUrl;
-  const projectKey = persistence?.projectKey;
+  const workspaceKey = persistence?.workspaceKey;
 
   useEffect(() => {
-    if (!store || !jiraBaseUrl || !projectKey) {
+    if (!store || !jiraBaseUrl || !workspaceKey) {
       setHydrated(true);
       return;
     }
 
     let isCurrent = true;
     setHydrated(false);
-    void store.getGanttFilters(jiraBaseUrl, projectKey).then(
+    void store.getGanttFilters(jiraBaseUrl, workspaceKey).then(
       (storedFilters) => {
         if (isCurrent) {
           setFilters(storedFilters ?? { ...DEFAULT_GANTT_FILTERS });
@@ -47,19 +47,19 @@ export function usePersistedGanttFilters(persistence?: GanttFilterPersistence): 
     return () => {
       isCurrent = false;
     };
-  }, [jiraBaseUrl, projectKey, store]);
+  }, [jiraBaseUrl, workspaceKey, store]);
 
   useEffect(() => {
-    if (!store || !jiraBaseUrl || !projectKey || !hydrated) {
+    if (!store || !jiraBaseUrl || !workspaceKey || !hydrated) {
       return;
     }
     const timer = setTimeout(() => {
       void store
-        .saveGanttFilters(jiraBaseUrl, projectKey, filters)
+        .saveGanttFilters(jiraBaseUrl, workspaceKey, filters)
         .catch(() => console.warn("Power View could not save Gantt filters."));
     }, 300);
     return () => clearTimeout(timer);
-  }, [filters, hydrated, jiraBaseUrl, projectKey, store]);
+  }, [filters, hydrated, jiraBaseUrl, workspaceKey, store]);
 
   return { filters, setFilters, hydrated };
 }

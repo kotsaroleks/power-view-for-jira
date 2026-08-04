@@ -47,6 +47,22 @@ const defaultDurationsSchema = z
   })
   .strict();
 
+const jiraBoardSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1).max(512),
+    type: z.enum(["scrum", "kanban", "simple", "unknown"]),
+    projectKeys: z.array(z.string().min(1).max(255)).max(100),
+  })
+  .strict();
+
+const reportingConfigurationSchema = z
+  .object({
+    completedStatusIds: z.array(z.string().min(1).max(512)).max(100),
+    completedStatusNames: z.array(z.string().min(1).max(512)).max(100),
+  })
+  .strict();
+
 const ganttDateFilterSchema = z.enum([
   "explicit",
   "partial",
@@ -145,8 +161,10 @@ const setupConfigurationSchema = z
     jiraBaseUrl: z.url().max(2048),
     project: jiraProjectSchema,
     boardId: z.string().min(1).optional(),
+    board: jiraBoardSchema.optional(),
     jql: z.string().min(1).max(10_000),
     fieldMapping: fieldMappingSchema,
+    reporting: reportingConfigurationSchema.optional(),
     defaultDurations: defaultDurationsSchema.optional(),
     updatedAt: z.iso.datetime(),
   })
@@ -168,7 +186,23 @@ const setupConfigurationSchema = z
         : { simplified: configuration.project.simplified }),
     },
     jql: configuration.jql,
-    ...(configuration.boardId ? { boardId: configuration.boardId } : {}),
+    ...(configuration.board
+      ? {
+          board: {
+            ...configuration.board,
+            projectKeys: [...configuration.board.projectKeys],
+          },
+        }
+      : configuration.boardId
+        ? {
+            board: {
+              id: configuration.boardId,
+              name: `Board ${configuration.boardId}`,
+              type: "unknown" as const,
+              projectKeys: [configuration.project.key],
+            },
+          }
+        : {}),
     fieldMapping: {
       ...(configuration.fieldMapping.startDateFieldId
         ? { startDateFieldId: configuration.fieldMapping.startDateFieldId }
@@ -186,6 +220,14 @@ const setupConfigurationSchema = z
         ? { sprintFieldId: configuration.fieldMapping.sprintFieldId }
         : {}),
     },
+    ...(configuration.reporting
+      ? {
+          reporting: {
+            completedStatusIds: [...configuration.reporting.completedStatusIds],
+            completedStatusNames: [...configuration.reporting.completedStatusNames],
+          },
+        }
+      : {}),
     ...(configuration.defaultDurations
       ? { defaultDurations: configuration.defaultDurations }
       : {}),
@@ -230,6 +272,10 @@ function normalizedBaseUrl(baseUrl: string): string {
 
 function configurationKey(baseUrl: string, projectKey: string): string {
   return `${encodeURIComponent(normalizedBaseUrl(baseUrl))}:${projectKey}`;
+}
+
+function preferenceKey(baseUrl: string, workspaceKey: string): string {
+  return `${encodeURIComponent(normalizedBaseUrl(baseUrl))}:${workspaceKey}`;
 }
 
 export class SettingsStore {
@@ -283,21 +329,21 @@ export class SettingsStore {
 
   async getGanttFilters(
     baseUrl: string,
-    projectKey: string,
+    workspaceKey: string,
   ): Promise<GanttFilters | undefined> {
     await this.writes;
     const state = await this.read();
-    return state.ganttFilters[configurationKey(baseUrl, projectKey)];
+    return state.ganttFilters[preferenceKey(baseUrl, workspaceKey)];
   }
 
   saveGanttFilters(
     baseUrl: string,
-    projectKey: string,
+    workspaceKey: string,
     filters: GanttFilters,
   ): Promise<void> {
     const write = this.writes.then(async () => {
       const state = await this.read();
-      const key = configurationKey(baseUrl, projectKey);
+      const key = preferenceKey(baseUrl, workspaceKey);
       const value = settingsStateSchema.parse({
         ...state,
         ganttFilters: {
@@ -314,21 +360,21 @@ export class SettingsStore {
 
   async getGanttViewPreferences(
     baseUrl: string,
-    projectKey: string,
+    workspaceKey: string,
   ): Promise<GanttViewPreferences | undefined> {
     await this.writes;
     const state = await this.read();
-    return state.ganttViewPreferences[configurationKey(baseUrl, projectKey)];
+    return state.ganttViewPreferences[preferenceKey(baseUrl, workspaceKey)];
   }
 
   saveGanttViewPreferences(
     baseUrl: string,
-    projectKey: string,
+    workspaceKey: string,
     preferences: GanttViewPreferences,
   ): Promise<void> {
     const write = this.writes.then(async () => {
       const state = await this.read();
-      const key = configurationKey(baseUrl, projectKey);
+      const key = preferenceKey(baseUrl, workspaceKey);
       const value = settingsStateSchema.parse({
         ...state,
         ganttViewPreferences: {

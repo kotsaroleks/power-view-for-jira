@@ -1,18 +1,19 @@
 # Технічне ТЗ: Reporting для Power View for Jira
 
-| Поле | Значення |
-| --- | --- |
-| Статус | Draft 0.1 |
-| Дата | 2026-08-02 |
-| Продукт | Power View for Jira |
-| Модуль | Reporting |
+| Поле               | Значення                                                             |
+| ------------------ | -------------------------------------------------------------------- |
+| Статус             | Draft 0.1                                                            |
+| Дата               | 2026-08-02                                                           |
+| Продукт            | Power View for Jira                                                  |
+| Модуль             | Reporting                                                            |
 | Цільові середовища | Jira Cloud, Jira Data Center / Server за наявності сумісних REST API |
-| Часова зона звітів | `Europe/Kyiv` |
-| Локалі результату | `en`, `uk` |
+| Часова зона звітів | `Europe/Kyiv`                                                        |
+| Локалі результату  | `en`, `uk`                                                           |
 
 ## 1. Призначення документа
 
-Документ визначає технічну реалізацію модуля Reporting у наявному browser-only Chrome MV3 застосунку Power View for Jira.
+Документ визначає технічну реалізацію модуля Reporting у наявному browser-only Chrome MV3
+застосунку Power View for Jira.
 
 Модуль повинен:
 
@@ -30,15 +31,21 @@
 2. Команда визначається за виконавцями задач, що входять до звіту.
 3. Задачі без виконавця відображаються в окремому блоці `Unassigned`.
 4. Worklog належить автору worklog-запису; задача належить її поточному виконавцю.
-5. Виконаними вважаються задачі у статусах, локально замаплених для конкретного борду. До такого маппінгу мають входити точні Jira-статуси `Done` та `In Review` відповідного борду.
+5. Виконаними вважаються задачі у статусах, локально замаплених для конкретного борду. До
+   такого маппінгу мають входити точні Jira-статуси `Done` та `In Review` відповідного
+   борду.
 6. Маппінг статусів зберігається локально і не синхронізується між браузерами.
 7. Sprint completion і Time utilization є різними метриками.
-8. Sprint completion можна перемикати між кількістю задач, Story Points та Original Estimate.
-9. Неоцінені задачі не змішуються зі Story Points або секундами. Вони показуються окремою кількістю.
+8. Sprint completion можна перемикати між кількістю задач, Story Points та Original
+   Estimate.
+9. Неоцінені задачі не змішуються зі Story Points або секундами. Вони показуються окремою
+   кількістю.
 10. Sprint Report використовує всі задачі поточного складу спринту.
-11. Задачі, додані після старту спринту, і задачі, виключені після старту, показуються окремо.
+11. Задачі, додані після старту спринту, і задачі, виключені після старту, показуються
+    окремо.
 12. Історія звітів локальна, immutable, без автоматичного очищення; видалення лише ручне.
-13. У snapshot зберігаються структуровані дані. PDF і stand-up текст повторно генеруються зі snapshot.
+13. У snapshot зберігаються структуровані дані. PDF і stand-up текст повторно генеруються
+    зі snapshot.
 14. PDF і stand-up текст формуються англійською або українською на вибір.
 
 ## 3. Межі реалізації
@@ -77,14 +84,18 @@
 Power View є browser-only pnpm monorepo:
 
 - `apps/web` — React UI;
-- `apps/extension` — Chrome MV3 shell, service worker, content script та Jira request policy;
+- `apps/extension` — Chrome MV3 shell, service worker, content script та Jira request
+  policy;
 - `packages/domain` — framework-independent доменні правила;
 - `packages/jira-client` — Cloud/Data Center Jira adapters;
 - `packages/extension-messaging` — Zod-валідовані runtime messages;
 - `packages/storage` — versioned local storage;
 - `packages/ui` — спільні UI primitives.
 
-Поточний `JiraTransportRequest` приймає лише шляхи, що починаються з `/rest/api/`, а request policy дозволяє обмежений набір Platform REST endpoint-ів. Reporting потребує доступу до `/rest/agile/1.0/*`, Cloud enhanced `/rest/software/1.0/*`, issue changelog та worklog.
+Поточний `JiraTransportRequest` приймає лише шляхи, що починаються з `/rest/api/`, а
+request policy дозволяє обмежений набір Platform REST endpoint-ів. Reporting потребує
+доступу до `/rest/agile/1.0/*`, Cloud enhanced `/rest/software/1.0/*`, issue changelog та
+worklog.
 
 ### 4.1. Нові доменні модулі
 
@@ -134,11 +145,13 @@ interface ReportingJiraClient {
 }
 ```
 
-Cloud і Data Center adapters реалізують один нормалізований контракт, але мають окремі pagination strategies.
+Cloud і Data Center adapters реалізують один нормалізований контракт, але мають окремі
+pagination strategies.
 
 ### 4.3. Спільна Jira session у web app
 
-Поточний `JiraClient` створюється всередині setup flow. Для Gantt і Reporting слід винести authenticated Jira session у спільний app-level provider/service:
+Поточний `JiraClient` створюється всередині setup flow. Для Gantt і Reporting слід винести
+authenticated Jira session у спільний app-level provider/service:
 
 ```ts
 interface JiraSession {
@@ -148,7 +161,8 @@ interface JiraSession {
 }
 ```
 
-Reporting доступний після успішного connection test і не залежить від того, чи було налаштовано Gantt JQL.
+Reporting доступний після успішного connection test і не залежить від того, чи було
+налаштовано Gantt JQL.
 
 ## 5. Доменна модель
 
@@ -159,19 +173,18 @@ type ReportType = "daily" | "weekly" | "sprint";
 type ReportLanguage = "en" | "uk";
 type SprintProgressMode = "issue-count" | "story-points" | "original-estimate";
 
-type ReportScope =
-  | { kind: "team" }
-  | { kind: "assignee"; userId: string };
+type ReportScope = { kind: "team" } | { kind: "assignee"; userId: string };
 
 interface ReportPeriod {
   timeZone: "Europe/Kyiv";
-  start: string;       // ISO instant, inclusive
-  end: string;         // ISO instant, exclusive
-  dataCutoff: string;  // generatedAt або end, що наступить раніше
+  start: string; // ISO instant, inclusive
+  end: string; // ISO instant, exclusive
+  dataCutoff: string; // generatedAt або end, що наступить раніше
 }
 ```
 
-Усі timestamps зберігаються як ISO 8601 UTC instants. `Europe/Kyiv` використовується лише для визначення календарних меж і presentation.
+Усі timestamps зберігаються як ISO 8601 UTC instants. `Europe/Kyiv` використовується лише
+для визначення календарних меж і presentation.
 
 ### 5.2. Board та Sprint
 
@@ -205,7 +218,8 @@ interface BoardReportConfiguration {
 }
 ```
 
-Status ID є технічним ключем. Точна назва зберігається для відображення, діагностики та виявлення видаленого/заміненого статусу.
+Status ID є технічним ключем. Точна назва зберігається для відображення, діагностики та
+виявлення видаленого/заміненого статусу.
 
 ### 5.3. Reporting issue
 
@@ -240,7 +254,8 @@ interface NormalizedReportUser {
 - `timespent`;
 - Jira Agile Sprint field;
 - mapped Story Points field;
-- поточні `summary`, `issuetype`, `status`, `assignee`, `created`, `updated`, `resolutiondate`, `project`.
+- поточні `summary`, `issuetype`, `status`, `assignee`, `created`, `updated`,
+  `resolutiondate`, `project`.
 
 Опис задачі, comments і Worklog comments не запитуються та не зберігаються.
 
@@ -272,7 +287,9 @@ interface ReportChangeEvent {
 }
 ```
 
-Changelog normalizer пропускає лише allowlisted fields: status, assignee, mapped Story Points, Original Estimate та Sprint. Інші поля не потрапляють у доменну модель або snapshot.
+Changelog normalizer пропускає лише allowlisted fields: status, assignee, mapped Story
+Points, Original Estimate та Sprint. Інші поля не потрапляють у доменну модель або
+snapshot.
 
 ### 5.5. Worklog
 
@@ -289,7 +306,8 @@ interface ReportWorklog {
 }
 ```
 
-Період Worklog визначається за `startedAt`, а не за датою створення або редагування запису.
+Період Worklog визначається за `startedAt`, а не за датою створення або редагування
+запису.
 
 ### 5.6. Immutable report snapshot
 
@@ -326,7 +344,8 @@ Snapshot не редагується після запису. Дозволена
 
 ## 6. Часові періоди
 
-Всі інтервали є half-open: `[start, end)`. Подія рівно на `start` включається, рівно на `end` — належить наступному звіту.
+Всі інтервали є half-open: `[start, end)`. Подія рівно на `start` включається, рівно на
+`end` — належить наступному звіту.
 
 ### 6.1. Daily
 
@@ -344,34 +363,41 @@ Snapshot не редагується після запису. Дозволена
 - `end` = наступний понеділок, 08:00 у `Europe/Kyiv`;
 - `dataCutoff` = `min(end, generatedAt)`.
 
-Якщо звіт створено до завершення тижня, header все одно показує повний weekly interval, а дані мають явний маркер `Data as of <dataCutoff>`.
+Якщо звіт створено до завершення тижня, header все одно показує повний weekly interval, а
+дані мають явний маркер `Data as of <dataCutoff>`.
 
 ### 6.3. Sprint
 
-- active sprint: `start = sprint.startDate`, `end = generatedAt`, `dataCutoff = generatedAt`;
-- closed sprint: `start = sprint.startDate`, `end = sprint.completeDate ?? sprint.endDate`, `dataCutoff = end`;
+- active sprint: `start = sprint.startDate`, `end = generatedAt`,
+  `dataCutoff = generatedAt`;
+- closed sprint: `start = sprint.startDate`,
+  `end = sprint.completeDate ?? sprint.endDate`, `dataCutoff = end`;
 - future sprint не може бути джерелом Sprint Report;
 - sprint без `startDate` не може бути згенерований; UI показує validation error.
 
 ### 6.4. DST
 
-Не дозволено розраховувати Kyiv time через константний UTC offset. Реалізація повинна використовувати IANA zone `Europe/Kyiv` та timezone-aware date API/library. Unit tests мають покривати переходи на літній і зимовий час.
+Не дозволено розраховувати Kyiv time через константний UTC offset. Реалізація повинна
+використовувати IANA zone `Europe/Kyiv` та timezone-aware date API/library. Unit tests
+мають покривати переходи на літній і зимовий час.
 
 ## 7. Jira REST інтеграція
 
 ### 7.1. Board та Sprint API
 
-| Операція | Jira Cloud | Jira Data Center / Server | Pagination |
-| --- | --- | --- | --- |
-| Список boards | `GET /rest/agile/1.0/board` | той самий шлях | `startAt`, `maxResults` |
-| Board details | `GET /rest/agile/1.0/board/{boardId}` | той самий шлях | немає |
-| Board configuration | `GET /rest/agile/1.0/board/{boardId}/configuration` | той самий шлях | немає |
-| Board issues | `GET /rest/software/1.0/board/{boardId}/issue` | `GET /rest/agile/1.0/board/{boardId}/issue` | token / offset |
-| Список sprints | `GET /rest/agile/1.0/board/{boardId}/sprint` | той самий шлях | `startAt`, `maxResults` |
-| Sprint details | `GET /rest/agile/1.0/sprint/{sprintId}` | той самий шлях | немає |
-| Sprint issues | `GET /rest/software/1.0/board/{boardId}/sprint/{sprintId}/issue` | `GET /rest/agile/1.0/board/{boardId}/sprint/{sprintId}/issue` | token / offset |
+| Операція            | Jira Cloud                                                       | Jira Data Center / Server                                     | Pagination              |
+| ------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------- |
+| Список boards       | `GET /rest/agile/1.0/board`                                      | той самий шлях                                                | `startAt`, `maxResults` |
+| Board details       | `GET /rest/agile/1.0/board/{boardId}`                            | той самий шлях                                                | немає                   |
+| Board configuration | `GET /rest/agile/1.0/board/{boardId}/configuration`              | той самий шлях                                                | немає                   |
+| Board issues        | `GET /rest/software/1.0/board/{boardId}/issue`                   | `GET /rest/agile/1.0/board/{boardId}/issue`                   | token / offset          |
+| Список sprints      | `GET /rest/agile/1.0/board/{boardId}/sprint`                     | той самий шлях                                                | `startAt`, `maxResults` |
+| Sprint details      | `GET /rest/agile/1.0/sprint/{sprintId}`                          | той самий шлях                                                | немає                   |
+| Sprint issues       | `GET /rest/software/1.0/board/{boardId}/sprint/{sprintId}/issue` | `GET /rest/agile/1.0/board/{boardId}/sprint/{sprintId}/issue` | token / offset          |
 
-Для Cloud використовувати enhanced issue endpoint з `nextPageToken`. Deprecated offset endpoint не є primary path. Data Center adapter використовує `startAt`, `maxResults`, `total`.
+Для Cloud використовувати enhanced issue endpoint з `nextPageToken`. Deprecated offset
+endpoint не є primary path. Data Center adapter використовує `startAt`, `maxResults`,
+`total`.
 
 ### 7.2. Changelog API
 
@@ -394,7 +420,9 @@ Cloud fallback та Data Center / Server capability path:
 GET /rest/api/{2|3}/issue/{issueIdOrKey}/changelog?startAt=...&maxResults=...
 ```
 
-Якщо Data Center version не підтримує окремий changelog endpoint, adapter може виконати capability-tested fallback через issue `expand=changelog`. Fallback не повинен змінювати нормалізований контракт.
+Якщо Data Center version не підтримує окремий changelog endpoint, adapter може виконати
+capability-tested fallback через issue `expand=changelog`. Fallback не повинен змінювати
+нормалізований контракт.
 
 ### 7.3. Worklog API
 
@@ -404,19 +432,26 @@ Primary path:
 GET /rest/api/{2|3}/issue/{issueIdOrKey}/worklog
 ```
 
-Cloud adapter передає `startedAfter` і `startedBefore`, коли endpoint їх підтримує. Незалежно від server-side filtering, client повторно застосовує half-open interval до `startedAt`.
+Cloud adapter передає `startedAfter` і `startedBefore`, коли endpoint їх підтримує.
+Незалежно від server-side filtering, client повторно застосовує half-open interval до
+`startedAt`.
 
-Всі сторінки мають бути завантажені. Перші `maxResults` не можна трактувати як повний Worklog.
+Всі сторінки мають бути завантажені. Перші `maxResults` не можна трактувати як повний
+Worklog.
 
 ### 7.4. Права доступу
 
-Reporting відображає лише boards, sprints, issues, changelog і Worklog, доступні поточній Jira browser session. Jira залишається джерелом істини для Browse Projects, issue security та Worklog visibility.
+Reporting відображає лише boards, sprints, issues, changelog і Worklog, доступні поточній
+Jira browser session. Jira залишається джерелом істини для Browse Projects, issue security
+та Worklog visibility.
 
-Значення `403` або відсутні через visibility дані не трактуються як нуль. Відповідна метрика отримує стан `unavailable`, а звіт — completeness warning.
+Значення `403` або відсутні через visibility дані не трактуються як нуль. Відповідна
+метрика отримує стан `unavailable`, а звіт — completeness warning.
 
 ### 7.5. Розширення transport schema
 
-`jiraTransportRequestSchema.path` не повинен використовувати загальний `startsWith("/rest/api/")`. Схема має приймати лише три явні family:
+`jiraTransportRequestSchema.path` не повинен використовувати загальний
+`startsWith("/rest/api/")`. Схема має приймати лише три явні family:
 
 ```ts
 const jiraPathSchema = z.union([
@@ -426,11 +461,13 @@ const jiraPathSchema = z.union([
 ]);
 ```
 
-Приймання family у Zod не є авторизацією endpoint. Остаточне рішення завжди приймає exact route policy у service worker.
+Приймання family у Zod не є авторизацією endpoint. Остаточне рішення завжди приймає exact
+route policy у service worker.
 
 ### 7.6. Read-only POST для bulk changelog
 
-`POST /rest/api/3/changelog/bulkfetch` є read operation, але поточна policy вважає будь-який POST mutation. Policy слід розділити на:
+`POST /rest/api/3/changelog/bulkfetch` є read operation, але поточна policy вважає
+будь-який POST mutation. Policy слід розділити на:
 
 - `validReadRequest` — GET allowlist плюс exact read-only POST bulkfetch;
 - `validMutationRequest` — наявний обмежений edit path;
@@ -457,7 +494,8 @@ GET  /rest/api/{2|3}/issue/{issueKey}/worklog
 POST /rest/api/3/changelog/bulkfetch
 ```
 
-Для кожного route задається незалежний query allowlist. Numeric board/sprint IDs та Jira issue keys перевіряються regex до побудови URL.
+Для кожного route задається незалежний query allowlist. Numeric board/sprint IDs та Jira
+issue keys перевіряються regex до побудови URL.
 
 ## 8. Завантаження і побудова звіту
 
@@ -467,7 +505,8 @@ POST /rest/api/3/changelog/bulkfetch
 2. Перевірити report parameters.
 3. Завантажити board details і configuration.
 4. Завантажити локальний status mapping.
-5. Якщо mapping відсутній або містить статуси, яких більше немає на борді, зупинити generation і відкрити mapping UI.
+5. Якщо mapping відсутній або містить статуси, яких більше немає на борді, зупинити
+   generation і відкрити mapping UI.
 6. Для Sprint Report завантажити sprint details.
 7. Розрахувати `ReportPeriod` і `dataCutoff`.
 8. Завантажити всі сторінки current board/sprint issues.
@@ -481,11 +520,14 @@ POST /rest/api/3/changelog/bulkfetch
 16. Атомарно зберегти snapshot у local history.
 17. Відкрити готовий report screen.
 
-Кожен етап підтримує `AbortSignal`. UI повинен показувати поточний stage та мати кнопку Cancel.
+Кожен етап підтримує `AbortSignal`. UI повинен показувати поточний stage та мати кнопку
+Cancel.
 
 ### 8.2. Candidate issue set
 
-Для Daily/Weekly candidate set містить усі доступні board issues, що повернулися з board endpoint з відповідним JQL narrowing за датою, плюс issues поточного board state, потрібні для summary.
+Для Daily/Weekly candidate set містить усі доступні board issues, що повернулися з board
+endpoint з відповідним JQL narrowing за датою, плюс issues поточного board state, потрібні
+для summary.
 
 Для Sprint Report candidate set є union:
 
@@ -493,7 +535,10 @@ POST /rest/api/3/changelog/bulkfetch
 - board issues з `updated >= sprint.startDate`;
 - issues, виявлені у sprint membership changelog під час pagination.
 
-Такий union потрібен для пошуку задач, видалених зі sprint після старту. Якщо Jira permission, board filter або server API не дозволяє відновити повний historical membership, звіт повинен мати warning `SPRINT_SCOPE_HISTORY_PARTIAL`; silent omission заборонено.
+Такий union потрібен для пошуку задач, видалених зі sprint після старту. Якщо Jira
+permission, board filter або server API не дозволяє відновити повний historical
+membership, звіт повинен мати warning `SPRINT_SCOPE_HISTORY_PARTIAL`; silent omission
+заборонено.
 
 ### 8.3. Pagination та ліміти
 
@@ -508,13 +553,15 @@ POST /rest/api/3/changelog/bulkfetch
 
 ### 8.4. Cache
 
-Під час однієї generation session однакові pages не завантажуються повторно. Допускається in-memory cache до 5 хвилин за ключем:
+Під час однієї generation session однакові pages не завантажуються повторно. Допускається
+in-memory cache до 5 хвилин за ключем:
 
 ```text
 baseUrl + boardId + sprintId? + period + fieldMapping + pageCursor
 ```
 
-Створення нового immutable snapshot повинно фіксувати, чи були джерела отримані з cache. Кнопка Refresh/Regenerate обходить cache.
+Створення нового immutable snapshot повинно фіксувати, чи були джерела отримані з cache.
+Кнопка Refresh/Regenerate обходить cache.
 
 ## 9. Правила подій
 
@@ -525,18 +572,23 @@ baseUrl + boardId + sprintId? + period + fieldMapping + pageCursor
 ### 9.2. Status та completion
 
 - кожен status changelog item створює `status-changed`;
-- перехід зі статусу поза `completedStatusIds` у mapped completed status створює `issue-completed`;
+- перехід зі статусу поза `completedStatusIds` у mapped completed status створює
+  `issue-completed`;
 - перехід з mapped completed status у не-completed створює `issue-reopened`;
 - поточний completion state визначається поточним status ID issue;
 - exact status name використовується лише як fallback, якщо Jira response не містить ID.
 
 ### 9.3. Assignee
 
-Кожна зміна assignee створює `assignee-changed`. Task ownership у готовому snapshot визначається поточним assignee на `dataCutoff`, наскільки це можливо відновити з current state і changelog.
+Кожна зміна assignee створює `assignee-changed`. Task ownership у готовому snapshot
+визначається поточним assignee на `dataCutoff`, наскільки це можливо відновити з current
+state і changelog.
 
 ### 9.4. Estimate та Story Points
 
-Зміна mapped Story Points field створює `story-points-changed`. Зміна Original Estimate створює `original-estimate-changed`. Значення нормалізуються у number і seconds відповідно; malformed значення створює completeness warning та не потрапляє в арифметику.
+Зміна mapped Story Points field створює `story-points-changed`. Зміна Original Estimate
+створює `original-estimate-changed`. Значення нормалізуються у number і seconds
+відповідно; malformed значення створює completeness warning та не потрапляє в арифметику.
 
 ### 9.5. Sprint membership
 
@@ -551,13 +603,16 @@ removedIds = before - after
 
 - присутність в `addedIds` після `sprint.startDate` створює `sprint-added`;
 - присутність в `removedIds` після `sprint.startDate` створює `sprint-removed`;
-- issue, створена після sprint start вже з цільовим Sprint, вважається added after start навіть за відсутності окремого changelog item;
-- issue може бути одночасно у секціях Added і Removed, якщо її додавали, видаляли або повертали кілька разів;
+- issue, створена після sprint start вже з цільовим Sprint, вважається added after start
+  навіть за відсутності окремого changelog item;
+- issue може бути одночасно у секціях Added і Removed, якщо її додавали, видаляли або
+  повертали кілька разів;
 - UI показує timestamp кожної membership події та поточний membership state.
 
 ## 10. Метрики
 
-Усі розрахунки використовують повну precision. UI/PDF округлює percentage до одного десяткового знака. Якщо denominator дорівнює нулю, результат — `null`/`N/A`, а не `0%`.
+Усі розрахунки використовують повну precision. UI/PDF округлює percentage до одного
+десяткового знака. Якщо denominator дорівнює нулю, результат — `null`/`N/A`, а не `0%`.
 
 ### 10.1. Completion by issue count
 
@@ -593,7 +648,8 @@ sum(originalEstimateSeconds of completed estimated issues)
 sum(originalEstimateSeconds of all estimated issues)
 ```
 
-Окремо показати кількість completed/incomplete issues без Original Estimate. Issues з `originalEstimateSeconds <= 0` вважаються неоціненими.
+Окремо показати кількість completed/incomplete issues без Original Estimate. Issues з
+`originalEstimateSeconds <= 0` вважаються неоціненими.
 
 ### 10.4. Time utilization
 
@@ -616,7 +672,8 @@ Worklog агрегується:
 
 - для Executive Summary — по всіх доступних authors;
 - для user block — за author ID;
-- для individual scope — лише за selected author, але task section залишається прив'язаною до selected assignee.
+- для individual scope — лише за selected author, але task section залишається прив'язаною
+  до selected assignee.
 
 ### 10.6. Daily та Weekly
 
@@ -661,13 +718,16 @@ interface SprintReportResult {
 }
 ```
 
-Person blocks будуються для всіх assignees у scope. Автор Worklog, який не є поточним assignee жодної задачі, також отримує contributor block, щоб Worklog не втрачав attribution. Такий блок має порожній `assignedIssues`.
+Person blocks будуються для всіх assignees у scope. Автор Worklog, який не є поточним
+assignee жодної задачі, також отримує contributor block, щоб Worklog не втрачав
+attribution. Такий блок має порожній `assignedIssues`.
 
 ## 12. UI вимоги
 
 ### 12.1. Навігація
 
-У top navigation додати пункт `Reports`. Він доступний після визначення Jira context; generation actions активні лише після authentication.
+У top navigation додати пункт `Reports`. Він доступний після визначення Jira context;
+generation actions активні лише після authentication.
 
 ### 12.2. Report builder
 
@@ -683,13 +743,16 @@ Builder містить:
 - Output language: English / Українська;
 - кнопку Generate report.
 
-Board і Sprint з поточного `JiraPageContext.boardId/sprintId` попередньо вибираються, якщо доступні поточному користувачу.
+Board і Sprint з поточного `JiraPageContext.boardId/sprintId` попередньо вибираються, якщо
+доступні поточному користувачу.
 
 ### 12.3. Status mapping
 
-При першому використанні борду відкрити mapping panel зі списком точних Jira statuses. Користувач позначає всі statuses, які вважаються completed.
+При першому використанні борду відкрити mapping panel зі списком точних Jira statuses.
+Користувач позначає всі statuses, які вважаються completed.
 
-Board column configuration може запропонувати statuses останньої колонки як initial suggestion, але користувач повинен підтвердити mapping. Mapping зберігається локально.
+Board column configuration може запропонувати statuses останньої колонки як initial
+suggestion, але користувач повинен підтвердити mapping. Mapping зберігається локально.
 
 Якщо status з mapping більше не існує, generation блокується до оновлення mapping.
 
@@ -718,7 +781,8 @@ Loading board -> Loading issues -> Loading changes -> Loading worklogs
 -> Calculating -> Saving snapshot -> Ready
 ```
 
-Під час loading доступна кнопка Cancel. Partial data не показується як готовий повний report.
+Під час loading доступна кнопка Cancel. Partial data не показується як готовий повний
+report.
 
 ### 12.6. History
 
@@ -749,7 +813,9 @@ renderStandupText(snapshot, language): string
 5. Unassigned;
 6. completeness warnings.
 
-Issue key у text output має бути придатним для копіювання. Jira summary і власні назви статусів не перекладаються. Локалізуються лише labels, fixed phrases, dates, durations і metric names.
+Issue key у text output має бути придатним для копіювання. Jira summary і власні назви
+статусів не перекладаються. Локалізуються лише labels, fixed phrases, dates, durations і
+metric names.
 
 ## 14. PDF
 
@@ -807,19 +873,26 @@ Locale не змінює:
 
 ### 16.1. Board settings
 
-Невеликі board mappings зберігати в `chrome.storage.local` через окремий `ReportSettingsStore`:
+Board і completed-status mapping є частиною єдиного workspace setup у
+`chrome.storage.local` через `SettingsStore`:
 
 ```text
-reporting-settings:v1
+settings:v2 → setups[normalizedBaseUrl + projectKey]
 ```
 
-Ключ конфігурації:
+Saved setup каскадно визначає project, board, JQL, field mappings і completed statuses для
+Board Health, Daily/Weekly/Sprint Reports та Gantt. Reports не мають власного board
+selector або окремої status mapping storage.
+
+Ключ Gantt preferences включає board, щоб два boards одного project не ділили фільтри та
+zoom:
 
 ```text
-encodeURIComponent(normalizedBaseUrl) + ":" + boardId
+encodeURIComponent(normalizedBaseUrl) + ":" + projectKey + ":" + boardId
 ```
 
-Не додавати великі snapshots до наявного `settings:v2` object, щоб кожна зміна історії не переписувала всі Gantt settings.
+Не додавати великі snapshots до наявного `settings:v2` object, щоб кожна зміна історії не
+переписувала всі Gantt settings.
 
 ### 16.2. Snapshot history
 
@@ -857,7 +930,8 @@ interface ReportHistoryStore {
 
 - автоматичне видалення заборонено;
 - перед save перевіряти доступну quota через browser storage estimate, якщо API доступний;
-- при quota error готовий report лишається доступним у поточній session, але UI явно повідомляє, що history save не відбувся;
+- при quota error готовий report лишається доступним у поточній session, але UI явно
+  повідомляє, що history save не відбувся;
 - користувачу пропонується вручну видалити snapshots;
 - PDF Blob та дубльований stand-up text не зберігаються.
 
@@ -886,7 +960,8 @@ interface ReportCompleteness {
 }
 ```
 
-Unavailable/partial metric не може відображатися як `0`. Screen, PDF і text повинні однаково показувати warning.
+Unavailable/partial metric не може відображатися як `0`. Screen, PDF і text повинні
+однаково показувати warning.
 
 ## 18. Error handling
 
@@ -915,14 +990,19 @@ Unavailable/partial metric не може відображатися як `0`. Sc
 
 ## 19. Security та privacy
 
-1. Усі Jira requests проходять exact-origin, exact-route і query/body allowlist у service worker.
+1. Усі Jira requests проходять exact-origin, exact-route і query/body allowlist у service
+   worker.
 2. Credentials використовуються лише для active Jira origin.
-3. Reporting endpoints є read-only. Bulk changelog POST класифікується як read-only exact operation.
+3. Reporting endpoints є read-only. Bulk changelog POST класифікується як read-only exact
+   operation.
 4. Не запитуються descriptions, comments, attachments або Worklog comments.
-5. У snapshot зберігаються issue key, summary, status, assignee, timestamps, estimates, Worklog author/duration та агрегати.
-6. Jira text перед UI/PDF rendering розглядається як untrusted input і не інтерпретується як HTML.
+5. У snapshot зберігаються issue key, summary, status, assignee, timestamps, estimates,
+   Worklog author/duration та агрегати.
+6. Jira text перед UI/PDF rendering розглядається як untrusted input і не інтерпретується
+   як HTML.
 7. Немає remote analytics payload з issue/user data.
-8. Diagnostics можуть містити лише endpoint category, counts, duration, retry/error code; issue keys, summaries, user names і Worklog не потрапляють у diagnostics.
+8. Diagnostics можуть містити лише endpoint category, counts, duration, retry/error code;
+   issue keys, summaries, user names і Worklog не потрапляють у diagnostics.
 9. Видалення snapshot є незворотним і потребує confirmation.
 10. Не додавати `unlimitedStorage` permission без окремого продуктового рішення.
 
@@ -1059,27 +1139,33 @@ E2E flow:
 
 ### AC-01: Daily period
 
-Daily report включає події з 08:00 попереднього дня включно до 08:00 звітної дати невключно у `Europe/Kyiv`.
+Daily report включає події з 08:00 попереднього дня включно до 08:00 звітної дати
+невключно у `Europe/Kyiv`.
 
 ### AC-02: Weekly period
 
-Weekly report має межі понеділок 08:00 — наступний понеділок 08:00 у `Europe/Kyiv` і коректно працює через DST.
+Weekly report має межі понеділок 08:00 — наступний понеділок 08:00 у `Europe/Kyiv` і
+коректно працює через DST.
 
 ### AC-03: Board mapping
 
-Новий board вимагає одноразового локального status mapping. Повторна generation використовує збережений mapping.
+Новий board вимагає одноразового локального status mapping. Повторна generation
+використовує збережений mapping.
 
 ### AC-04: Team report
 
-Team report має окремий блок для кожного виконавця, contributor Worklog attribution та `Unassigned`.
+Team report має окремий блок для кожного виконавця, contributor Worklog attribution та
+`Unassigned`.
 
 ### AC-05: Sprint modes
 
-Користувач перемикає issue count, Story Points та Original Estimate без повторного Jira fetch; усі три результати обчислюються з одного snapshot source model.
+Користувач перемикає issue count, Story Points та Original Estimate без повторного Jira
+fetch; усі три результати обчислюються з одного snapshot source model.
 
 ### AC-06: Unestimated issues
 
-Неоцінені issues не входять до weighted percentage та показуються окремими completed/incomplete counts.
+Неоцінені issues не входять до weighted percentage та показуються окремими
+completed/incomplete counts.
 
 ### AC-07: Time utilization
 
@@ -1087,15 +1173,18 @@ Time utilization показується окремо від completion і мож
 
 ### AC-08: Scope changes
 
-Sprint Report має окремі списки Added after start і Removed after start, включно з issue key та timestamp. Re-added issue може бути в обох списках.
+Sprint Report має окремі списки Added after start і Removed after start, включно з issue
+key та timestamp. Re-added issue може бути в обох списках.
 
 ### AC-09: Worklog
 
-Worklog period total використовує `startedAt` і атрибутується автору запису. Cumulative Time Spent показується окремо.
+Worklog period total використовує `startedAt` і атрибутується автору запису. Cumulative
+Time Spent показується окремо.
 
 ### AC-10: Immutable history
 
-Після зміни Jira даних відкритий з history snapshot не змінюється. Regenerate створює новий ID.
+Після зміни Jira даних відкритий з history snapshot не змінюється. Regenerate створює
+новий ID.
 
 ### AC-11: Local-only
 
@@ -1111,15 +1200,18 @@ Snapshot видаляється лише явною дією користува�
 
 ### AC-14: PDF
 
-PDF містить Executive Summary, person blocks, Unassigned, Sprint sections за потреби, warnings, page numbers і коректний Cyrillic text.
+PDF містить Executive Summary, person blocks, Unassigned, Sprint sections за потреби,
+warnings, page numbers і коректний Cyrillic text.
 
 ### AC-15: Partial data
 
-Недоступні або truncated дані ніколи не відображаються як повні або як нульові. Screen, PDF і text містять однакове попередження.
+Недоступні або truncated дані ніколи не відображаються як повні або як нульові. Screen,
+PDF і text містять однакове попередження.
 
 ### AC-16: Transport security
 
-Усі нові Jira paths проходять exact allowlist tests; довільні Agile/Software/POST routes залишаються заблокованими.
+Усі нові Jira paths проходять exact allowlist tests; довільні Agile/Software/POST routes
+залишаються заблокованими.
 
 ## 23. Послідовність реалізації
 

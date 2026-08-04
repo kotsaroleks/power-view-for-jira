@@ -136,11 +136,12 @@ describe("BoardHealthReportView", () => {
   });
 
   it("uses the sprint-scoped Jira issue response for the team breakdown", async () => {
+    const getSprintIssues = vi.fn().mockResolvedValue({
+      values: [{ id: "POWER-1" }],
+      isLast: true,
+    });
     const client = {
-      getSprintIssues: vi.fn().mockResolvedValue({
-        values: [{ id: "POWER-1" }],
-        isLast: true,
-      }),
+      getSprintIssues,
     } as unknown as JiraClient;
 
     render(
@@ -170,7 +171,7 @@ describe("BoardHealthReportView", () => {
     );
 
     await waitFor(() =>
-      expect(client.getSprintIssues).toHaveBeenCalledWith(
+      expect(getSprintIssues).toHaveBeenCalledWith(
         expect.objectContaining({ boardId: "7", sprintId: "101" }),
         expect.any(AbortSignal),
       ),

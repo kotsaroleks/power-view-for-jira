@@ -20,6 +20,7 @@ import type { JiraClient as ReportingClient } from "@power-view/jira-client";
 export interface GenerateReportRequest {
   type: ReportType;
   boardId: string;
+  jql: string;
   sprintId?: string;
   localDate: string;
   scope: ReportScope;
@@ -65,6 +66,7 @@ async function loadAllIssues(
     abortIfRequested(options.signal);
     const pageRequest = {
       boardId,
+      jql: options.request.jql,
       pageSize: 100,
       ...(cursor === undefined ? {} : { cursor }),
       ...(storyPointsFieldId === undefined ? {} : { storyPointsFieldId }),
@@ -299,6 +301,7 @@ export async function generateReport(
     request: {
       type: request.type,
       boardId: request.boardId,
+      jql: request.jql,
       ...(request.sprintId ? { sprintId: request.sprintId } : {}),
       scope: request.scope,
       period,

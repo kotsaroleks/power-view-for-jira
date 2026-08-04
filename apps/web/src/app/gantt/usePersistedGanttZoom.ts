@@ -6,7 +6,7 @@ import type { GanttZoom } from "./GanttRenderer";
 export interface GanttZoomPersistence {
   store: SettingsStore;
   jiraBaseUrl: string;
-  projectKey: string;
+  workspaceKey: string;
 }
 
 export function usePersistedGanttZoom(persistence?: GanttZoomPersistence): {
@@ -17,17 +17,17 @@ export function usePersistedGanttZoom(persistence?: GanttZoomPersistence): {
   const [hydrated, setHydrated] = useState(!persistence);
   const store = persistence?.store;
   const jiraBaseUrl = persistence?.jiraBaseUrl;
-  const projectKey = persistence?.projectKey;
+  const workspaceKey = persistence?.workspaceKey;
 
   useEffect(() => {
-    if (!store || !jiraBaseUrl || !projectKey) {
+    if (!store || !jiraBaseUrl || !workspaceKey) {
       setHydrated(true);
       return;
     }
 
     let isCurrent = true;
     setHydrated(false);
-    void store.getGanttViewPreferences(jiraBaseUrl, projectKey).then(
+    void store.getGanttViewPreferences(jiraBaseUrl, workspaceKey).then(
       (preferences) => {
         if (isCurrent) {
           if (preferences) {
@@ -47,20 +47,20 @@ export function usePersistedGanttZoom(persistence?: GanttZoomPersistence): {
     return () => {
       isCurrent = false;
     };
-  }, [jiraBaseUrl, projectKey, store]);
+  }, [jiraBaseUrl, workspaceKey, store]);
 
   useEffect(() => {
-    if (!store || !jiraBaseUrl || !projectKey || !hydrated) {
+    if (!store || !jiraBaseUrl || !workspaceKey || !hydrated) {
       return;
     }
 
     const timer = setTimeout(() => {
       void store
-        .saveGanttViewPreferences(jiraBaseUrl, projectKey, { zoom })
+        .saveGanttViewPreferences(jiraBaseUrl, workspaceKey, { zoom })
         .catch(() => console.warn("Power View could not save Gantt zoom."));
     }, 300);
     return () => clearTimeout(timer);
-  }, [hydrated, jiraBaseUrl, projectKey, store, zoom]);
+  }, [hydrated, jiraBaseUrl, store, workspaceKey, zoom]);
 
   return { zoom, setZoom };
 }

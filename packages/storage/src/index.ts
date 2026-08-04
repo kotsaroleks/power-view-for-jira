@@ -1,7 +1,6 @@
 export { ContextStore, type StorageArea, type StoredJiraContext } from "./context-store";
 export { DiagnosticsStore, type DiagnosticsState } from "./diagnostics-store";
 export { SettingsStore, type GanttViewPreferences } from "./settings-store";
-export { ReportSettingsStore } from "./reporting-settings-store";
 export {
   IndexedDbReportHistoryStore,
   MemoryReportHistoryStore,

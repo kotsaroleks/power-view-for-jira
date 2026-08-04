@@ -58,6 +58,19 @@ export interface BoardHealthOptions {
   sprintDataAvailable?: boolean;
   preferredBoardId?: string;
   preferredSprintId?: string;
+  completedStatusIds?: string[];
+  completedStatusNames?: string[];
+}
+
+export function boardHealthStatusCategory(
+  issue: NormalizedIssue,
+  options: Pick<BoardHealthOptions, "completedStatusIds" | "completedStatusNames">,
+): NonNullable<NormalizedIssue["status"]["category"]> {
+  const explicitlyCompleted =
+    (issue.status.id !== undefined &&
+      options.completedStatusIds?.includes(issue.status.id)) ||
+    options.completedStatusNames?.includes(issue.status.name);
+  return explicitlyCompleted ? "done" : (issue.status.category ?? "unknown");
 }
 
 function emptyBuckets(): SprintMeasureBuckets {
@@ -68,9 +81,10 @@ function addToBuckets(
   buckets: SprintMeasureBuckets,
   issue: NormalizedIssue,
   value: number,
+  options: Pick<BoardHealthOptions, "completedStatusIds" | "completedStatusNames">,
 ): void {
   buckets.total += value;
-  switch (issue.status.category ?? "unknown") {
+  switch (boardHealthStatusCategory(issue, options)) {
     case "done":
       buckets.done += value;
       break;
@@ -142,7 +156,7 @@ export function buildBoardHealthReport(
   const recentThreshold = now.getTime() - recentDoneDays * 24 * 60 * 60 * 1_000;
 
   for (const issue of issues) {
-    switch (issue.status.category ?? "unknown") {
+    switch (boardHealthStatusCategory(issue, options)) {
       case "done":
         statuses.done += 1;
         break;
@@ -158,7 +172,9 @@ export function buildBoardHealthReport(
     }
   }
 
-  const openIssues = issues.filter((issue) => issue.status.category !== "done");
+  const openIssues = issues.filter(
+    (issue) => boardHealthStatusCategory(issue, options) !== "done",
+  );
   const planning = options.sprintDataAvailable
     ? openIssues.reduce<PlanningBuckets>(
         (result, issue) => {
@@ -188,7 +204,7 @@ export function buildBoardHealthReport(
     open: openIssues.length,
     done: statuses.done,
     recentDone: issues.filter((issue) => {
-      if (issue.status.category !== "done" || !issue.resolvedAt) {
+      if (boardHealthStatusCategory(issue, options) !== "done" || !issue.resolvedAt) {
         return false;
       }
       const resolvedAt = Date.parse(issue.resolvedAt);
@@ -205,6 +221,7 @@ export function buildSprintHealthReport(
   issues: NormalizedIssue[],
   sprint: JiraIssueSprint,
   blockedIssueIds: ReadonlySet<string> = new Set(),
+  options: Pick<BoardHealthOptions, "completedStatusIds" | "completedStatusNames"> = {},
 ): SprintHealthReport {
   const sprintIssues = issues.filter((issue) =>
     issue.sprints?.some((candidate) => candidate.id === sprint.id),
@@ -215,11 +232,11 @@ export function buildSprintHealthReport(
   let issuesWithStoryPoints = 0;
 
   for (const issue of sprintIssues) {
-    addToBuckets(issueBuckets, issue, 1);
+    addToBuckets(issueBuckets, issue, 1, options);
     const points = issue.storyPoints;
     if (points !== undefined) {
       issuesWithStoryPoints += 1;
-      addToBuckets(pointBuckets, issue, points);
+      addToBuckets(pointBuckets, issue, points, options);
     }
 
     const key =
@@ -234,9 +251,9 @@ export function buildSprintHealthReport(
       issues: emptyBuckets(),
       storyPoints: emptyBuckets(),
     };
-    addToBuckets(current.issues, issue, 1);
+    addToBuckets(current.issues, issue, 1, options);
     if (points !== undefined) {
-      addToBuckets(current.storyPoints, issue, points);
+      addToBuckets(current.storyPoints, issue, points, options);
     }
     people.set(key, current);
   }

@@ -11,12 +11,14 @@ import {
   type DefaultDurationDays,
   type GanttScheduleModel,
   type IssueSearchResult,
+  type JiraBoard,
   type JiraField,
   type NormalizedIssue,
   type JiraPageContext,
   type JiraProject,
   type PaginatedResult,
   type PageProgress,
+  type SetupConfiguration,
 } from "@power-view/domain";
 import {
   createIssueLoadReportRequest,
@@ -31,6 +33,8 @@ import {
 } from "@power-view/jira-client";
 import type { SettingsStore } from "@power-view/storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { loadProjectBoards } from "./load-project-boards";
 
 export interface SetupPanelProps {
   context: JiraPageContext;
@@ -48,6 +52,11 @@ export interface ReadyGanttSchedule {
   jiraBaseUrl: string;
   projectKey: string;
   projectName: string;
+  board: JiraBoard;
+  reporting: {
+    completedStatusIds: string[];
+    completedStatusNames: string[];
+  };
   jql: string;
   loadedAt: string;
   truncated: boolean;
@@ -70,6 +79,40 @@ const EMPTY_PROJECT_PAGE: PaginatedResult<JiraProject> = {
   total: 0,
   isLast: true,
 };
+
+interface StatusOption {
+  id: string;
+  name: string;
+}
+
+async function loadBoardStatuses(
+  client: JiraClient,
+  boardId: string,
+  signal: AbortSignal,
+): Promise<StatusOption[]> {
+  const statuses = new Map<string, StatusOption>();
+  let cursor: string | number | undefined;
+  let isLast = false;
+  let loaded = 0;
+
+  while (!isLast && loaded < MAX_CONFIGURABLE_ISSUES) {
+    const page = await client.getBoardIssues(
+      { boardId, pageSize: 100, ...(cursor === undefined ? {} : { cursor }) },
+      signal,
+    );
+    page.values.forEach((issue) => {
+      const id = issue.status.id ?? issue.status.name;
+      statuses.set(id, { id, name: issue.status.name });
+    });
+    loaded += page.values.length;
+    cursor = page.nextCursor;
+    isLast = page.isLast || cursor === undefined;
+  }
+
+  return [...statuses.values()].sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
+}
 
 function fieldOptionLabel(field: JiraField): string {
   const type = field.schema?.type ? ` · ${field.schema.type}` : "";
@@ -116,6 +159,13 @@ export function SetupPanel({
   const [pageStart, setPageStart] = useState(0);
   const [fields, setFields] = useState<JiraField[]>([]);
   const [selectedProjectKey, setSelectedProjectKey] = useState("");
+  const [boards, setBoards] = useState<JiraBoard[]>([]);
+  const [selectedBoardId, setSelectedBoardId] = useState("");
+  const [boardLoadState, setBoardLoadState] = useState<LoadState>("idle");
+  const [boardLoadError, setBoardLoadError] = useState<string>();
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
+  const [completedStatusIds, setCompletedStatusIds] = useState<string[]>([]);
+  const [storedSetup, setStoredSetup] = useState<SetupConfiguration>();
   const [jql, setJql] = useState("");
   const [fieldMapping, setFieldMapping] = useState<FieldMapping>({});
   const [defaultDurations, setDefaultDurations] = useState<DefaultDurationDays>({
@@ -143,6 +193,7 @@ export function SetupPanel({
   const selectedProject = projectPage.values.find(
     (project) => project.key === selectedProjectKey,
   );
+  const selectedBoard = boards.find((board) => board.id === selectedBoardId);
   const startCandidates = useMemo(
     () => rankDateFieldCandidates(fields, "start"),
     [fields],
@@ -253,8 +304,23 @@ export function SetupPanel({
     };
   }, [applyProjectPage, client, context.projectKey, loadState, pageStart, projectSearch]);
 
+  const invalidateIssuePreview = useCallback(() => {
+    issueAbort.current?.abort();
+    client.clearIssueCache();
+    setIssueLoadState("idle");
+    setIssueProgress(undefined);
+    setIssueResult(undefined);
+    setIssueLoadedAt(undefined);
+    setIssueLoadError(undefined);
+  }, [client]);
+
   useEffect(() => {
-    if (!selectedProject) {
+    if (!selectedProjectKey) {
+      setBoards([]);
+      setSelectedBoardId("");
+      setStatusOptions([]);
+      setCompletedStatusIds([]);
+      setStoredSetup(undefined);
       return;
     }
 
@@ -262,7 +328,9 @@ export function SetupPanel({
       setRecentJql([]);
       setFieldMapping({});
       setDefaultDurations({ ...DEFAULT_DURATION_DAYS });
-      setJql(buildDefaultProjectJql(selectedProject.key));
+      setJql(buildDefaultProjectJql(selectedProjectKey));
+      setBoards([]);
+      setSelectedBoardId("");
       setValidationErrors([]);
       setSaveStatus("idle");
       issueAbort.current?.abort();
@@ -272,36 +340,36 @@ export function SetupPanel({
       return;
     }
 
+    const controller = new AbortController();
     let isCurrent = true;
+    setBoardLoadState("loading");
+    setBoardLoadError(undefined);
     void Promise.all([
-      settingsStore.getSetup(context.baseUrl, selectedProject.key),
-      settingsStore.getRecentJql(context.baseUrl, selectedProject.key),
-      context.boardId
-        ? client.getBoardConfiguration(context.boardId).catch(() => undefined)
-        : Promise.resolve(undefined),
+      settingsStore.getSetup(context.baseUrl, selectedProjectKey),
+      settingsStore.getRecentJql(context.baseUrl, selectedProjectKey),
+      loadProjectBoards(client, selectedProjectKey, context.boardId, controller.signal),
     ])
-      .then(([storedSetup, storedRecentJql, boardConfiguration]) => {
+      .then(([loadedSetup, storedRecentJql, loadedBoards]) => {
         if (!isCurrent) {
           return;
         }
-        const projectJql = buildDefaultProjectJql(selectedProject.key);
-        const boardJql = boardConfiguration?.filterId
-          ? buildDefaultBoardJql(boardConfiguration.filterId)
-          : undefined;
-        const useStoredSetup =
-          storedSetup &&
-          (!context.boardId ||
-            storedSetup.boardId === context.boardId ||
-            (storedSetup.boardId === undefined && storedSetup.jql !== projectJql));
+        setStoredSetup(loadedSetup);
+        setBoards(loadedBoards);
+        const preferredBoard =
+          loadedBoards.find((board) => board.id === loadedSetup?.board?.id) ??
+          loadedBoards.find((board) => board.id === context.boardId) ??
+          (loadedBoards.length === 1 ? loadedBoards[0] : undefined);
+        setSelectedBoardId(preferredBoard?.id ?? "");
         setRecentJql(storedRecentJql);
         setFieldMapping({
           ...inferredReportFieldMapping(fields),
-          ...(storedSetup?.fieldMapping ?? {}),
+          ...(loadedSetup?.fieldMapping ?? {}),
         });
         setDefaultDurations(
-          storedSetup?.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
+          loadedSetup?.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
         );
-        setJql(useStoredSetup ? storedSetup.jql : (boardJql ?? projectJql));
+        setJql(loadedSetup?.jql ?? buildDefaultProjectJql(selectedProjectKey));
+        setBoardLoadState("ready");
         setValidationErrors([]);
         setSaveStatus("idle");
         issueAbort.current?.abort();
@@ -312,16 +380,70 @@ export function SetupPanel({
       })
       .catch(() => {
         if (isCurrent) {
-          setValidationErrors([
-            "Power View could not load saved setup from Chrome storage.",
-          ]);
+          setBoardLoadState("error");
+          setBoardLoadError("Power View could not load boards for this project.");
         }
       });
 
     return () => {
       isCurrent = false;
+      controller.abort();
     };
-  }, [client, context.baseUrl, context.boardId, fields, selectedProject, settingsStore]);
+  }, [
+    client,
+    context.baseUrl,
+    context.boardId,
+    fields,
+    selectedProjectKey,
+    settingsStore,
+  ]);
+
+  useEffect(() => {
+    if (!selectedBoard || !selectedProjectKey) {
+      setStatusOptions([]);
+      setCompletedStatusIds([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    let isCurrent = true;
+    setBoardLoadState("loading");
+    setBoardLoadError(undefined);
+    void Promise.all([
+      client.getBoardConfiguration(selectedBoard.id, controller.signal),
+      loadBoardStatuses(client, selectedBoard.id, controller.signal),
+    ])
+      .then(([boardConfiguration, statuses]) => {
+        if (!isCurrent) return;
+        const storedForBoard = storedSetup?.board?.id === selectedBoard.id;
+        const completedIds = storedForBoard
+          ? (storedSetup.reporting?.completedStatusIds ?? [])
+          : statuses
+              .filter((status) => status.name.trim().toLowerCase() === "done")
+              .map((status) => status.id);
+        setStatusOptions(statuses);
+        setCompletedStatusIds(completedIds);
+        if (!storedForBoard) {
+          setJql(
+            boardConfiguration.filterId
+              ? buildDefaultBoardJql(boardConfiguration.filterId)
+              : buildDefaultProjectJql(selectedProjectKey),
+          );
+        }
+        setBoardLoadState("ready");
+        invalidateIssuePreview();
+      })
+      .catch(() => {
+        if (!isCurrent) return;
+        setBoardLoadState("error");
+        setBoardLoadError("Power View could not load the selected board configuration.");
+      });
+
+    return () => {
+      isCurrent = false;
+      controller.abort();
+    };
+  }, [client, invalidateIssuePreview, selectedBoard, selectedProjectKey, storedSetup]);
 
   useEffect(
     () => () => {
@@ -330,16 +452,6 @@ export function SetupPanel({
     },
     [],
   );
-
-  const invalidateIssuePreview = () => {
-    issueAbort.current?.abort();
-    client.clearIssueCache();
-    setIssueLoadState("idle");
-    setIssueProgress(undefined);
-    setIssueResult(undefined);
-    setIssueLoadedAt(undefined);
-    setIssueLoadError(undefined);
-  };
 
   const updateMapping = (key: keyof FieldMapping, value: string) => {
     setFieldMapping((current) => {
@@ -369,23 +481,31 @@ export function SetupPanel({
   const saveSetup = async (): Promise<boolean> => {
     const errors = [
       ...(selectedProject ? [] : ["Choose a Jira project before saving setup."]),
+      ...(selectedBoard ? [] : ["Choose a Jira board before saving setup."]),
+      ...(completedStatusIds.length > 0
+        ? []
+        : ["Choose at least one completed Jira status."]),
       ...validateJqlInput(jql),
       ...validateFieldMapping(fieldMapping, fields),
       ...(settingsStore ? [] : ["Chrome settings storage is unavailable."]),
     ];
     setValidationErrors(errors);
-    if (errors.length > 0 || !selectedProject || !settingsStore) {
+    if (errors.length > 0 || !selectedProject || !selectedBoard || !settingsStore) {
       return false;
     }
 
     setSaveStatus("saving");
     try {
+      const completedStatusNames = statusOptions
+        .filter((status) => completedStatusIds.includes(status.id))
+        .map((status) => status.name);
       await settingsStore.saveSetup({
         jiraBaseUrl: context.baseUrl,
         project: selectedProject,
-        ...(context.boardId ? { boardId: context.boardId } : {}),
+        board: selectedBoard,
         jql: jql.trim(),
         fieldMapping,
+        reporting: { completedStatusIds, completedStatusNames },
         defaultDurations,
         updatedAt: new Date().toISOString(),
       });
@@ -465,6 +585,13 @@ export function SetupPanel({
         jiraBaseUrl: context.baseUrl,
         projectKey: selectedProjectKey,
         projectName: selectedProject?.name ?? selectedProjectKey,
+        board: selectedBoard!,
+        reporting: {
+          completedStatusIds: [...completedStatusIds],
+          completedStatusNames: statusOptions
+            .filter((status) => completedStatusIds.includes(status.id))
+            .map((status) => status.name),
+        },
         jql: jql.trim(),
         loadedAt,
         truncated: result.truncated,
@@ -541,7 +668,7 @@ export function SetupPanel({
 
   useEffect(() => {
     onScheduleReady?.(
-      scheduleModel && issueResult && issueLoadedAt && selectedProject
+      scheduleModel && issueResult && issueLoadedAt && selectedProject && selectedBoard
         ? {
             model: scheduleModel,
             issues: issueResult.values,
@@ -549,6 +676,13 @@ export function SetupPanel({
             jiraBaseUrl: context.baseUrl,
             projectKey: selectedProjectKey,
             projectName: selectedProject.name,
+            board: selectedBoard,
+            reporting: {
+              completedStatusIds: [...completedStatusIds],
+              completedStatusNames: statusOptions
+                .filter((status) => completedStatusIds.includes(status.id))
+                .map((status) => status.name),
+            },
             jql: jql.trim(),
             loadedAt: issueLoadedAt,
             truncated: issueResult.truncated,
@@ -575,6 +709,9 @@ export function SetupPanel({
     scheduleQueryKey,
     selectedProject,
     selectedProjectKey,
+    selectedBoard,
+    completedStatusIds,
+    statusOptions,
   ]);
 
   return (
@@ -674,6 +811,33 @@ export function SetupPanel({
           </div>
 
           <label>
+            <span>Jira board</span>
+            <select
+              aria-label="Jira board"
+              value={selectedBoardId}
+              disabled={!selectedProject || boardLoadState === "loading"}
+              onChange={(event) => {
+                setSelectedBoardId(event.target.value);
+                setSaveStatus("idle");
+                invalidateIssuePreview();
+              }}
+            >
+              <option value="">Choose a board…</option>
+              {boards.map((board) => (
+                <option key={board.id} value={board.id}>
+                  {board.name} · {board.type}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {boardLoadError ? (
+            <div className="setup-errors" role="alert">
+              {boardLoadError}
+            </div>
+          ) : null}
+
+          <label>
             <span>JQL query</span>
             <textarea
               value={jql}
@@ -711,6 +875,37 @@ export function SetupPanel({
               </select>
             </label>
           ) : null}
+
+          <fieldset>
+            <legend>Completed statuses</legend>
+            <p className="field-help">
+              This board-level mapping is inherited by Board Health and every report.
+            </p>
+            <div className="reporting-status-list">
+              {statusOptions.map((status) => (
+                <label key={status.id}>
+                  <input
+                    type="checkbox"
+                    checked={completedStatusIds.includes(status.id)}
+                    onChange={() => {
+                      setCompletedStatusIds((current) =>
+                        current.includes(status.id)
+                          ? current.filter((id) => id !== status.id)
+                          : [...current, status.id],
+                      );
+                      setSaveStatus("idle");
+                    }}
+                  />
+                  <span>{status.name}</span>
+                </label>
+              ))}
+              {selectedBoard &&
+              boardLoadState === "ready" &&
+              statusOptions.length === 0 ? (
+                <span>No statuses were returned for this board.</span>
+              ) : null}
+            </div>
+          </fieldset>
 
           <fieldset>
             <legend>Date field mapping</legend>
