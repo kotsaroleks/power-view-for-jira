@@ -32,6 +32,15 @@ interface Segment {
   className: string;
 }
 
+function isCurrentBoardSprint(sprint: JiraIssueSprint, now = Date.now()): boolean {
+  if (sprint.state !== "active" || sprint.completeDate) return false;
+  if (sprint.endDate) {
+    const endTime = Date.parse(sprint.endDate);
+    if (Number.isFinite(endTime) && endTime < now) return false;
+  }
+  return true;
+}
+
 function SegmentBar({
   label,
   total,
@@ -254,27 +263,40 @@ export function BoardHealthReportView({
     [issues, preferredBoardId, preferredSprintId, sprintDataAvailable],
   );
   const [boardActiveSprints, setBoardActiveSprints] = useState<JiraIssueSprint[]>();
+  const [boardSprintsLoading, setBoardSprintsLoading] = useState(
+    Boolean(client && boardId && typeof client.getBoardSprints === "function"),
+  );
   useEffect(() => {
     if (!client || !boardId || typeof client.getBoardSprints !== "function") {
       setBoardActiveSprints(undefined);
+      setBoardSprintsLoading(false);
       return;
     }
     const controller = new AbortController();
+    setBoardSprintsLoading(true);
     void client
       .getBoardSprints({ boardId, state: ["active"], maxResults: 50 }, controller.signal)
       .then((page) => {
-        if (!controller.signal.aborted) setBoardActiveSprints(page.values);
+        if (!controller.signal.aborted) {
+          setBoardActiveSprints(
+            page.values.filter((sprint) => isCurrentBoardSprint(sprint)),
+          );
+        }
       })
       .catch(() => {
         if (!controller.signal.aborted) setBoardActiveSprints(undefined);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setBoardSprintsLoading(false);
       });
     return () => controller.abort();
   }, [boardId, client]);
   const availableSprints = boardActiveSprints ?? report.activeSprints;
   const [selectedSprintId, setSelectedSprintId] = useState(preferredSprintId ?? "");
-  const selectedSprint =
-    availableSprints.find((sprint) => sprint.id === selectedSprintId) ??
-    availableSprints[0];
+  const selectedSprint = boardSprintsLoading
+    ? undefined
+    : (availableSprints.find((sprint) => sprint.id === selectedSprintId) ??
+      availableSprints[0]);
   const sprintBoardId = boardId ?? selectedSprint?.boardId;
   const [sprintIssueIds, setSprintIssueIds] = useState<Set<string>>();
   const [sprintIssueLoading, setSprintIssueLoading] = useState(false);
