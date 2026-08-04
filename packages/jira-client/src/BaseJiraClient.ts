@@ -584,35 +584,44 @@ export abstract class BaseJiraClient implements JiraClient {
     ];
     const events = [] as ReturnType<typeof mapChangelogEntry>;
     if (this.deploymentType === "cloud") {
-      let nextPageToken: string | undefined;
-      do {
-        const raw = await this.transport.request(
-          {
-            baseUrl: this.baseUrl,
-            method: "POST",
-            path: "/rest/api/3/changelog/bulkfetch",
-            headers: { Accept: "application/json" },
-            body: {
-              issueIdsOrKeys: request.issues.map((issue) => issue.id),
-              fieldIds: [...new Set(fieldIds)].slice(0, 10),
-              maxResults: 1000,
-              ...(nextPageToken ? { nextPageToken } : {}),
+      // Bulkfetching changelogs for hundreds of issues in one request risks a
+      // heavy, slow response that the Jira page's fetch can drop before it
+      // completes (observed as a generic network failure, not a timeout or
+      // HTTP error status). Chunk into smaller batches so one slow/failed
+      // batch doesn't wipe out changelog data for the whole report.
+      const CHANGELOG_BATCH_SIZE = 50;
+      const keyById = new Map(request.issues.map((issue) => [issue.id, issue.key]));
+      for (let start = 0; start < request.issues.length; start += CHANGELOG_BATCH_SIZE) {
+        const batch = request.issues.slice(start, start + CHANGELOG_BATCH_SIZE);
+        let nextPageToken: string | undefined;
+        do {
+          const raw = await this.transport.request(
+            {
+              baseUrl: this.baseUrl,
+              method: "POST",
+              path: "/rest/api/3/changelog/bulkfetch",
+              headers: { Accept: "application/json" },
+              body: {
+                issueIdsOrKeys: batch.map((issue) => issue.id),
+                fieldIds: [...new Set(fieldIds)].slice(0, 10),
+                maxResults: 1000,
+                ...(nextPageToken ? { nextPageToken } : {}),
+              },
             },
-          },
-          reportingBulkChangelogSchema,
-          request.signal,
-        );
-        const keyById = new Map(request.issues.map((issue) => [issue.id, issue.key]));
-        for (const issueLog of raw.issueChangeLogs) {
-          const issueId = String(issueLog.issueId);
-          const key = keyById.get(issueId);
-          if (!key) continue;
-          for (const entry of issueLog.changeHistories) {
-            events.push(...mapChangelogEntry(entry, { id: issueId, key }, request));
+            reportingBulkChangelogSchema,
+            request.signal,
+          );
+          for (const issueLog of raw.issueChangeLogs) {
+            const issueId = String(issueLog.issueId);
+            const key = keyById.get(issueId);
+            if (!key) continue;
+            for (const entry of issueLog.changeHistories) {
+              events.push(...mapChangelogEntry(entry, { id: issueId, key }, request));
+            }
           }
-        }
-        nextPageToken = raw.nextPageToken;
-      } while (nextPageToken);
+          nextPageToken = raw.nextPageToken;
+        } while (nextPageToken);
+      }
       return events;
     }
     for (const issue of request.issues) {

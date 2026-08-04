@@ -426,4 +426,26 @@ describe("createJiraClient", () => {
     expect(body.fieldIds).not.toContain("Sprint");
     expect(body.fieldIds.some((id) => id.startsWith("customfield_"))).toBe(false);
   });
+
+  it("batches the changelog bulkfetch instead of sending hundreds of issues in one request", async () => {
+    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+    const issues = Array.from({ length: 120 }, (_, index) => ({
+      id: String(10_000 + index),
+      key: `POWER-${index}`,
+    }));
+
+    await client.getIssueChangelogs({ issues });
+
+    expect(requestMock).toHaveBeenCalledTimes(3);
+    for (const call of requestMock.mock.calls) {
+      const body = (call[0] as JiraTransportRequest).body as {
+        issueIdsOrKeys: string[];
+      };
+      expect(body.issueIdsOrKeys.length).toBeLessThanOrEqual(50);
+    }
+  });
 });
