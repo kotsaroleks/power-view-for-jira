@@ -517,10 +517,7 @@ export abstract class BaseJiraClient implements JiraClient {
       ...(request.fields ?? []),
       ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
     ];
-    const path =
-      this.deploymentType === "cloud"
-        ? `/rest/software/1.0/board/${request.boardId}/sprint/${request.sprintId}/issue`
-        : `/rest/agile/1.0/board/${request.boardId}/sprint/${request.sprintId}/issue`;
+    const path = `/rest/agile/1.0/board/${request.boardId}/sprint/${request.sprintId}/issue`;
     const raw = await this.transport.request(
       {
         baseUrl: this.baseUrl,
