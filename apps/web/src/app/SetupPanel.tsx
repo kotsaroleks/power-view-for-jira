@@ -420,9 +420,17 @@ export function SetupPanel({
     let isCurrent = true;
     setBoardLoadState("loading");
     setBoardLoadError(undefined);
+    const boardProjectKeys = new Set([
+      selectedProjectKey,
+      ...(selectedBoard.projectKeys ?? []),
+    ]);
     void Promise.all([
       client.getBoardConfiguration(selectedBoard.id, controller.signal),
-      client.getProjectStatuses(selectedProjectKey, controller.signal).catch(() => []),
+      Promise.all(
+        [...boardProjectKeys].map((projectKey) =>
+          client.getProjectStatuses(projectKey, controller.signal).catch(() => []),
+        ),
+      ).then((results) => results.flat()),
     ])
       .then(([boardConfiguration, projectStatuses]) => {
         if (!isCurrent) return;

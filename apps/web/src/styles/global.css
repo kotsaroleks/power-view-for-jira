@@ -1,4 +1,20 @@
 :root {
+  /* Spacing scale — use these instead of ad-hoc pixel values so card,
+     section, and row padding stay consistent across pages.
+     --space-6 (24px): page-level card/panel outer padding.
+     --space-4 (16px): standard section/sub-card padding, and a card's
+       header should match its body's horizontal padding.
+     --space-3 (12px): compact widgets, table/list rows.
+     --space-2 (8px): buttons, pills, tight inline controls.
+     --space-1 (4px): hairline gaps. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+
   color: #172b4d;
   background: #f7f8fa;
   font-family:
@@ -246,7 +262,7 @@ h1 {
   margin-top: 34px;
   border: 1px solid #baf3db;
   border-radius: 16px;
-  padding: 22px;
+  padding: var(--space-6);
   background: #ffffff;
   box-shadow: 0 12px 32px rgb(9 30 66 / 8%);
 }
@@ -391,8 +407,8 @@ h1 {
   min-height: 76px;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 16px 22px;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid #dfe1e6;
 }
 
@@ -456,8 +472,8 @@ h1 {
 
 .setup-form {
   display: grid;
-  gap: 18px;
-  padding: 24px;
+  gap: var(--space-5);
+  padding: var(--space-6);
 }
 
 .setup-form label,
@@ -532,11 +548,11 @@ h1 {
 
 .setup-form fieldset {
   display: grid;
-  gap: 14px;
+  gap: var(--space-3);
   margin: 0;
   border: 1px solid #dfe1e6;
   border-radius: 12px;
-  padding: 18px;
+  padding: var(--space-4);
 }
 
 .setup-form legend {
@@ -571,11 +587,11 @@ h1 {
 .optional-fields {
   border: 1px solid #dfe1e6;
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: var(--space-4);
 }
 
 .optional-fields[open] {
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .optional-fields summary {
@@ -948,11 +964,11 @@ h1 {
 
 .report-panel {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
   min-width: 0;
   border: 1px solid #dfe1e6;
   border-radius: 13px;
-  padding: 18px;
+  padding: var(--space-4);
   background: #ffffff;
 }
 
@@ -1135,10 +1151,10 @@ h1 {
 
 .active-sprint-overview-card {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
   border: 1px solid #dfe1e6;
   border-radius: 10px;
-  padding: 16px;
+  padding: var(--space-4);
   background: #ffffff;
 }
 
@@ -1230,9 +1246,9 @@ h1 {
   display: grid;
   min-width: 690px;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   border-top: 1px solid #f1f2f4;
-  padding: 11px 13px;
+  padding: var(--space-3);
   color: #44546f;
   font-size: 12px;
   grid-template-columns: 150px minmax(130px, 1fr) 72px 86px 86px 45px;
@@ -2143,10 +2159,10 @@ h1 {
 .reporting-status-list label {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-2);
   border: 1px solid #dfe1e6;
   border-radius: 999px;
-  padding: 7px 10px;
+  padding: var(--space-2) var(--space-3);
   background: #f7f8fa;
   color: #172b4d;
   font-size: 12px;
@@ -2165,7 +2181,7 @@ h1 {
 }
 
 .reporting-output-header {
-  padding: 0 0 18px;
+  padding: 0 0 var(--space-5);
 }
 
 .reporting-summary-grid {
@@ -2176,10 +2192,10 @@ h1 {
 
 .reporting-summary-grid div {
   display: grid;
-  gap: 5px;
+  gap: var(--space-1);
   border: 1px solid #dfe1e6;
   border-radius: 10px;
-  padding: 12px;
+  padding: var(--space-3);
   background: #f7f8fa;
 }
 
@@ -2244,7 +2260,7 @@ h1 {
 
 .daily-weekly-workspace .reporting-output-header {
   align-items: flex-start;
-  padding: 0 0 18px;
+  padding: 0 0 var(--space-5);
 }
 
 .daily-weekly-workspace .reporting-output-header h3 {
@@ -2501,11 +2517,11 @@ h1 {
 .connection-panel {
   position: sticky;
   top: 96px;
-  padding: 22px;
+  padding: var(--space-6);
 }
 
 .configuration-panel > .section-heading {
-  padding: 22px 24px;
+  padding: var(--space-6);
   border-bottom: 1px solid #dfe1e6;
 }
 
@@ -2542,10 +2558,10 @@ h1 {
 }
 
 .connection-panel .app-context-card {
-  margin-top: 22px;
+  margin-top: var(--space-6);
   border: 0;
   border-radius: 12px;
-  padding: 16px;
+  padding: var(--space-4);
   background: #f7f8fa;
   box-shadow: none;
 }
@@ -2562,7 +2578,7 @@ h1 {
 
 .configuration-panel .setup-card-header {
   min-height: 64px;
-  padding: 14px 24px;
+  padding: var(--space-4) var(--space-6);
   background: #fafbfc;
 }
 
@@ -2638,11 +2654,11 @@ h1 {
   display: grid;
   min-height: 250px;
   justify-items: start;
-  gap: 24px;
+  gap: var(--space-6);
   overflow: hidden;
   border: 1px solid #dfe1e6;
   border-radius: 22px;
-  padding: 28px;
+  padding: var(--space-6);
   background: #ffffff;
   color: #172b4d;
   box-shadow: 0 16px 50px rgb(9 30 66 / 9%);
@@ -3010,7 +3026,7 @@ h1 {
 
 .gantt-details {
   min-height: 130px;
-  padding: 20px 22px 22px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
   background: #fafbfc;
 }
 
@@ -3106,11 +3122,11 @@ h1 {
 
 .gantt-edit-panel {
   display: grid;
-  gap: 14px;
-  margin-top: 20px;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
   border: 1px solid #b3d4ff;
   border-radius: 12px;
-  padding: 16px;
+  padding: var(--space-4);
   background: #ffffff;
 }
 
@@ -3155,11 +3171,11 @@ h1 {
 
 .gantt-edit-group {
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
   margin: 0;
   border: 1px solid #dfe1e6;
   border-radius: 9px;
-  padding: 13px;
+  padding: var(--space-3);
 }
 
 .gantt-edit-group legend {
@@ -3288,7 +3304,7 @@ h1 {
 
 .diagnostics-content,
 .diagnostics-empty {
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .diagnostics-content dl {
