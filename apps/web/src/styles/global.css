@@ -2134,6 +2134,7 @@ h1 {
   background: #f7f8fa;
   color: #172b4d;
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .reporting-status-message {

@@ -451,15 +451,32 @@ export function SetupPanel({
         setBoardLoadState("ready");
         invalidateIssuePreview();
         void loadBoardStatuses(client, selectedBoard.id, controller.signal)
-          .then((issueStatuses) => {
-            if (!isCurrent || issueStatuses.length === 0) return;
-            setStatusOptions(
-              boardStatusOptions(
+          .then(async (issueStatuses) => {
+            if (!isCurrent) return;
+            let combined = issueStatuses.length > 0 ? issueStatuses : [];
+            let resolved = boardStatusOptions(
+              boardConfiguration.statusIds,
+              projectStatuses,
+              combined,
+            );
+            // Statuses configured on the board but not covered by the
+            // project's status catalog or the sampled issues (e.g. a
+            // workflow status with no current issues) still show as
+            // placeholders here — fetch the full instance catalog only as a
+            // last resort to resolve just those remaining names.
+            if (resolved.some((status) => status.name === `Status ${status.id}`)) {
+              const allStatuses = await client
+                .getStatuses(controller.signal)
+                .catch(() => []);
+              if (!isCurrent) return;
+              combined = [...combined, ...allStatuses];
+              resolved = boardStatusOptions(
                 boardConfiguration.statusIds,
                 projectStatuses,
-                issueStatuses,
-              ),
-            );
+                combined,
+              );
+            }
+            setStatusOptions(resolved);
           })
           .catch(() => undefined);
       })
