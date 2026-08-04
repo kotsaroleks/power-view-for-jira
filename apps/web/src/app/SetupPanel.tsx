@@ -114,6 +114,29 @@ async function loadBoardStatuses(
   );
 }
 
+function boardStatusOptions(
+  boardStatusIds: string[],
+  projectStatuses: StatusOption[],
+  issueStatuses: StatusOption[],
+): StatusOption[] {
+  const knownStatuses = new Map(
+    [...projectStatuses, ...issueStatuses].map((status) => [status.id, status]),
+  );
+  const statuses =
+    boardStatusIds.length > 0
+      ? boardStatusIds.map(
+          (statusId) =>
+            knownStatuses.get(statusId) ?? {
+              id: statusId,
+              name: `Status ${statusId}`,
+            },
+        )
+      : issueStatuses;
+  return [...new Map(statuses.map((status) => [status.id, status])).values()].sort(
+    (left, right) => left.name.localeCompare(right.name),
+  );
+}
+
 function fieldOptionLabel(field: JiraField): string {
   const type = field.schema?.type ? ` · ${field.schema.type}` : "";
   return `${field.name}${type} · ${field.id}`;
@@ -411,10 +434,16 @@ export function SetupPanel({
     setBoardLoadError(undefined);
     void Promise.all([
       client.getBoardConfiguration(selectedBoard.id, controller.signal),
+      client.getProjectStatuses(selectedProjectKey, controller.signal).catch(() => []),
       loadBoardStatuses(client, selectedBoard.id, controller.signal),
     ])
-      .then(([boardConfiguration, statuses]) => {
+      .then(([boardConfiguration, projectStatuses, issueStatuses]) => {
         if (!isCurrent) return;
+        const statuses = boardStatusOptions(
+          boardConfiguration.statusIds,
+          projectStatuses,
+          issueStatuses,
+        );
         const storedForBoard = storedSetup?.board?.id === selectedBoard.id;
         const completedIds = storedForBoard
           ? (storedSetup.reporting?.completedStatusIds ?? [])

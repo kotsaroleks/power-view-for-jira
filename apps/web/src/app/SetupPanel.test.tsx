@@ -102,9 +102,22 @@ const boardConfiguration = {
   name: "Power Delivery Board",
   filter: { id: 9001 },
   columnConfig: {
-    columns: [{ statuses: [{ id: "1" }, { id: "2" }, { id: "3" }] }],
+    columns: [{ statuses: [{ id: "1" }, { id: "2" }, { id: "4" }, { id: "3" }] }],
   },
 };
+
+const projectStatuses = [
+  {
+    id: "10000",
+    name: "Task",
+    statuses: [
+      { id: "1", name: "To Do" },
+      { id: "2", name: "In Progress" },
+      { id: "4", name: "In Review" },
+      { id: "3", name: "Done" },
+    ],
+  },
+];
 
 const boardIssuePage = {
   issues: [
@@ -176,15 +189,17 @@ function setupRuntime(options: { invalidJql?: boolean } = {}): ExtensionRuntime 
         const path = request.payload.path;
         const data = path.endsWith("/field")
           ? fields
-          : path === "/rest/agile/1.0/board"
-            ? boardPage
-            : path.endsWith("/board/7/configuration")
-              ? boardConfiguration
-              : path.endsWith("/board/7/issue")
-                ? boardIssuePage
-                : path.endsWith("/search/jql")
-                  ? issueSearchPage
-                  : projects;
+          : path.endsWith("/project/POWER/statuses")
+            ? projectStatuses
+            : path === "/rest/agile/1.0/board"
+              ? boardPage
+              : path.endsWith("/board/7/configuration")
+                ? boardConfiguration
+                : path.endsWith("/board/7/issue")
+                  ? boardIssuePage
+                  : path.endsWith("/search/jql")
+                    ? issueSearchPage
+                    : projects;
         return Promise.resolve({
           type: "JIRA_RESPONSE",
           requestId: request.requestId,
@@ -230,6 +245,7 @@ describe("SetupPanel", () => {
       await screen.findByRole("option", { name: "Power Delivery Board · scrum" }),
     ).toBeInTheDocument();
     expect(await screen.findByRole("checkbox", { name: "Done" })).toBeChecked();
+    expect(await screen.findByRole("checkbox", { name: "In Review" })).not.toBeChecked();
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "JQL query" })).toHaveValue(
         "filter = 9001 ORDER BY Rank ASC",

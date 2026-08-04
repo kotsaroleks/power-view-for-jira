@@ -24,6 +24,7 @@ import type {
   JiraClient,
   JiraIssueEditMetadata,
   JiraIssueLinkType,
+  JiraStatus,
   UpdateIssueDatesRequest,
 } from "./JiraClient";
 import type { JiraTransport } from "./JiraTransport";
@@ -50,6 +51,7 @@ import {
   rawJiraUserSchema,
   rawJiraUsersSchema,
   rawJiraIssueSchema,
+  rawJiraProjectStatusesSchema,
 } from "./schemas";
 import {
   rawJiraBoardPageSchema as reportingBoardPageSchema,
@@ -398,6 +400,32 @@ export abstract class BaseJiraClient implements JiraClient {
       signal,
     );
     return mapBoardConfiguration(raw);
+  }
+
+  async getProjectStatuses(
+    projectKeyOrId: string,
+    signal?: AbortSignal,
+  ): Promise<JiraStatus[]> {
+    const issueTypes = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/api/${this.apiVersion}/project/${encodeURIComponent(projectKeyOrId)}/statuses`,
+        headers: { Accept: "application/json" },
+      },
+      rawJiraProjectStatusesSchema,
+      signal,
+    );
+    const statuses = new Map<string, JiraStatus>();
+    issueTypes.forEach((issueType) =>
+      issueType.statuses?.forEach((status) => {
+        const statusId = String(status.id);
+        statuses.set(statusId, { id: statusId, name: status.name });
+      }),
+    );
+    return [...statuses.values()].sort((left, right) =>
+      left.name.localeCompare(right.name),
+    );
   }
 
   async getBoardIssues(

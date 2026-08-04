@@ -7,6 +7,7 @@ export {
   type JiraIssueEditField,
   type JiraIssueEditMetadata,
   type JiraIssueLinkType,
+  type JiraStatus,
   type UpdateIssueDatesRequest,
 } from "./JiraClient";
 export { JiraCloudClient } from "./JiraCloudClient";
@@ -53,6 +54,7 @@ export {
   rawJiraIssueLinkTypesSchema,
   rawJiraIssueSchema,
   rawJiraProjectSchema,
+  rawJiraProjectStatusesSchema,
   rawJiraServerInfoSchema,
   rawJiraUserSchema,
   rawJiraUsersSchema,
@@ -64,6 +66,7 @@ export {
   type RawJiraIssueLinkType,
   type RawJiraIssue,
   type RawJiraProject,
+  type RawJiraProjectStatuses,
   type RawJiraServerInfo,
   type RawJiraUser,
 } from "./schemas";

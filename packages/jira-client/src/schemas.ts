@@ -49,6 +49,23 @@ export const rawCloudProjectPageSchema = z
 
 export const rawDataCenterProjectsSchema = z.array(rawJiraProjectSchema);
 
+export const rawJiraProjectStatusesSchema = z.array(
+  z
+    .object({
+      statuses: z
+        .array(
+          z
+            .object({
+              id: jiraIdSchema,
+              name: z.string().min(1).max(512),
+            })
+            .passthrough(),
+        )
+        .optional(),
+    })
+    .passthrough(),
+);
+
 export const rawJiraFieldSchema = z
   .object({
     id: z.string().min(1).max(512),
@@ -220,6 +237,7 @@ export const rawDataCenterIssueSearchPageSchema = z
 export type RawJiraUser = z.infer<typeof rawJiraUserSchema>;
 export type RawJiraServerInfo = z.infer<typeof rawJiraServerInfoSchema>;
 export type RawJiraProject = z.infer<typeof rawJiraProjectSchema>;
+export type RawJiraProjectStatuses = z.infer<typeof rawJiraProjectStatusesSchema>;
 export type RawCloudProjectPage = z.infer<typeof rawCloudProjectPageSchema>;
 export type RawJiraField = z.infer<typeof rawJiraFieldSchema>;
 export type RawJiraIssueEditMetadata = z.infer<typeof rawJiraIssueEditMetadataSchema>;

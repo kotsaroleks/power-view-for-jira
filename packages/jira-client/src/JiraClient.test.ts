@@ -23,6 +23,43 @@ function transportWith(data: unknown): {
 }
 
 describe("createJiraClient", () => {
+  it("loads and deduplicates every workflow status for a Cloud project", async () => {
+    const { transport, requestMock } = transportWith([
+      {
+        id: "10000",
+        statuses: [
+          { id: "1", name: "To Do" },
+          { id: "4", name: "In Review" },
+        ],
+      },
+      {
+        id: "10001",
+        statuses: [
+          { id: "4", name: "In Review" },
+          { id: "3", name: "Done" },
+        ],
+      },
+    ]);
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    await expect(client.getProjectStatuses("POWER")).resolves.toEqual([
+      { id: "3", name: "Done" },
+      { id: "4", name: "In Review" },
+      { id: "1", name: "To Do" },
+    ]);
+    expect(requestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "GET",
+        path: "/rest/api/3/project/POWER/statuses",
+      }),
+      expect.anything(),
+      undefined,
+    );
+  });
+
   it("uses public Agile REST for Cloud board and sprint issue scopes", async () => {
     const { transport, requestMock } = transportWith({
       issues: makeJiraIssueFixtures(1),

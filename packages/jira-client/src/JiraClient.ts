@@ -36,6 +36,11 @@ export interface JiraIssueLinkType {
   outward: string;
 }
 
+export interface JiraStatus {
+  id: string;
+  name: string;
+}
+
 export interface UpdateIssueDatesRequest {
   fieldMapping?: FieldMapping;
   startDate?: string | null;
@@ -56,6 +61,7 @@ export interface JiraClient extends ReportingJiraClient {
     signal?: AbortSignal,
   ): Promise<PaginatedResult<JiraProject>>;
   getFields(signal?: AbortSignal): Promise<JiraField[]>;
+  getProjectStatuses(projectKeyOrId: string, signal?: AbortSignal): Promise<JiraStatus[]>;
   searchIssues(
     request: SearchIssuesRequest,
     signal?: AbortSignal,
