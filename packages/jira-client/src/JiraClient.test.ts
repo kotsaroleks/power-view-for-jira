@@ -3,7 +3,6 @@ import { makeJiraIssueFixtures } from "@power-view/test-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import type { z } from "zod";
 
-import { JiraClientError } from "./errors";
 import { createJiraClient } from "./JiraClient";
 import type { JiraTransport } from "./JiraTransport";
 
@@ -395,100 +394,24 @@ describe("createJiraClient", () => {
     ]);
   });
 
-  it("requests the configured Sprint field id in the changelog bulkfetch, never the literal name", async () => {
-    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
+  it("fetches changelogs for Cloud via the per-issue GET endpoint, not the bulk POST endpoint", async () => {
+    const { transport, requestMock } = transportWith({ values: [], isLast: true });
     const client = createJiraClient(transport, {
       baseUrl: "https://example.atlassian.net",
       deploymentType: "cloud",
     });
-
-    await client.getIssueChangelogs({
-      issues: [{ id: "10001", key: "POWER-1" }],
-      sprintFieldId: "customfield_10020",
-    });
-
-    const request = requestMock.mock.calls[0]?.[0] as JiraTransportRequest;
-    const body = request.body as { fieldIds: string[] };
-    expect(body.fieldIds).toContain("customfield_10020");
-    expect(body.fieldIds).not.toContain("Sprint");
-  });
-
-  it("omits the Sprint field entirely from the changelog bulkfetch when no field id is configured", async () => {
-    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
-    const client = createJiraClient(transport, {
-      baseUrl: "https://example.atlassian.net",
-      deploymentType: "cloud",
-    });
-
-    await client.getIssueChangelogs({ issues: [{ id: "10001", key: "POWER-1" }] });
-
-    const request = requestMock.mock.calls[0]?.[0] as JiraTransportRequest;
-    const body = request.body as { fieldIds: string[] };
-    expect(body.fieldIds).not.toContain("Sprint");
-    expect(body.fieldIds.some((id) => id.startsWith("customfield_"))).toBe(false);
-  });
-
-  it("batches the changelog bulkfetch instead of sending hundreds of issues in one request", async () => {
-    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
-    const client = createJiraClient(transport, {
-      baseUrl: "https://example.atlassian.net",
-      deploymentType: "cloud",
-    });
-    const issues = Array.from({ length: 120 }, (_, index) => ({
+    const issues = Array.from({ length: 3 }, (_, index) => ({
       id: String(10_000 + index),
       key: `POWER-${index}`,
     }));
 
     await client.getIssueChangelogs({ issues });
 
-    expect(requestMock).toHaveBeenCalledTimes(6);
-    for (const call of requestMock.mock.calls) {
-      const body = (call[0] as JiraTransportRequest).body as {
-        issueIdsOrKeys: string[];
-      };
-      expect(body.issueIdsOrKeys.length).toBeLessThanOrEqual(20);
-    }
-  });
-
-  it("retries a changelog batch once on a retryable network failure", async () => {
-    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
-    requestMock.mockRejectedValueOnce(
-      new JiraClientError({
-        code: "NETWORK_ERROR",
-        message: "The Jira page could not complete the REST request.",
-        retryable: true,
-      }),
-    );
-    const client = createJiraClient(transport, {
-      baseUrl: "https://example.atlassian.net",
-      deploymentType: "cloud",
-    });
-
-    const events = await client.getIssueChangelogs({
-      issues: [{ id: "10001", key: "POWER-1" }],
-    });
-
-    expect(events).toEqual([]);
-    expect(requestMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("gives up after repeated retryable failures for a changelog batch", async () => {
-    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
-    requestMock.mockRejectedValue(
-      new JiraClientError({
-        code: "NETWORK_ERROR",
-        message: "The Jira page could not complete the REST request.",
-        retryable: true,
-      }),
-    );
-    const client = createJiraClient(transport, {
-      baseUrl: "https://example.atlassian.net",
-      deploymentType: "cloud",
-    });
-
-    await expect(
-      client.getIssueChangelogs({ issues: [{ id: "10001", key: "POWER-1" }] }),
-    ).rejects.toThrow("The Jira page could not complete the REST request.");
     expect(requestMock).toHaveBeenCalledTimes(3);
+    for (const [index, call] of requestMock.mock.calls.entries()) {
+      const request = call[0] as JiraTransportRequest;
+      expect(request.method).toBe("GET");
+      expect(request.path).toBe(`/rest/api/3/issue/${issues[index]?.key}/changelog`);
+    }
   });
 });

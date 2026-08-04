@@ -40,7 +40,7 @@ import type {
   JiraSprintPage,
   ReportingIssuePage,
 } from "./reporting-api";
-import { JiraClientError, isJiraClientError } from "./errors";
+import { JiraClientError } from "./errors";
 import { mapJiraField, mapJiraIssue, mapJiraServerInfo, mapJiraUser } from "./mappers";
 import {
   type RawJiraIssue,
@@ -62,7 +62,6 @@ import {
   rawJiraSprintSchema as reportingSprintSchema,
   rawDataCenterReportingIssuePageSchema as reportingDataCenterIssuePageSchema,
   rawJiraIssueChangelogPageSchema as reportingIssueChangelogPageSchema,
-  rawCloudBulkChangelogSchema as reportingBulkChangelogSchema,
   rawJiraWorklogPageSchema as reportingWorklogPageSchema,
 } from "./reporting-schemas";
 import {
@@ -575,73 +574,12 @@ export abstract class BaseJiraClient implements JiraClient {
   }
 
   async getIssueChangelogs(request: GetIssueChangelogsRequest) {
-    const fieldIds = [
-      "status",
-      "assignee",
-      "timeoriginalestimate",
-      ...(request.sprintFieldId ? [request.sprintFieldId] : []),
-      ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
-    ];
     const events = [] as ReturnType<typeof mapChangelogEntry>;
-    if (this.deploymentType === "cloud") {
-      // Bulkfetching changelogs for many issues (or issues with deep history) in
-      // one request risks a heavy, slow response that the Jira page's fetch can
-      // drop before it completes (observed as a generic network failure, not a
-      // timeout or HTTP error status). Chunk into small batches with a modest
-      // per-page result cap, and retry a batch a couple of times on a retryable
-      // network failure, so one slow/dropped batch doesn't wipe out changelog
-      // data for the whole report.
-      const CHANGELOG_BATCH_SIZE = 20;
-      const CHANGELOG_BATCH_RETRIES = 2;
-      const keyById = new Map(request.issues.map((issue) => [issue.id, issue.key]));
-      for (let start = 0; start < request.issues.length; start += CHANGELOG_BATCH_SIZE) {
-        const batch = request.issues.slice(start, start + CHANGELOG_BATCH_SIZE);
-        let nextPageToken: string | undefined;
-        do {
-          const requestBatch = async () =>
-            this.transport.request(
-              {
-                baseUrl: this.baseUrl,
-                method: "POST",
-                path: "/rest/api/3/changelog/bulkfetch",
-                headers: { Accept: "application/json" },
-                body: {
-                  issueIdsOrKeys: batch.map((issue) => issue.id),
-                  fieldIds: [...new Set(fieldIds)].slice(0, 10),
-                  maxResults: 200,
-                  ...(nextPageToken ? { nextPageToken } : {}),
-                },
-              },
-              reportingBulkChangelogSchema,
-              request.signal,
-            );
-          let raw: Awaited<ReturnType<typeof requestBatch>>;
-          let attempt = 0;
-          for (;;) {
-            try {
-              raw = await requestBatch();
-              break;
-            } catch (cause) {
-              const retryable =
-                isJiraClientError(cause) && cause.appError.retryable === true;
-              if (!retryable || attempt >= CHANGELOG_BATCH_RETRIES) throw cause;
-              attempt += 1;
-              await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
-            }
-          }
-          for (const issueLog of raw.issueChangeLogs) {
-            const issueId = String(issueLog.issueId);
-            const key = keyById.get(issueId);
-            if (!key) continue;
-            for (const entry of issueLog.changeHistories) {
-              events.push(...mapChangelogEntry(entry, { id: issueId, key }, request));
-            }
-          }
-          nextPageToken = raw.nextPageToken;
-        } while (nextPageToken);
-      }
-      return events;
-    }
+    // The Cloud bulk changelog endpoint (POST /rest/api/3/changelog/bulkfetch) has been
+    // observed to fail as a generic network error in some Jira environments (e.g. behind
+    // a corporate proxy/WAF that only this endpoint trips), regardless of batch size or
+    // retries. The classic per-issue GET changelog endpoint works reliably on both Cloud
+    // and Data Center, so use it unconditionally instead.
     for (const issue of request.issues) {
       let startAt = 0;
       let isLast = false;
