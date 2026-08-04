@@ -230,17 +230,6 @@ function issueAssigneeKey(issue: NormalizedIssue): string {
   );
 }
 
-function mergeSprintIssues(
-  sprintIssues: NormalizedIssue[],
-  loadedIssues: NormalizedIssue[],
-): NormalizedIssue[] {
-  const loadedById = new Map(loadedIssues.map((issue) => [issue.id, issue]));
-  return sprintIssues.map((issue) => {
-    const loaded = loadedById.get(issue.id);
-    return loaded && !issue.status ? { ...loaded, ...issue } : issue;
-  });
-}
-
 export function BoardHealthReportView({
   client,
   boardId,
@@ -300,27 +289,27 @@ export function BoardHealthReportView({
     ? undefined
     : (availableSprints.find((sprint) => sprint.id === selectedSprintId) ??
       availableSprints[0]);
-  const [sprintIssuesById, setSprintIssuesById] = useState<
-    Record<string, NormalizedIssue[]>
+  const [sprintIssueIdsById, setSprintIssueIdsById] = useState<
+    Record<string, Set<string>>
   >({});
   const [sprintIssueLoading, setSprintIssueLoading] = useState(false);
   const [sprintIssueLoadError, setSprintIssueLoadError] = useState(false);
   useEffect(() => {
     if (boardSprintsLoading || !client || !boardId || availableSprints.length === 0) {
-      setSprintIssuesById({});
+      setSprintIssueIdsById({});
       setSprintIssueLoading(false);
       setSprintIssueLoadError(false);
       return;
     }
     const controller = new AbortController();
     setSprintIssueLoading(true);
-    setSprintIssuesById({});
+    setSprintIssueIdsById({});
     setSprintIssueLoadError(false);
     void (async () => {
       try {
         const entries = await Promise.all(
           availableSprints.map(async (sprint) => {
-            const sprintIssues: NormalizedIssue[] = [];
+            const issueIds = new Set<string>();
             let cursor: string | number | undefined;
             let isLast = false;
             while (!isLast) {
@@ -333,17 +322,18 @@ export function BoardHealthReportView({
                 },
                 controller.signal,
               );
-              sprintIssues.push(...page.values);
+              page.values.forEach((issue) => issueIds.add(issue.id));
               cursor = page.nextCursor;
               isLast = page.isLast || cursor === undefined;
             }
-            return [sprint.id, mergeSprintIssues(sprintIssues, issues)] as const;
+            return [sprint.id, issueIds] as const;
           }),
         );
-        if (!controller.signal.aborted) setSprintIssuesById(Object.fromEntries(entries));
+        if (!controller.signal.aborted)
+          setSprintIssueIdsById(Object.fromEntries(entries));
       } catch {
         if (!controller.signal.aborted) {
-          setSprintIssuesById({});
+          setSprintIssueIdsById({});
           setSprintIssueLoadError(true);
         }
       } finally {
@@ -351,11 +341,11 @@ export function BoardHealthReportView({
       }
     })();
     return () => controller.abort();
-  }, [availableSprints, boardId, boardSprintsLoading, client, issues]);
+  }, [availableSprints, boardId, boardSprintsLoading, client]);
   const sprintScopedIssues = useMemo(
     () =>
-      selectedSprint && Object.keys(sprintIssuesById).length > 0
-        ? (sprintIssuesById[selectedSprint.id] ?? [])
+      selectedSprint && Object.keys(sprintIssueIdsById).length > 0
+        ? issues.filter((issue) => sprintIssueIdsById[selectedSprint.id]?.has(issue.id))
         : client && boardId
           ? []
           : selectedSprint
@@ -363,7 +353,7 @@ export function BoardHealthReportView({
                 issue.sprints?.some((candidate) => candidate.id === selectedSprint.id),
               )
             : [],
-    [boardId, client, issues, selectedSprint, sprintIssuesById],
+    [boardId, client, issues, selectedSprint, sprintIssueIdsById],
   );
   const blockedIssueIds = useMemo(
     () => new Set(model.tasks.filter((task) => task.isBlocked).map((task) => task.id)),
@@ -380,18 +370,19 @@ export function BoardHealthReportView({
     () =>
       availableSprints.map((sprint) => {
         const sprintIssues =
-          sprintIssuesById[sprint.id] ??
-          (client && boardId
-            ? []
-            : issues.filter((issue) =>
-                issue.sprints?.some((candidate) => candidate.id === sprint.id),
-              ));
+          Object.keys(sprintIssueIdsById).length > 0
+            ? issues.filter((issue) => sprintIssueIdsById[sprint.id]?.has(issue.id))
+            : client && boardId
+              ? []
+              : issues.filter((issue) =>
+                  issue.sprints?.some((candidate) => candidate.id === sprint.id),
+                );
         return {
           sprint,
           report: buildSprintHealthReport(sprintIssues, sprint, blockedIssueIds),
         };
       }),
-    [availableSprints, boardId, blockedIssueIds, client, issues, sprintIssuesById],
+    [availableSprints, boardId, blockedIssueIds, client, issues, sprintIssueIdsById],
   );
   const sprintIssuesByPerson = useMemo(() => {
     const grouped = new Map<string, NormalizedIssue[]>();
