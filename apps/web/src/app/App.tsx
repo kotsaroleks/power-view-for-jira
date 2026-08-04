@@ -525,6 +525,9 @@ function AppContent({
                         readySchedule.editing.fieldMapping.storyPointsFieldId,
                     }
                   : {}),
+                ...(readySchedule.editing.fieldMapping.sprintFieldId
+                  ? { sprintFieldId: readySchedule.editing.fieldMapping.sprintFieldId }
+                  : {}),
                 updatedAt: readySchedule.loadedAt,
               }}
             />

@@ -43,6 +43,7 @@ export interface BoardReportConfiguration {
   completedStatusIds: string[];
   completedStatusNames: string[];
   storyPointsFieldId?: string;
+  sprintFieldId?: string;
   updatedAt: string;
 }
 

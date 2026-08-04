@@ -194,6 +194,9 @@ export async function generateReport(
     changes = await client.getIssueChangelogs({
       issues: candidateIssues.map((issue) => ({ id: issue.id, key: issue.key })),
       ...(storyPointsFieldId ? { storyPointsFieldId } : {}),
+      ...(statusMapping.sprintFieldId
+        ? { sprintFieldId: statusMapping.sprintFieldId }
+        : {}),
       ...(request.sprintId ? { sprintId: request.sprintId } : {}),
       completedStatusIds: statusMapping.completedStatusIds,
       completedStatusNames: statusMapping.completedStatusNames,

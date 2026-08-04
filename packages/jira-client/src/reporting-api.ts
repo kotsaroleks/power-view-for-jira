@@ -69,6 +69,7 @@ export interface GetSprintIssuesRequest extends GetBoardIssuesRequest {
 export interface GetIssueChangelogsRequest {
   issues: Array<{ id: string; key: string }>;
   storyPointsFieldId?: string;
+  sprintFieldId?: string;
   sprintId?: string;
   completedStatusIds?: string[];
   completedStatusNames?: string[];

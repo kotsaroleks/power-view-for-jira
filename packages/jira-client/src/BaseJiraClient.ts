@@ -578,8 +578,8 @@ export abstract class BaseJiraClient implements JiraClient {
     const fieldIds = [
       "status",
       "assignee",
-      "Sprint",
       "timeoriginalestimate",
+      ...(request.sprintFieldId ? [request.sprintFieldId] : []),
       ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
     ];
     const events = [] as ReturnType<typeof mapChangelogEntry>;

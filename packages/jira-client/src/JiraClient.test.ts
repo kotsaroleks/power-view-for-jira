@@ -393,4 +393,37 @@ describe("createJiraClient", () => {
       },
     ]);
   });
+
+  it("requests the configured Sprint field id in the changelog bulkfetch, never the literal name", async () => {
+    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    await client.getIssueChangelogs({
+      issues: [{ id: "10001", key: "POWER-1" }],
+      sprintFieldId: "customfield_10020",
+    });
+
+    const request = requestMock.mock.calls[0]?.[0] as JiraTransportRequest;
+    const body = request.body as { fieldIds: string[] };
+    expect(body.fieldIds).toContain("customfield_10020");
+    expect(body.fieldIds).not.toContain("Sprint");
+  });
+
+  it("omits the Sprint field entirely from the changelog bulkfetch when no field id is configured", async () => {
+    const { transport, requestMock } = transportWith({ issueChangeLogs: [] });
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    await client.getIssueChangelogs({ issues: [{ id: "10001", key: "POWER-1" }] });
+
+    const request = requestMock.mock.calls[0]?.[0] as JiraTransportRequest;
+    const body = request.body as { fieldIds: string[] };
+    expect(body.fieldIds).not.toContain("Sprint");
+    expect(body.fieldIds.some((id) => id.startsWith("customfield_"))).toBe(false);
+  });
 });
