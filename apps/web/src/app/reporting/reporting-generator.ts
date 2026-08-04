@@ -190,6 +190,7 @@ export async function generateReport(
   options.onProgress?.({ stage: "changes" });
   let changes: ReportChangeEvent[] = [];
   let changelogUnavailable = false;
+  let changelogErrorDetail: string | undefined;
   try {
     changes = await client.getIssueChangelogs({
       issues: candidateIssues.map((issue) => ({ id: issue.id, key: issue.key })),
@@ -204,7 +205,9 @@ export async function generateReport(
     });
   } catch (cause) {
     if (options.signal?.aborted) throw cause;
+    console.error("Power View could not load Jira changelog data.", cause);
     changelogUnavailable = true;
+    changelogErrorDetail = cause instanceof Error ? cause.message : undefined;
     changes = [];
   }
   changes = dedupeEvents([
@@ -215,6 +218,7 @@ export async function generateReport(
   options.onProgress?.({ stage: "worklogs" });
   let worklogs: ReportWorklog[] = [];
   let worklogUnavailable = false;
+  let worklogErrorDetail: string | undefined;
   try {
     worklogs = await client.getIssueWorklogs({
       issues: candidateIssues.map((issue) => ({ id: issue.id, key: issue.key })),
@@ -224,7 +228,9 @@ export async function generateReport(
     });
   } catch (cause) {
     if (options.signal?.aborted) throw cause;
+    console.error("Power View could not load Jira worklog data.", cause);
     worklogUnavailable = true;
+    worklogErrorDetail = cause instanceof Error ? cause.message : undefined;
     worklogs = [];
   }
 
@@ -268,13 +274,12 @@ export async function generateReport(
   if (changelogUnavailable)
     warnings.push({
       code: "CHANGELOG_UNAVAILABLE",
-      message:
-        "Jira changelog data could not be loaded; activity and scope history may be incomplete.",
+      message: `Jira changelog data could not be loaded; activity and scope history may be incomplete.${changelogErrorDetail ? ` (${changelogErrorDetail})` : ""}`,
     });
   if (worklogUnavailable)
     warnings.push({
       code: "WORKLOG_UNAVAILABLE",
-      message: "Jira worklog data could not be loaded; time metrics are unavailable.",
+      message: `Jira worklog data could not be loaded; time metrics are unavailable.${worklogErrorDetail ? ` (${worklogErrorDetail})` : ""}`,
     });
   if (request.type === "sprint" && candidateIssues.length >= MAX_REPORT_ISSUES)
     warnings.push({
