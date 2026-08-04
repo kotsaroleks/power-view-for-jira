@@ -3,6 +3,7 @@ import {
   buildDefaultBoardJql,
   buildDefaultProjectJql,
   DEFAULT_DURATION_DAYS,
+  MAX_CONFIGURABLE_ISSUES,
   rankDateFieldCandidates,
   validateFieldMapping,
   validateJqlInput,
@@ -439,7 +440,7 @@ export function SetupPanel({
         {
           jql,
           fieldMapping,
-          maxIssues: 1_000,
+          maxIssues: MAX_CONFIGURABLE_ISSUES,
           pageSize: 100,
           forceRefresh,
           onProgress: (progress) => {
@@ -505,7 +506,7 @@ export function SetupPanel({
         {
           jql,
           fieldMapping,
-          maxIssues: 1_000,
+          maxIssues: MAX_CONFIGURABLE_ISSUES,
           pageSize: 100,
           forceRefresh: true,
           onProgress: (progress) => {
@@ -901,7 +902,10 @@ export function SetupPanel({
             </div>
 
             {issueLoadState === "idle" ? (
-              <p>Validate and normalize up to 1,000 issues before opening a view.</p>
+              <p>
+                Validate and normalize up to {MAX_CONFIGURABLE_ISSUES.toLocaleString()}{" "}
+                issues before opening a view.
+              </p>
             ) : null}
 
             {issueLoadState === "loading" && issueProgress ? (
@@ -931,7 +935,9 @@ export function SetupPanel({
                     {issueResult.fromCache
                       ? "Loaded from 5-minute cache"
                       : "Loaded from Jira"}
-                    {issueResult.truncated ? " · stopped at the 1,000 issue limit" : ""}
+                    {issueResult.truncated
+                      ? ` · stopped at the ${MAX_CONFIGURABLE_ISSUES.toLocaleString()} issue limit`
+                      : ""}
                   </span>
                   <button
                     className="issue-refresh-button"

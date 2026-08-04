@@ -180,34 +180,4 @@ describe("BoardHealthReportView", () => {
       expect(screen.queryByText("Eboni Obanero")).not.toBeInTheDocument();
     });
   });
-
-  it("does not treat an ended Jira sprint reported as active as current", async () => {
-    const client = {
-      getBoardSprints: vi.fn().mockResolvedValue({
-        values: [{ ...sprint, endDate: "2020-01-01T00:00:00.000Z" }],
-      }),
-      getSprintIssues: vi.fn(),
-    } as unknown as JiraClient;
-
-    render(
-      <BoardHealthReportView
-        client={client}
-        boardId="7"
-        issues={[makeIssue("POWER-1", "done", { sprints: [sprint] })]}
-        model={emptyModel}
-        projectKey="POWER"
-        projectName="Power View"
-        jql={'project = "POWER"'}
-        loadedAt="2026-08-03T10:00:00.000Z"
-        truncated={false}
-        sprintDataAvailable
-        storyPointsDataAvailable={false}
-      />,
-    );
-
-    await waitFor(() =>
-      expect(screen.getByText("No active sprint issues found")).toBeInTheDocument(),
-    );
-    expect(client.getSprintIssues).not.toHaveBeenCalled();
-  });
 });

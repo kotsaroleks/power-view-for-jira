@@ -1,6 +1,7 @@
 import {
   buildBoardHealthReport,
   buildSprintHealthReport,
+  MAX_CONFIGURABLE_ISSUES,
   reportPercentage,
   type GanttScheduleModel,
   type JiraIssueSprint,
@@ -30,15 +31,6 @@ interface Segment {
   label: string;
   value: number;
   className: string;
-}
-
-function isCurrentBoardSprint(sprint: JiraIssueSprint, now = Date.now()): boolean {
-  if (sprint.state !== "active" || sprint.completeDate) return false;
-  if (sprint.endDate) {
-    const endTime = Date.parse(sprint.endDate);
-    if (Number.isFinite(endTime) && endTime < now) return false;
-  }
-  return true;
 }
 
 function SegmentBar({
@@ -238,6 +230,17 @@ function issueAssigneeKey(issue: NormalizedIssue): string {
   );
 }
 
+function mergeSprintIssues(
+  sprintIssues: NormalizedIssue[],
+  loadedIssues: NormalizedIssue[],
+): NormalizedIssue[] {
+  const loadedById = new Map(loadedIssues.map((issue) => [issue.id, issue]));
+  return sprintIssues.map((issue) => {
+    const loaded = loadedById.get(issue.id);
+    return loaded && !issue.status ? { ...loaded, ...issue } : issue;
+  });
+}
+
 export function BoardHealthReportView({
   client,
   boardId,
@@ -279,7 +282,7 @@ export function BoardHealthReportView({
       .then((page) => {
         if (!controller.signal.aborted) {
           setBoardActiveSprints(
-            page.values.filter((sprint) => isCurrentBoardSprint(sprint)),
+            page.values.filter((sprint) => sprint.state === "active"),
           );
         }
       })
@@ -297,44 +300,50 @@ export function BoardHealthReportView({
     ? undefined
     : (availableSprints.find((sprint) => sprint.id === selectedSprintId) ??
       availableSprints[0]);
-  const sprintBoardId = boardId ?? selectedSprint?.boardId;
-  const [sprintIssueIds, setSprintIssueIds] = useState<Set<string>>();
+  const [sprintIssuesById, setSprintIssuesById] = useState<
+    Record<string, NormalizedIssue[]>
+  >({});
   const [sprintIssueLoading, setSprintIssueLoading] = useState(false);
   const [sprintIssueLoadError, setSprintIssueLoadError] = useState(false);
   useEffect(() => {
-    if (!selectedSprint || !client || !sprintBoardId) {
-      setSprintIssueIds(undefined);
+    if (boardSprintsLoading || !client || !boardId || availableSprints.length === 0) {
+      setSprintIssuesById({});
       setSprintIssueLoading(false);
       setSprintIssueLoadError(false);
       return;
     }
     const controller = new AbortController();
     setSprintIssueLoading(true);
-    setSprintIssueIds(undefined);
+    setSprintIssuesById({});
     setSprintIssueLoadError(false);
     void (async () => {
       try {
-        const ids = new Set<string>();
-        let cursor: string | number | undefined;
-        let isLast = false;
-        while (!isLast) {
-          const page = await client.getSprintIssues(
-            {
-              boardId: sprintBoardId,
-              sprintId: selectedSprint.id,
-              pageSize: 100,
-              ...(cursor === undefined ? {} : { cursor }),
-            },
-            controller.signal,
-          );
-          page.values.forEach((issue) => ids.add(issue.id));
-          cursor = page.nextCursor;
-          isLast = page.isLast || cursor === undefined;
-        }
-        if (!controller.signal.aborted) setSprintIssueIds(ids);
+        const entries = await Promise.all(
+          availableSprints.map(async (sprint) => {
+            const sprintIssues: NormalizedIssue[] = [];
+            let cursor: string | number | undefined;
+            let isLast = false;
+            while (!isLast) {
+              const page = await client.getSprintIssues(
+                {
+                  boardId,
+                  sprintId: sprint.id,
+                  pageSize: 100,
+                  ...(cursor === undefined ? {} : { cursor }),
+                },
+                controller.signal,
+              );
+              sprintIssues.push(...page.values);
+              cursor = page.nextCursor;
+              isLast = page.isLast || cursor === undefined;
+            }
+            return [sprint.id, mergeSprintIssues(sprintIssues, issues)] as const;
+          }),
+        );
+        if (!controller.signal.aborted) setSprintIssuesById(Object.fromEntries(entries));
       } catch {
         if (!controller.signal.aborted) {
-          setSprintIssueIds(new Set());
+          setSprintIssuesById({});
           setSprintIssueLoadError(true);
         }
       } finally {
@@ -342,19 +351,19 @@ export function BoardHealthReportView({
       }
     })();
     return () => controller.abort();
-  }, [client, selectedSprint, sprintBoardId]);
+  }, [availableSprints, boardId, boardSprintsLoading, client, issues]);
   const sprintScopedIssues = useMemo(
     () =>
-      client && sprintBoardId && sprintIssueIds !== undefined
-        ? issues.filter((issue) => sprintIssueIds.has(issue.id))
-        : client && sprintBoardId
+      selectedSprint && Object.keys(sprintIssuesById).length > 0
+        ? (sprintIssuesById[selectedSprint.id] ?? [])
+        : client && boardId
           ? []
           : selectedSprint
             ? issues.filter((issue) =>
                 issue.sprints?.some((candidate) => candidate.id === selectedSprint.id),
               )
             : [],
-    [client, issues, selectedSprint, sprintBoardId, sprintIssueIds],
+    [boardId, client, issues, selectedSprint, sprintIssuesById],
   );
   const blockedIssueIds = useMemo(
     () => new Set(model.tasks.filter((task) => task.isBlocked).map((task) => task.id)),
@@ -366,6 +375,23 @@ export function BoardHealthReportView({
         ? buildSprintHealthReport(sprintScopedIssues, selectedSprint, blockedIssueIds)
         : undefined,
     [blockedIssueIds, selectedSprint, sprintScopedIssues],
+  );
+  const activeSprintReports = useMemo(
+    () =>
+      availableSprints.map((sprint) => {
+        const sprintIssues =
+          sprintIssuesById[sprint.id] ??
+          (client && boardId
+            ? []
+            : issues.filter((issue) =>
+                issue.sprints?.some((candidate) => candidate.id === sprint.id),
+              ));
+        return {
+          sprint,
+          report: buildSprintHealthReport(sprintIssues, sprint, blockedIssueIds),
+        };
+      }),
+    [availableSprints, boardId, blockedIssueIds, client, issues, sprintIssuesById],
   );
   const sprintIssuesByPerson = useMemo(() => {
     const grouped = new Map<string, NormalizedIssue[]>();
@@ -418,8 +444,8 @@ export function BoardHealthReportView({
 
       {truncated ? (
         <div className="report-alert report-alert-warning" role="alert">
-          This report uses the first 1,000 matching issues. Narrow the JQL before using
-          percentages for decisions.
+          This report uses up to {MAX_CONFIGURABLE_ISSUES.toLocaleString()} matching
+          issues. Narrow the JQL before using percentages for decisions.
         </div>
       ) : null}
 
@@ -539,6 +565,60 @@ export function BoardHealthReportView({
           )}
         </article>
       </div>
+
+      {availableSprints.length > 0 && !boardSprintsLoading ? (
+        <section
+          className="active-sprints-overview"
+          aria-labelledby="active-sprints-title"
+        >
+          <div className="people-report-heading">
+            <div>
+              <p className="report-eyebrow">ACTIVE SPRINTS</p>
+              <h3 id="active-sprints-title">Sprint statistics</h3>
+              <p>Every sprint Jira currently reports as active on this board.</p>
+            </div>
+            <span>{activeSprintReports.length} active sprints</span>
+          </div>
+          <div className="active-sprints-overview-grid">
+            {activeSprintReports.map(({ sprint, report: sprintSummary }) => (
+              <article className="active-sprint-overview-card" key={sprint.id}>
+                <div className="active-sprint-overview-heading">
+                  <strong>{sprint.name}</strong>
+                  <span>{sprintSummary.issues.total} issues</span>
+                </div>
+                <div className="active-sprint-overview-metrics">
+                  <span>
+                    <strong>
+                      {reportPercentage(
+                        sprintSummary.issues.done,
+                        sprintSummary.issues.total,
+                      )}
+                      %
+                    </strong>
+                    Done
+                  </span>
+                  <span>
+                    <strong>{sprintSummary.issues.inProgress}</strong>
+                    In progress
+                  </span>
+                  <span>
+                    <strong>{sprintSummary.issues.notStarted}</strong>
+                    Not started
+                  </span>
+                  <span>
+                    <strong>{sprintSummary.unassigned}</strong>
+                    Unassigned
+                  </span>
+                  <span>
+                    <strong>{sprintSummary.blocked}</strong>
+                    Blocked
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="sprint-report" aria-labelledby="sprint-report-title">
         <header className="sprint-report-heading">

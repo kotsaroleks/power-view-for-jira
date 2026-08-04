@@ -1120,6 +1120,59 @@ h1 {
   padding: 24px 28px 30px;
 }
 
+.active-sprints-overview {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid #dfe1e6;
+  padding: 22px 28px 24px;
+}
+
+.active-sprints-overview-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.active-sprint-overview-card {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #dfe1e6;
+  border-radius: 10px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.active-sprint-overview-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #172b4d;
+}
+
+.active-sprint-overview-heading span {
+  color: #626f86;
+  font-size: 11px;
+}
+
+.active-sprint-overview-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.active-sprint-overview-metrics span {
+  display: grid;
+  gap: 3px;
+  color: #626f86;
+  font-size: 10px;
+}
+
+.active-sprint-overview-metrics strong {
+  color: #172b4d;
+  font-size: 18px;
+}
+
 .sprint-report > .report-alert {
   margin-right: 0;
   margin-left: 0;
@@ -3469,7 +3522,8 @@ h1 {
   }
 
   .report-titlebar,
-  .sprint-report {
+  .sprint-report,
+  .active-sprints-overview {
     padding-right: 16px;
     padding-left: 16px;
   }
@@ -3509,6 +3563,10 @@ h1 {
 
   .sprint-selector {
     width: 100%;
+  }
+
+  .active-sprint-overview-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .duration-grid {
