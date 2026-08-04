@@ -252,6 +252,15 @@ describe("App", () => {
           },
         };
       }
+      if (path.endsWith("/status")) {
+        return { ...common, data: [{ id: "3", name: "Done" }] };
+      }
+      if (path.endsWith("/project/POWER/statuses")) {
+        return {
+          ...common,
+          data: [{ id: "1", statuses: [{ id: "3", name: "Done" }] }],
+        };
+      }
       if (path.endsWith("/board/7/sprint")) {
         return {
           ...common,

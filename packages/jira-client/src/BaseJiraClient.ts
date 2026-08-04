@@ -52,6 +52,7 @@ import {
   rawJiraUsersSchema,
   rawJiraIssueSchema,
   rawJiraProjectStatusesSchema,
+  rawJiraStatusesSchema,
 } from "./schemas";
 import {
   rawJiraBoardPageSchema as reportingBoardPageSchema,
@@ -426,6 +427,22 @@ export abstract class BaseJiraClient implements JiraClient {
     return [...statuses.values()].sort((left, right) =>
       left.name.localeCompare(right.name),
     );
+  }
+
+  async getStatuses(signal?: AbortSignal): Promise<JiraStatus[]> {
+    const rawStatuses = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/api/${this.apiVersion}/status`,
+        headers: { Accept: "application/json" },
+      },
+      rawJiraStatusesSchema,
+      signal,
+    );
+    return rawStatuses
+      .map((status) => ({ id: String(status.id), name: status.name }))
+      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   async getBoardIssues(

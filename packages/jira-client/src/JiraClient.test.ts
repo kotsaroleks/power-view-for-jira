@@ -23,6 +23,27 @@ function transportWith(data: unknown): {
 }
 
 describe("createJiraClient", () => {
+  it("loads the global status catalog for board statuses outside the selected project", async () => {
+    const { transport, requestMock } = transportWith([
+      { id: "10013", name: "In Review" },
+      { id: "3", name: "In Progress" },
+    ]);
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    await expect(client.getStatuses()).resolves.toEqual([
+      { id: "3", name: "In Progress" },
+      { id: "10013", name: "In Review" },
+    ]);
+    expect(requestMock).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/rest/api/3/status", method: "GET" }),
+      expect.anything(),
+      undefined,
+    );
+  });
+
   it("loads and deduplicates every workflow status for a Cloud project", async () => {
     const { transport, requestMock } = transportWith([
       {

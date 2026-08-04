@@ -55,6 +55,8 @@ export {
   rawJiraIssueSchema,
   rawJiraProjectSchema,
   rawJiraProjectStatusesSchema,
+  rawJiraStatusSchema,
+  rawJiraStatusesSchema,
   rawJiraServerInfoSchema,
   rawJiraUserSchema,
   rawJiraUsersSchema,
@@ -67,6 +69,7 @@ export {
   type RawJiraIssue,
   type RawJiraProject,
   type RawJiraProjectStatuses,
+  type RawJiraStatus,
   type RawJiraServerInfo,
   type RawJiraUser,
 } from "./schemas";

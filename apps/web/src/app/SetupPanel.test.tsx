@@ -119,6 +119,13 @@ const projectStatuses = [
   },
 ];
 
+const jiraStatuses = [
+  { id: "1", name: "To Do" },
+  { id: "2", name: "In Progress" },
+  { id: "4", name: "In Review" },
+  { id: "3", name: "Done" },
+];
+
 const boardIssuePage = {
   issues: [
     issueSearchPage.issues[0],
@@ -189,17 +196,19 @@ function setupRuntime(options: { invalidJql?: boolean } = {}): ExtensionRuntime 
         const path = request.payload.path;
         const data = path.endsWith("/field")
           ? fields
-          : path.endsWith("/project/POWER/statuses")
-            ? projectStatuses
-            : path === "/rest/agile/1.0/board"
-              ? boardPage
-              : path.endsWith("/board/7/configuration")
-                ? boardConfiguration
-                : path.endsWith("/board/7/issue")
-                  ? boardIssuePage
-                  : path.endsWith("/search/jql")
-                    ? issueSearchPage
-                    : projects;
+          : path.endsWith("/status")
+            ? jiraStatuses
+            : path.endsWith("/project/POWER/statuses")
+              ? projectStatuses
+              : path === "/rest/agile/1.0/board"
+                ? boardPage
+                : path.endsWith("/board/7/configuration")
+                  ? boardConfiguration
+                  : path.endsWith("/board/7/issue")
+                    ? boardIssuePage
+                    : path.endsWith("/search/jql")
+                      ? issueSearchPage
+                      : projects;
         return Promise.resolve({
           type: "JIRA_RESPONSE",
           requestId: request.requestId,

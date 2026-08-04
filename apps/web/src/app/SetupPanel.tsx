@@ -91,23 +91,11 @@ async function loadBoardStatuses(
   signal: AbortSignal,
 ): Promise<StatusOption[]> {
   const statuses = new Map<string, StatusOption>();
-  let cursor: string | number | undefined;
-  let isLast = false;
-  let loaded = 0;
-
-  while (!isLast && loaded < MAX_CONFIGURABLE_ISSUES) {
-    const page = await client.getBoardIssues(
-      { boardId, pageSize: 100, ...(cursor === undefined ? {} : { cursor }) },
-      signal,
-    );
-    page.values.forEach((issue) => {
-      const id = issue.status.id ?? issue.status.name;
-      statuses.set(id, { id, name: issue.status.name });
-    });
-    loaded += page.values.length;
-    cursor = page.nextCursor;
-    isLast = page.isLast || cursor === undefined;
-  }
+  const page = await client.getBoardIssues({ boardId, pageSize: 100 }, signal);
+  page.values.forEach((issue) => {
+    const id = issue.status.id ?? issue.status.name;
+    statuses.set(id, { id, name: issue.status.name });
+  });
 
   return [...statuses.values()].sort((left, right) =>
     left.name.localeCompare(right.name),
@@ -434,15 +422,15 @@ export function SetupPanel({
     setBoardLoadError(undefined);
     void Promise.all([
       client.getBoardConfiguration(selectedBoard.id, controller.signal),
+      client.getStatuses(controller.signal).catch(() => []),
       client.getProjectStatuses(selectedProjectKey, controller.signal).catch(() => []),
-      loadBoardStatuses(client, selectedBoard.id, controller.signal),
     ])
-      .then(([boardConfiguration, projectStatuses, issueStatuses]) => {
+      .then(([boardConfiguration, jiraStatuses, projectStatuses]) => {
         if (!isCurrent) return;
         const statuses = boardStatusOptions(
           boardConfiguration.statusIds,
-          projectStatuses,
-          issueStatuses,
+          [...jiraStatuses, ...projectStatuses],
+          [],
         );
         const storedForBoard = storedSetup?.board?.id === selectedBoard.id;
         const completedIds = storedForBoard
@@ -461,6 +449,18 @@ export function SetupPanel({
         }
         setBoardLoadState("ready");
         invalidateIssuePreview();
+        void loadBoardStatuses(client, selectedBoard.id, controller.signal)
+          .then((issueStatuses) => {
+            if (!isCurrent || issueStatuses.length === 0) return;
+            setStatusOptions(
+              boardStatusOptions(
+                boardConfiguration.statusIds,
+                [...jiraStatuses, ...projectStatuses],
+                issueStatuses,
+              ),
+            );
+          })
+          .catch(() => undefined);
       })
       .catch(() => {
         if (!isCurrent) return;

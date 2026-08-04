@@ -62,6 +62,7 @@ export interface JiraClient extends ReportingJiraClient {
   ): Promise<PaginatedResult<JiraProject>>;
   getFields(signal?: AbortSignal): Promise<JiraField[]>;
   getProjectStatuses(projectKeyOrId: string, signal?: AbortSignal): Promise<JiraStatus[]>;
+  getStatuses(signal?: AbortSignal): Promise<JiraStatus[]>;
   searchIssues(
     request: SearchIssuesRequest,
     signal?: AbortSignal,
