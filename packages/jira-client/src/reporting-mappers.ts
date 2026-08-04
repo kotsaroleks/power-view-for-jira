@@ -7,10 +7,18 @@ import type {
   ReportWorklog,
 } from "@power-view/domain";
 
-import type { RawJiraBoard, RawJiraBoardConfiguration, RawJiraChangelogEntry, RawJiraSprint, RawJiraWorklog } from "./reporting-schemas";
+import type {
+  RawJiraBoard,
+  RawJiraBoardConfiguration,
+  RawJiraChangelogEntry,
+  RawJiraSprint,
+  RawJiraWorklog,
+} from "./reporting-schemas";
 
 function id(value: unknown): string | undefined {
-  return typeof value === "string" || typeof value === "number" ? String(value) : undefined;
+  return typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : undefined;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -22,8 +30,10 @@ function record(value: unknown): Record<string, unknown> | undefined {
 function user(value: unknown): NormalizedReportUser | undefined {
   const object = record(value);
   if (!object) return undefined;
-  const userId = id(object.accountId) ?? id(object.key) ?? id(object.name) ?? id(object.displayName);
-  const displayName = typeof object.displayName === "string" ? object.displayName : userId;
+  const userId =
+    id(object.accountId) ?? id(object.key) ?? id(object.name) ?? id(object.displayName);
+  const displayName =
+    typeof object.displayName === "string" ? object.displayName : userId;
   if (!userId || !displayName) return undefined;
   return {
     id: userId,
@@ -45,11 +55,17 @@ function stringArray(value: unknown): string[] {
 }
 
 export function mapJiraBoard(raw: RawJiraBoard): JiraBoard {
-  const projectKey = raw.location && typeof raw.location.projectKey === "string" ? raw.location.projectKey : undefined;
+  const projectKey =
+    raw.location && typeof raw.location.projectKey === "string"
+      ? raw.location.projectKey
+      : undefined;
   return {
     id: id(raw.id)!,
     name: raw.name,
-    type: raw.type === "scrum" || raw.type === "kanban" || raw.type === "simple" ? raw.type : "unknown",
+    type:
+      raw.type === "scrum" || raw.type === "kanban" || raw.type === "simple"
+        ? raw.type
+        : "unknown",
     projectKeys: projectKey ? [projectKey] : [],
   };
 }
@@ -62,7 +78,10 @@ export function mapBoardConfiguration(raw: RawJiraBoardConfiguration): {
   storyPointsFieldId?: string;
 } {
   const columns = raw.columnConfig?.columns ?? [];
-  const statusIds = columns.flatMap((column) => column.statuses?.flatMap((status) => (id(status.id) ? [id(status.id)!] : [])) ?? []);
+  const statusIds = columns.flatMap(
+    (column) =>
+      column.statuses?.flatMap((status) => (id(status.id) ? [id(status.id)!] : [])) ?? [],
+  );
   const filterId = raw.filter?.id === undefined ? undefined : id(raw.filter.id);
   const storyPointsFieldId = raw.estimation?.field?.fieldId;
   return {
@@ -75,8 +94,12 @@ export function mapBoardConfiguration(raw: RawJiraBoardConfiguration): {
 }
 
 export function mapJiraSprint(raw: RawJiraSprint): JiraSprint {
-  const state = raw.state === "future" || raw.state === "active" || raw.state === "closed" ? raw.state : "unknown";
-  const originBoardId = raw.originBoardId === undefined ? undefined : id(raw.originBoardId);
+  const state =
+    raw.state === "future" || raw.state === "active" || raw.state === "closed"
+      ? raw.state
+      : "unknown";
+  const originBoardId =
+    raw.originBoardId === undefined ? undefined : id(raw.originBoardId);
   return {
     id: id(raw.id)!,
     name: raw.name,
@@ -89,7 +112,11 @@ export function mapJiraSprint(raw: RawJiraSprint): JiraSprint {
   };
 }
 
-export function mapReportingIssue(raw: Record<string, unknown>, baseUrl: string, storyPointsFieldId?: string): ReportingIssueSnapshot {
+export function mapReportingIssue(
+  raw: Record<string, unknown>,
+  baseUrl: string,
+  storyPointsFieldId?: string,
+): ReportingIssueSnapshot {
   const fields = record(raw.fields) ?? {};
   const status = record(fields.status) ?? {};
   const issueType = record(fields.issuetype) ?? {};
@@ -99,7 +126,9 @@ export function mapReportingIssue(raw: Record<string, unknown>, baseUrl: string,
   const statusIdValue = id(status.id);
   const originalEstimateSeconds = numeric(timetracking?.originalEstimateSeconds);
   const timeSpentSeconds = numeric(timetracking?.timeSpentSeconds);
-  const storyPoints = storyPointsFieldId ? numeric(fields[storyPointsFieldId]) : undefined;
+  const storyPoints = storyPointsFieldId
+    ? numeric(fields[storyPointsFieldId])
+    : undefined;
   const sprintIds = stringArray(fields.sprint);
   const key = typeof raw.key === "string" ? raw.key : String(raw.id);
   return {
@@ -117,7 +146,9 @@ export function mapReportingIssue(raw: Record<string, unknown>, baseUrl: string,
     },
     ...(assignee ? { assignee } : {}),
     ...(typeof fields.created === "string" ? { createdAt: fields.created } : {}),
-    ...(typeof fields.resolutiondate === "string" ? { resolvedAt: fields.resolutiondate } : {}),
+    ...(typeof fields.resolutiondate === "string"
+      ? { resolvedAt: fields.resolutiondate }
+      : {}),
     ...(typeof fields.updated === "string" ? { updatedAt: fields.updated } : {}),
     ...(storyPoints === undefined ? {} : { storyPoints }),
     ...(originalEstimateSeconds === undefined ? {} : { originalEstimateSeconds }),
@@ -137,12 +168,18 @@ function sprintIds(value: unknown): string[] {
   return matches.map((match) => match.replace(/\D/g, "")).filter(Boolean);
 }
 
-function classifyChange(field: string | undefined, fieldId: string | undefined, storyPointsFieldId?: string): ReportChangeEvent["type"] | undefined {
+function classifyChange(
+  field: string | undefined,
+  fieldId: string | undefined,
+  storyPointsFieldId?: string,
+): ReportChangeEvent["type"] | undefined {
   const normalized = (field ?? "").trim().toLowerCase();
   if (normalized === "status") return "status-changed";
   if (normalized === "assignee") return "assignee-changed";
-  if (fieldId === storyPointsFieldId || normalized.includes("story point")) return "story-points-changed";
-  if (normalized === "original estimate" || normalized === "timeoriginalestimate") return "original-estimate-changed";
+  if (fieldId === storyPointsFieldId || normalized.includes("story point"))
+    return "story-points-changed";
+  if (normalized === "original estimate" || normalized === "timeoriginalestimate")
+    return "original-estimate-changed";
   if (normalized === "sprint") return "sprint-added";
   return undefined;
 }
@@ -150,7 +187,12 @@ function classifyChange(field: string | undefined, fieldId: string | undefined, 
 export function mapChangelogEntry(
   entry: RawJiraChangelogEntry,
   issue: { id: string; key: string },
-  options: { storyPointsFieldId?: string; sprintId?: string; completedStatusIds?: string[]; completedStatusNames?: string[] },
+  options: {
+    storyPointsFieldId?: string;
+    sprintId?: string;
+    completedStatusIds?: string[];
+    completedStatusNames?: string[];
+  },
 ): ReportChangeEvent[] {
   const actor = user(entry.author);
   const result: ReportChangeEvent[] = [];
@@ -177,9 +219,12 @@ export function mapChangelogEntry(
         const fromName = item.fromString ?? "";
         const toName = item.toString ?? "";
         const isCompleted = (candidateId: string | undefined, candidateName: string) =>
-          (candidateId && options.completedStatusIds?.includes(candidateId)) || options.completedStatusNames?.includes(candidateName);
-        if (!isCompleted(fromId, fromName) && isCompleted(toId, toName)) result.push({ ...base, id: `${base.id}:completed`, type: "issue-completed" });
-        if (isCompleted(fromId, fromName) && !isCompleted(toId, toName)) result.push({ ...base, id: `${base.id}:reopened`, type: "issue-reopened" });
+          (candidateId && options.completedStatusIds?.includes(candidateId)) ||
+          options.completedStatusNames?.includes(candidateName);
+        if (!isCompleted(fromId, fromName) && isCompleted(toId, toName))
+          result.push({ ...base, id: `${base.id}:completed`, type: "issue-completed" });
+        if (isCompleted(fromId, fromName) && !isCompleted(toId, toName))
+          result.push({ ...base, id: `${base.id}:reopened`, type: "issue-reopened" });
       }
       continue;
     }
@@ -187,13 +232,23 @@ export function mapChangelogEntry(
     const after = sprintIds(item.toString);
     const target = options.sprintId;
     if (!target) continue;
-    if (!before.includes(target) && after.includes(target)) result.push({ ...base, type: "sprint-added", sprintId: target });
-    if (before.includes(target) && !after.includes(target)) result.push({ ...base, id: `${base.id}:removed`, type: "sprint-removed", sprintId: target });
+    if (!before.includes(target) && after.includes(target))
+      result.push({ ...base, type: "sprint-added", sprintId: target });
+    if (before.includes(target) && !after.includes(target))
+      result.push({
+        ...base,
+        id: `${base.id}:removed`,
+        type: "sprint-removed",
+        sprintId: target,
+      });
   }
   return result;
 }
 
-export function mapWorklog(raw: RawJiraWorklog, issueKey: string): ReportWorklog | undefined {
+export function mapWorklog(
+  raw: RawJiraWorklog,
+  issueKey: string,
+): ReportWorklog | undefined {
   const author = user(raw.author);
   const worklogId = id(raw.id);
   const issueId = id(raw.issueId);

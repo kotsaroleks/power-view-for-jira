@@ -30,8 +30,12 @@ if (manifest.manifest_version !== 3) {
   throw new Error("The production manifest must use Manifest V3.");
 }
 
-if (manifest.update_url !== "https://kotsaroleks.github.io/power-view-for-jira/updates.xml") {
-  throw new Error("The enterprise update URL must point to the GitHub Pages update manifest.");
+if (
+  manifest.update_url !== "https://kotsaroleks.github.io/power-view-for-jira/updates.xml"
+) {
+  throw new Error(
+    "The enterprise update URL must point to the GitHub Pages update manifest.",
+  );
 }
 
 if (typeof manifest.key !== "string" || manifest.key.length === 0) {

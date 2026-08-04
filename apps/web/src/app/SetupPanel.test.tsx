@@ -254,7 +254,7 @@ describe("SetupPanel", () => {
       await screen.findByRole("option", { name: "Power Delivery Board · scrum" }),
     ).toBeInTheDocument();
     expect(await screen.findByRole("checkbox", { name: "Done" })).toBeChecked();
-    expect(await screen.findByRole("checkbox", { name: "In Review" })).not.toBeChecked();
+    expect(await screen.findByRole("checkbox", { name: "In Review" })).toBeChecked();
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "JQL query" })).toHaveValue(
         "filter = 9001 ORDER BY Rank ASC",
@@ -282,7 +282,10 @@ describe("SetupPanel", () => {
       project: { key: "POWER" },
       board: { id: "7", name: "Power Delivery Board", type: "scrum" },
       jql: "filter = 9001 ORDER BY Rank ASC",
-      reporting: { completedStatusIds: ["3"], completedStatusNames: ["Done"] },
+      reporting: {
+        completedStatusIds: ["3", "4"],
+        completedStatusNames: ["Done", "In Review"],
+      },
       fieldMapping: {
         startDateFieldId: "customfield_10010",
         endDateFieldId: "duedate",

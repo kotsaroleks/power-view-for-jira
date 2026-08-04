@@ -85,11 +85,23 @@ export interface GetIssueWorklogsRequest {
 export interface ReportingJiraClient {
   getBoards(request?: GetBoardsRequest, signal?: AbortSignal): Promise<JiraBoardPage>;
   getBoard(boardId: string, signal?: AbortSignal): Promise<JiraBoard>;
-  getBoardConfiguration(boardId: string, signal?: AbortSignal): Promise<JiraBoardConfiguration>;
-  getBoardIssues(request: GetBoardIssuesRequest, signal?: AbortSignal): Promise<ReportingIssuePage>;
-  getBoardSprints(request: GetBoardSprintsRequest, signal?: AbortSignal): Promise<JiraSprintPage>;
+  getBoardConfiguration(
+    boardId: string,
+    signal?: AbortSignal,
+  ): Promise<JiraBoardConfiguration>;
+  getBoardIssues(
+    request: GetBoardIssuesRequest,
+    signal?: AbortSignal,
+  ): Promise<ReportingIssuePage>;
+  getBoardSprints(
+    request: GetBoardSprintsRequest,
+    signal?: AbortSignal,
+  ): Promise<JiraSprintPage>;
   getSprint(sprintId: string, signal?: AbortSignal): Promise<JiraSprint>;
-  getSprintIssues(request: GetSprintIssuesRequest, signal?: AbortSignal): Promise<ReportingIssuePage>;
+  getSprintIssues(
+    request: GetSprintIssuesRequest,
+    signal?: AbortSignal,
+  ): Promise<ReportingIssuePage>;
   getIssueChangelogs(request: GetIssueChangelogsRequest): Promise<ReportChangeEvent[]>;
   getIssueWorklogs(request: GetIssueWorklogsRequest): Promise<ReportWorklog[]>;
 }

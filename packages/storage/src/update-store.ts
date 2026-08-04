@@ -10,7 +10,8 @@ const VALID_STATUSES: readonly UpdateCheckStatus[] = [
   "check-failed",
 ];
 
-const ISO_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO_DATETIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function optionalNonEmptyString(value: unknown): value is string | undefined {
   return value === undefined || (typeof value === "string" && value.length > 0);

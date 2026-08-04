@@ -233,6 +233,12 @@ function issueAssigneeKey(issue: NormalizedIssue): string {
   );
 }
 
+// Stable references for omitted array props — a `= []` default parameter
+// creates a new array every render, which would otherwise invalidate the
+// `report` useMemo below on every render and cascade into an infinite loop
+// via the sprint-issue-fetching effect (its deps include the memo's output).
+const EMPTY_STATUS_LIST: string[] = [];
+
 export function BoardHealthReportView({
   client,
   boardId,
@@ -245,8 +251,8 @@ export function BoardHealthReportView({
   truncated,
   sprintDataAvailable,
   storyPointsDataAvailable,
-  completedStatusIds = [],
-  completedStatusNames = [],
+  completedStatusIds = EMPTY_STATUS_LIST,
+  completedStatusNames = EMPTY_STATUS_LIST,
   preferredBoardId,
   preferredSprintId,
 }: BoardHealthReportProps) {

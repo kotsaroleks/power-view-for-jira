@@ -422,21 +422,22 @@ export function SetupPanel({
     setBoardLoadError(undefined);
     void Promise.all([
       client.getBoardConfiguration(selectedBoard.id, controller.signal),
-      client.getStatuses(controller.signal).catch(() => []),
       client.getProjectStatuses(selectedProjectKey, controller.signal).catch(() => []),
     ])
-      .then(([boardConfiguration, jiraStatuses, projectStatuses]) => {
+      .then(([boardConfiguration, projectStatuses]) => {
         if (!isCurrent) return;
         const statuses = boardStatusOptions(
           boardConfiguration.statusIds,
-          [...jiraStatuses, ...projectStatuses],
+          projectStatuses,
           [],
         );
         const storedForBoard = storedSetup?.board?.id === selectedBoard.id;
         const completedIds = storedForBoard
           ? (storedSetup.reporting?.completedStatusIds ?? [])
           : statuses
-              .filter((status) => status.name.trim().toLowerCase() === "done")
+              .filter((status) =>
+                ["done", "in review"].includes(status.name.trim().toLowerCase()),
+              )
               .map((status) => status.id);
         setStatusOptions(statuses);
         setCompletedStatusIds(completedIds);
@@ -455,7 +456,7 @@ export function SetupPanel({
             setStatusOptions(
               boardStatusOptions(
                 boardConfiguration.statusIds,
-                [...jiraStatuses, ...projectStatuses],
+                projectStatuses,
                 issueStatuses,
               ),
             );
@@ -866,134 +867,140 @@ export function SetupPanel({
             </div>
           ) : null}
 
-          <label>
-            <span>JQL query</span>
-            <textarea
-              value={jql}
-              rows={4}
-              maxLength={10_000}
-              placeholder='project = "POWER" ORDER BY Rank ASC'
-              onChange={(event) => {
-                setJql(event.target.value);
-                setSaveStatus("idle");
-                invalidateIssuePreview();
-              }}
-            />
-          </label>
+          <details className="optional-fields">
+            <summary>Advanced: query, completed statuses, and date fields</summary>
 
-          {recentJql.length > 0 ? (
             <label>
-              <span>Recent JQL</span>
-              <select
-                aria-label="Recent JQL"
-                value=""
+              <span>JQL query</span>
+              <textarea
+                value={jql}
+                rows={4}
+                maxLength={10_000}
+                placeholder='project = "POWER" ORDER BY Rank ASC'
                 onChange={(event) => {
-                  if (event.target.value) {
-                    setJql(event.target.value);
-                    setSaveStatus("idle");
-                    invalidateIssuePreview();
-                  }
+                  setJql(event.target.value);
+                  setSaveStatus("idle");
+                  invalidateIssuePreview();
                 }}
-              >
-                <option value="">Choose a recent query…</option>
-                {recentJql.map((query) => (
-                  <option key={query} value={query}>
-                    {query}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
-          ) : null}
 
-          <fieldset>
-            <legend>Completed statuses</legend>
-            <p className="field-help">
-              This board-level mapping is inherited by Board Health and every report.
-            </p>
-            <div className="reporting-status-list">
-              {statusOptions.map((status) => (
-                <label key={status.id}>
-                  <input
-                    type="checkbox"
-                    checked={completedStatusIds.includes(status.id)}
-                    onChange={() => {
-                      setCompletedStatusIds((current) =>
-                        current.includes(status.id)
-                          ? current.filter((id) => id !== status.id)
-                          : [...current, status.id],
-                      );
+            {recentJql.length > 0 ? (
+              <label>
+                <span>Recent JQL</span>
+                <select
+                  aria-label="Recent JQL"
+                  value=""
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      setJql(event.target.value);
                       setSaveStatus("idle");
-                    }}
-                  />
-                  <span>{status.name}</span>
-                </label>
-              ))}
-              {selectedBoard &&
-              boardLoadState === "ready" &&
-              statusOptions.length === 0 ? (
-                <span>No statuses were returned for this board.</span>
-              ) : null}
-            </div>
-          </fieldset>
+                      invalidateIssuePreview();
+                    }
+                  }}
+                >
+                  <option value="">Choose a recent query…</option>
+                  {recentJql.map((query) => (
+                    <option key={query} value={query}>
+                      {query}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
-          <fieldset>
-            <legend>Date field mapping</legend>
-            <p className="field-help">
-              Candidates are ranked, but Power View never selects an uncertain custom
-              field automatically.
-            </p>
-            <div className="candidate-row">
-              <span>Start suggestions</span>
-              <strong>
-                {startCandidates
-                  .slice(0, 2)
-                  .map((candidate) => candidate.name)
-                  .join(", ") || "No date candidates"}
-              </strong>
-            </div>
-            <label>
-              <span>Start date field</span>
-              <select
-                aria-label="Start date field"
-                value={fieldMapping.startDateFieldId ?? ""}
-                onChange={(event) =>
-                  updateMapping("startDateFieldId", event.target.value)
-                }
-              >
-                <option value="">Use Jira fallback rules</option>
-                {dateFields.map((field) => (
-                  <option key={field.id} value={field.id}>
-                    {fieldOptionLabel(field)}
-                  </option>
+            <fieldset>
+              <legend>Completed statuses</legend>
+              <p className="field-help">
+                This board-level mapping is inherited by Board Health and every report.
+              </p>
+              <div className="reporting-status-list">
+                {statusOptions.map((status) => (
+                  <label key={status.id}>
+                    <input
+                      type="checkbox"
+                      checked={completedStatusIds.includes(status.id)}
+                      onChange={() => {
+                        setCompletedStatusIds((current) =>
+                          current.includes(status.id)
+                            ? current.filter((id) => id !== status.id)
+                            : [...current, status.id],
+                        );
+                        setSaveStatus("idle");
+                      }}
+                    />
+                    <span>{status.name}</span>
+                  </label>
                 ))}
-              </select>
-            </label>
+                {selectedBoard &&
+                boardLoadState === "ready" &&
+                statusOptions.length === 0 ? (
+                  <span>No statuses were returned for this board.</span>
+                ) : null}
+              </div>
+            </fieldset>
 
-            <div className="candidate-row">
-              <span>End suggestions</span>
-              <strong>
-                {endCandidates
-                  .slice(0, 2)
-                  .map((candidate) => candidate.name)
-                  .join(", ") || "No date candidates"}
-              </strong>
-            </div>
-            <label>
-              <span>End date field</span>
-              <select
-                aria-label="End date field"
-                value={fieldMapping.endDateFieldId ?? ""}
-                onChange={(event) => updateMapping("endDateFieldId", event.target.value)}
-              >
-                <option value="">Use due date and fallback rules</option>
-                {dateFields.map((field) => (
-                  <option key={field.id} value={field.id}>
-                    {fieldOptionLabel(field)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </fieldset>
+            <fieldset>
+              <legend>Date field mapping</legend>
+              <p className="field-help">
+                Candidates are ranked, but Power View never selects an uncertain custom
+                field automatically.
+              </p>
+              <div className="candidate-row">
+                <span>Start suggestions</span>
+                <strong>
+                  {startCandidates
+                    .slice(0, 2)
+                    .map((candidate) => candidate.name)
+                    .join(", ") || "No date candidates"}
+                </strong>
+              </div>
+              <label>
+                <span>Start date field</span>
+                <select
+                  aria-label="Start date field"
+                  value={fieldMapping.startDateFieldId ?? ""}
+                  onChange={(event) =>
+                    updateMapping("startDateFieldId", event.target.value)
+                  }
+                >
+                  <option value="">Use Jira fallback rules</option>
+                  {dateFields.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {fieldOptionLabel(field)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="candidate-row">
+                <span>End suggestions</span>
+                <strong>
+                  {endCandidates
+                    .slice(0, 2)
+                    .map((candidate) => candidate.name)
+                    .join(", ") || "No date candidates"}
+                </strong>
+              </div>
+              <label>
+                <span>End date field</span>
+                <select
+                  aria-label="End date field"
+                  value={fieldMapping.endDateFieldId ?? ""}
+                  onChange={(event) =>
+                    updateMapping("endDateFieldId", event.target.value)
+                  }
+                >
+                  <option value="">Use due date and fallback rules</option>
+                  {dateFields.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {fieldOptionLabel(field)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </fieldset>
+          </details>
 
           <details className="optional-fields">
             <summary>Optional reporting, hierarchy, and story-point fields</summary>

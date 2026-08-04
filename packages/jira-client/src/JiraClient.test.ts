@@ -84,7 +84,9 @@ describe("createJiraClient", () => {
   it("uses public Agile REST for Cloud board and sprint issue scopes", async () => {
     const { transport, requestMock } = transportWith({
       issues: makeJiraIssueFixtures(1),
-      isLast: true,
+      startAt: 0,
+      maxResults: 100,
+      total: 1,
     });
     const client = createJiraClient(transport, {
       baseUrl: "https://example.atlassian.net",

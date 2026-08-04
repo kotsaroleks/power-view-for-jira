@@ -38,7 +38,9 @@ function localParts(instant: Date): LocalParts {
   };
 }
 
-function localDateAsUtc(parts: Pick<LocalParts, "year" | "month" | "day" | "hour" | "minute" | "second">): number {
+function localDateAsUtc(
+  parts: Pick<LocalParts, "year" | "month" | "day" | "hour" | "minute" | "second">,
+): number {
   return Date.UTC(
     parts.year,
     parts.month - 1,
@@ -54,7 +56,9 @@ function kyivOffsetMs(instantMs: number): number {
   return localDateAsUtc(parts) - instantMs;
 }
 
-function instantForKyivLocal(parts: Pick<LocalParts, "year" | "month" | "day" | "hour" | "minute" | "second">): Date {
+function instantForKyivLocal(
+  parts: Pick<LocalParts, "year" | "month" | "day" | "hour" | "minute" | "second">,
+): Date {
   const localAsUtc = localDateAsUtc(parts);
   let guess = localAsUtc - kyivOffsetMs(localAsUtc);
   guess = localAsUtc - kyivOffsetMs(guess);
@@ -77,15 +81,23 @@ function shiftCalendarDate(
   parts: Pick<LocalParts, "year" | "month" | "day">,
   days: number,
 ): Pick<LocalParts, "year" | "month" | "day"> {
-  const shifted = new Date(Date.UTC(parts.year, parts.month - 1, parts.day) + days * MS_PER_DAY);
-  return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1, day: shifted.getUTCDate() };
+  const shifted = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day) + days * MS_PER_DAY,
+  );
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  };
 }
 
 function boundary(date: Pick<LocalParts, "year" | "month" | "day">): Date {
   return instantForKyivLocal({ ...date, hour: 8, minute: 0, second: 0 });
 }
 
-function mondayFor(date: Pick<LocalParts, "year" | "month" | "day">): Pick<LocalParts, "year" | "month" | "day"> {
+function mondayFor(
+  date: Pick<LocalParts, "year" | "month" | "day">,
+): Pick<LocalParts, "year" | "month" | "day"> {
   const weekday = new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
   const daysSinceMonday = (weekday + 6) % 7;
   return shiftCalendarDate(date, -daysSinceMonday);
@@ -95,7 +107,10 @@ function minIso(left: string, right: string): string {
   return new Date(left).getTime() <= new Date(right).getTime() ? left : right;
 }
 
-export function buildDailyPeriod(localDate: string, generatedAt = new Date().toISOString()): ReportPeriod {
+export function buildDailyPeriod(
+  localDate: string,
+  generatedAt = new Date().toISOString(),
+): ReportPeriod {
   const endDate = datePartsFromKey(localDate);
   const startDate = shiftCalendarDate(endDate, -1);
   const start = boundary(startDate).toISOString();
@@ -103,7 +118,10 @@ export function buildDailyPeriod(localDate: string, generatedAt = new Date().toI
   return { timeZone: KYIV_TIME_ZONE, start, end, dataCutoff: minIso(end, generatedAt) };
 }
 
-export function buildWeeklyPeriod(localDate: string, generatedAt = new Date().toISOString()): ReportPeriod {
+export function buildWeeklyPeriod(
+  localDate: string,
+  generatedAt = new Date().toISOString(),
+): ReportPeriod {
   const startDate = mondayFor(datePartsFromKey(localDate));
   const endDate = shiftCalendarDate(startDate, 7);
   const start = boundary(startDate).toISOString();

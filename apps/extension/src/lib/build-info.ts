@@ -8,7 +8,8 @@ export interface BuildInfo {
   gitAvailable: boolean;
 }
 
-const ISO_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const ISO_DATETIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function nullableString(value: unknown): value is string | null {
   return value === null || (typeof value === "string" && value.length > 0);

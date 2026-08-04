@@ -6,8 +6,8 @@ The extension is configured for Chrome's enterprise update channel:
 https://kotsaroleks.github.io/power-view-for-jira/updates.xml
 ```
 
-The release workflow builds a signed CRX3 and publishes it with `updates.xml` to
-GitHub Pages. The signing key is intentionally not stored in Git.
+The release workflow builds a signed CRX3 and publishes it with `updates.xml` to GitHub
+Pages. The signing key is intentionally not stored in Git.
 
 ## One-time GitHub setup
 
@@ -19,10 +19,10 @@ GitHub Pages. The signing key is intentionally not stored in Git.
 4. Configure Chrome Enterprise `ExtensionSettings` or `ExtensionInstallForcelist` for
    extension ID `fdamaaiccihofpoadiibmgkbioegclcb` and the update URL above.
 
-The extension must be installed by enterprise policy for macOS/Windows. A manually
-loaded unpacked extension cannot receive CRX updates. Chrome checks the update URL
-automatically; the popup's **Check now** action invokes Chrome's native
-`runtime.requestUpdateCheck()` when that API is available.
+The extension must be installed by enterprise policy for macOS/Windows. A manually loaded
+unpacked extension cannot receive CRX updates. Chrome checks the update URL automatically;
+the popup's **Check now** action invokes Chrome's native `runtime.requestUpdateCheck()`
+when that API is available.
 
 ## Releasing an update
 

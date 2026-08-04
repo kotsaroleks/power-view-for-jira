@@ -60,7 +60,6 @@ import {
   rawJiraBoardConfigurationSchema as reportingBoardConfigurationSchema,
   rawJiraSprintPageSchema as reportingSprintPageSchema,
   rawJiraSprintSchema as reportingSprintSchema,
-  rawCloudReportingIssuePageSchema as reportingCloudIssuePageSchema,
   rawDataCenterReportingIssuePageSchema as reportingDataCenterIssuePageSchema,
   rawJiraIssueChangelogPageSchema as reportingIssueChangelogPageSchema,
   rawCloudBulkChangelogSchema as reportingBulkChangelogSchema,
@@ -455,6 +454,10 @@ export abstract class BaseJiraClient implements JiraClient {
       ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
     ];
     const path = `/rest/agile/1.0/board/${request.boardId}/issue`;
+    // The Agile REST API (board/sprint issue listing) has always used offset
+    // pagination on both Cloud and Data Center — unlike the newer
+    // /rest/api/3/search/jql endpoint, it never returns nextPageToken, so
+    // there is no deploymentType branch here.
     const raw = await this.transport.request(
       {
         baseUrl: this.baseUrl,
@@ -464,47 +467,25 @@ export abstract class BaseJiraClient implements JiraClient {
           maxResults: Math.min(100, Math.max(1, request.pageSize ?? 100)),
           fields: [...new Set(fields)].join(","),
           ...(request.jql ? { jql: request.jql, validateQuery: true } : {}),
-          ...(this.deploymentType === "cloud" && typeof request.cursor === "string"
-            ? { nextPageToken: request.cursor }
-            : {}),
-          ...(this.deploymentType !== "cloud" && typeof request.cursor === "number"
-            ? { startAt: request.cursor }
-            : {}),
+          ...(typeof request.cursor === "number" ? { startAt: request.cursor } : {}),
         },
         headers: { Accept: "application/json" },
       },
-      this.deploymentType === "cloud"
-        ? reportingCloudIssuePageSchema
-        : reportingDataCenterIssuePageSchema,
+      reportingDataCenterIssuePageSchema,
       signal,
     );
     const rawIssues = raw.issues.map((issue) => rawJiraIssueSchema.parse(issue));
     const values = rawIssues.map((issue) =>
       mapReportingIssue(issue, this.baseUrl, request.storyPointsFieldId),
     );
-    if (!("startAt" in raw)) {
-      const nextPageToken =
-        "nextPageToken" in raw && typeof raw.nextPageToken === "string"
-          ? raw.nextPageToken
-          : undefined;
-      return {
-        values,
-        startAt: 0,
-        maxResults: values.length,
-        total: values.length,
-        isLast: "isLast" in raw ? (raw.isLast ?? !nextPageToken) : !nextPageToken,
-        ...(nextPageToken ? { nextCursor: nextPageToken } : {}),
-      };
-    }
-    const dataCenterRaw = reportingDataCenterIssuePageSchema.parse(raw);
-    const nextStart = dataCenterRaw.startAt + values.length;
+    const nextStart = raw.startAt + values.length;
     return {
       values,
-      startAt: dataCenterRaw.startAt,
-      maxResults: dataCenterRaw.maxResults,
-      total: dataCenterRaw.total,
-      isLast: nextStart >= dataCenterRaw.total || values.length === 0,
-      ...(nextStart < dataCenterRaw.total ? { nextCursor: nextStart } : {}),
+      startAt: raw.startAt,
+      maxResults: raw.maxResults,
+      total: raw.total,
+      isLast: nextStart >= raw.total || values.length === 0,
+      ...(nextStart < raw.total ? { nextCursor: nextStart } : {}),
     };
   }
 
@@ -560,6 +541,8 @@ export abstract class BaseJiraClient implements JiraClient {
       ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
     ];
     const path = `/rest/agile/1.0/board/${request.boardId}/sprint/${request.sprintId}/issue`;
+    // See getBoardIssues: this Agile REST family always uses offset
+    // pagination on both Cloud and Data Center.
     const raw = await this.transport.request(
       {
         baseUrl: this.baseUrl,
@@ -569,47 +552,25 @@ export abstract class BaseJiraClient implements JiraClient {
           maxResults: Math.min(100, Math.max(1, request.pageSize ?? 100)),
           fields: [...new Set(fields)].join(","),
           ...(request.jql ? { jql: request.jql, validateQuery: true } : {}),
-          ...(this.deploymentType === "cloud" && typeof request.cursor === "string"
-            ? { nextPageToken: request.cursor }
-            : {}),
-          ...(this.deploymentType !== "cloud" && typeof request.cursor === "number"
-            ? { startAt: request.cursor }
-            : {}),
+          ...(typeof request.cursor === "number" ? { startAt: request.cursor } : {}),
         },
         headers: { Accept: "application/json" },
       },
-      this.deploymentType === "cloud"
-        ? reportingCloudIssuePageSchema
-        : reportingDataCenterIssuePageSchema,
+      reportingDataCenterIssuePageSchema,
       signal,
     );
     const rawIssues = raw.issues.map((issue) => rawJiraIssueSchema.parse(issue));
     const values = rawIssues.map((issue) =>
       mapReportingIssue(issue, this.baseUrl, request.storyPointsFieldId),
     );
-    if (!("startAt" in raw)) {
-      const nextPageToken =
-        "nextPageToken" in raw && typeof raw.nextPageToken === "string"
-          ? raw.nextPageToken
-          : undefined;
-      return {
-        values,
-        startAt: 0,
-        maxResults: values.length,
-        total: values.length,
-        isLast: "isLast" in raw ? (raw.isLast ?? !nextPageToken) : !nextPageToken,
-        ...(nextPageToken ? { nextCursor: nextPageToken } : {}),
-      };
-    }
-    const dataCenterRaw = reportingDataCenterIssuePageSchema.parse(raw);
-    const nextStart = dataCenterRaw.startAt + values.length;
+    const nextStart = raw.startAt + values.length;
     return {
       values,
-      startAt: dataCenterRaw.startAt,
-      maxResults: dataCenterRaw.maxResults,
-      total: dataCenterRaw.total,
-      isLast: nextStart >= dataCenterRaw.total || values.length === 0,
-      ...(nextStart < dataCenterRaw.total ? { nextCursor: nextStart } : {}),
+      startAt: raw.startAt,
+      maxResults: raw.maxResults,
+      total: raw.total,
+      isLast: nextStart >= raw.total || values.length === 0,
+      ...(nextStart < raw.total ? { nextCursor: nextStart } : {}),
     };
   }
 

@@ -34,7 +34,9 @@ export const rawJiraBoardConfigurationSchema = z
           .array(
             z
               .object({
-                statuses: z.array(z.object({ id: idSchema.optional() }).passthrough()).optional(),
+                statuses: z
+                  .array(z.object({ id: idSchema.optional() }).passthrough())
+                  .optional(),
               })
               .passthrough(),
           )
@@ -43,7 +45,9 @@ export const rawJiraBoardConfigurationSchema = z
       .passthrough()
       .optional(),
     estimation: z
-      .object({ field: z.object({ fieldId: z.string().optional() }).passthrough().optional() })
+      .object({
+        field: z.object({ fieldId: z.string().optional() }).passthrough().optional(),
+      })
       .passthrough()
       .optional(),
   })

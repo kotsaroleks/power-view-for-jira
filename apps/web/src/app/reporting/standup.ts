@@ -1,4 +1,8 @@
-import type { GeneratedReportSnapshot, ReportLanguage, PersonReportBlock } from "@power-view/domain";
+import type {
+  GeneratedReportSnapshot,
+  ReportLanguage,
+  PersonReportBlock,
+} from "@power-view/domain";
 
 function dateTime(value: string, language: ReportLanguage): string {
   return new Intl.DateTimeFormat(language === "uk" ? "uk-UA" : "en-GB", {
@@ -26,7 +30,10 @@ function personBlock(block: PersonReportBlock, language: ReportLanguage): string
   ];
 }
 
-export function renderStandupText(snapshot: GeneratedReportSnapshot, language: ReportLanguage): string {
+export function renderStandupText(
+  snapshot: GeneratedReportSnapshot,
+  language: ReportLanguage,
+): string {
   const summary = snapshot.result.executiveSummary;
   const uk = language === "uk";
   const lines = [
@@ -44,17 +51,29 @@ export function renderStandupText(snapshot: GeneratedReportSnapshot, language: R
   ];
   if (snapshot.result.sprint) {
     const sprint = snapshot.result.sprint;
-    const percentage = sprint.completion.percentage === null ? "N/A" : `${sprint.completion.percentage.toFixed(1)}%`;
+    const percentage =
+      sprint.completion.percentage === null
+        ? "N/A"
+        : `${sprint.completion.percentage.toFixed(1)}%`;
     lines.push(`- ${uk ? "Виконання спринту" : "Sprint completion"}: ${percentage}`);
-    lines.push(`- ${uk ? "Додано після старту" : "Added after start"}: ${sprint.addedAfterStart.length}`);
-    lines.push(`- ${uk ? "Виключено після старту" : "Removed after start"}: ${sprint.removedAfterStart.length}`);
+    lines.push(
+      `- ${uk ? "Додано після старту" : "Added after start"}: ${sprint.addedAfterStart.length}`,
+    );
+    lines.push(
+      `- ${uk ? "Виключено після старту" : "Removed after start"}: ${sprint.removedAfterStart.length}`,
+    );
   }
   lines.push("", uk ? "Учасники" : "People");
-  for (const block of snapshot.result.people) lines.push(...personBlock(block, language), "");
-  lines.push(uk ? "Unassigned" : "Unassigned", `- ${uk ? "Задачі" : "Issues"}: ${snapshot.result.unassigned.issues.length}`);
+  for (const block of snapshot.result.people)
+    lines.push(...personBlock(block, language), "");
+  lines.push(
+    uk ? "Unassigned" : "Unassigned",
+    `- ${uk ? "Задачі" : "Issues"}: ${snapshot.result.unassigned.issues.length}`,
+  );
   if (snapshot.completeness.warnings.length > 0) {
     lines.push("", uk ? "Попередження" : "Warnings");
-    for (const warning of snapshot.completeness.warnings) lines.push(`- ${warning.message}`);
+    for (const warning of snapshot.completeness.warnings)
+      lines.push(`- ${warning.message}`);
   }
   return lines.join("\n");
 }

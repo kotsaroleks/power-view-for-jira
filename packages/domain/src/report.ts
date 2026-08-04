@@ -217,14 +217,25 @@ export function buildBoardHealthReport(
   };
 }
 
+/**
+ * Excludes an issue only when it carries explicit `.sprints` data that
+ * points to a *different* sprint. Issues with no `.sprints` data (the Sprint
+ * field isn't locally mapped, so membership was already resolved by the
+ * caller via a server-side lookup) are trusted as-is, rather than being
+ * dropped — which is what silently emptied every sprint report when sprint
+ * data wasn't locally available.
+ */
 export function buildSprintHealthReport(
   issues: NormalizedIssue[],
   sprint: JiraIssueSprint,
   blockedIssueIds: ReadonlySet<string> = new Set(),
   options: Pick<BoardHealthOptions, "completedStatusIds" | "completedStatusNames"> = {},
 ): SprintHealthReport {
-  const sprintIssues = issues.filter((issue) =>
-    issue.sprints?.some((candidate) => candidate.id === sprint.id),
+  const sprintIssues = issues.filter(
+    (issue) =>
+      !issue.sprints ||
+      issue.sprints.length === 0 ||
+      issue.sprints.some((candidate) => candidate.id === sprint.id),
   );
   const issueBuckets = emptyBuckets();
   const pointBuckets = emptyBuckets();
