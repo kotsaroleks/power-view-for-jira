@@ -1,5 +1,6 @@
 import {
   buildGanttScheduleModel,
+  buildDefaultBoardJql,
   buildDefaultProjectJql,
   DEFAULT_DURATION_DAYS,
   rankDateFieldCandidates,
@@ -274,11 +275,23 @@ export function SetupPanel({
     void Promise.all([
       settingsStore.getSetup(context.baseUrl, selectedProject.key),
       settingsStore.getRecentJql(context.baseUrl, selectedProject.key),
+      context.boardId
+        ? client.getBoardConfiguration(context.boardId).catch(() => undefined)
+        : Promise.resolve(undefined),
     ])
-      .then(([storedSetup, storedRecentJql]) => {
+      .then(([storedSetup, storedRecentJql, boardConfiguration]) => {
         if (!isCurrent) {
           return;
         }
+        const projectJql = buildDefaultProjectJql(selectedProject.key);
+        const boardJql = boardConfiguration?.filterId
+          ? buildDefaultBoardJql(boardConfiguration.filterId)
+          : undefined;
+        const useStoredSetup =
+          storedSetup &&
+          (!context.boardId ||
+            storedSetup.boardId === context.boardId ||
+            (storedSetup.boardId === undefined && storedSetup.jql !== projectJql));
         setRecentJql(storedRecentJql);
         setFieldMapping({
           ...inferredReportFieldMapping(fields),
@@ -287,7 +300,7 @@ export function SetupPanel({
         setDefaultDurations(
           storedSetup?.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
         );
-        setJql(storedSetup?.jql ?? buildDefaultProjectJql(selectedProject.key));
+        setJql(useStoredSetup ? storedSetup.jql : (boardJql ?? projectJql));
         setValidationErrors([]);
         setSaveStatus("idle");
         issueAbort.current?.abort();
@@ -307,7 +320,7 @@ export function SetupPanel({
     return () => {
       isCurrent = false;
     };
-  }, [client, context.baseUrl, fields, selectedProject, settingsStore]);
+  }, [client, context.baseUrl, context.boardId, fields, selectedProject, settingsStore]);
 
   useEffect(
     () => () => {
@@ -369,6 +382,7 @@ export function SetupPanel({
       await settingsStore.saveSetup({
         jiraBaseUrl: context.baseUrl,
         project: selectedProject,
+        ...(context.boardId ? { boardId: context.boardId } : {}),
         jql: jql.trim(),
         fieldMapping,
         defaultDurations,

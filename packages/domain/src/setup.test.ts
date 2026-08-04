@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { buildDefaultProjectJql, validateJqlInput } from "./setup";
+import { buildDefaultBoardJql, buildDefaultProjectJql, validateJqlInput } from "./setup";
 
 describe("setup query helpers", () => {
   it("builds deterministic default project JQL", () => {
     expect(buildDefaultProjectJql("POWER_2")).toBe(
       'project = "POWER_2" ORDER BY Rank ASC',
     );
+  });
+
+  it("builds board-filtered default JQL", () => {
+    expect(buildDefaultBoardJql("1296")).toBe("filter = 1296 ORDER BY Rank ASC");
   });
 
   it("rejects a project key that could change the JQL expression", () => {

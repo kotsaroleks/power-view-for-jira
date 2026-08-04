@@ -47,6 +47,7 @@ export {
   type JiraFieldSchema,
 } from "./jira-field";
 export {
+  buildDefaultBoardJql,
   buildDefaultProjectJql,
   validateJqlInput,
   type SetupConfiguration,

@@ -7,6 +7,7 @@ const PROJECT_KEY_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 export interface SetupConfiguration {
   jiraBaseUrl: string;
   project: JiraProject;
+  boardId?: string;
   jql: string;
   fieldMapping: FieldMapping;
   defaultDurations?: DefaultDurationDays;
@@ -18,6 +19,13 @@ export function buildDefaultProjectJql(projectKey: string): string {
     throw new Error("A valid Jira project key is required to build default JQL.");
   }
   return `project = "${projectKey}" ORDER BY Rank ASC`;
+}
+
+export function buildDefaultBoardJql(filterId: string): string {
+  if (!/^\d+$/.test(filterId)) {
+    throw new Error("A valid Jira filter ID is required to build board JQL.");
+  }
+  return `filter = ${filterId} ORDER BY Rank ASC`;
 }
 
 export function validateJqlInput(jql: string): string[] {

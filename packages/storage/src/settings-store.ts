@@ -144,6 +144,7 @@ const setupConfigurationSchema = z
   .object({
     jiraBaseUrl: z.url().max(2048),
     project: jiraProjectSchema,
+    boardId: z.string().min(1).optional(),
     jql: z.string().min(1).max(10_000),
     fieldMapping: fieldMappingSchema,
     defaultDurations: defaultDurationsSchema.optional(),
@@ -167,6 +168,7 @@ const setupConfigurationSchema = z
         : { simplified: configuration.project.simplified }),
     },
     jql: configuration.jql,
+    ...(configuration.boardId ? { boardId: configuration.boardId } : {}),
     fieldMapping: {
       ...(configuration.fieldMapping.startDateFieldId
         ? { startDateFieldId: configuration.fieldMapping.startDateFieldId }
