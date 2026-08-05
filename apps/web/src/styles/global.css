@@ -407,17 +407,28 @@ h1 {
 .setup-project-board {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-areas:
+    "search      ."
+    "project     board"
+    "pagination  .";
   gap: var(--space-4) var(--space-5);
   align-items: start;
 }
 
-.setup-project-column {
-  display: grid;
-  gap: var(--space-4);
+.setup-search-field {
+  grid-area: search;
+}
+
+.setup-project-field {
+  grid-area: project;
 }
 
 .setup-board-column {
-  padding-top: 26px;
+  grid-area: board;
+}
+
+.project-pagination {
+  grid-area: pagination;
 }
 
 .setup-form label > span,
@@ -464,7 +475,6 @@ h1 {
 }
 
 .project-pagination {
-  margin-top: -8px;
   color: #626f86;
   font-size: 11px;
 }
@@ -500,6 +510,13 @@ h1 {
 .field-help {
   margin: 0;
   color: #626f86;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.field-warning {
+  margin: 0;
+  color: #7f5f01;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -2902,10 +2919,11 @@ h1 {
 
   .setup-project-board {
     grid-template-columns: 1fr;
-  }
-
-  .setup-board-column {
-    padding-top: 0;
+    grid-template-areas:
+      "search"
+      "project"
+      "board"
+      "pagination";
   }
 }
 

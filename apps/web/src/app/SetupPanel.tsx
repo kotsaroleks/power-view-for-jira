@@ -130,6 +130,21 @@ function boardStatusOptions(
   );
 }
 
+function resolveCompletedStatuses(
+  completedStatusIds: string[],
+  statusOptions: StatusOption[],
+): { completedStatusIds: string[]; completedStatusNames: string[] } {
+  const statusById = new Map(statusOptions.map((status) => [status.id, status]));
+  const resolved = completedStatusIds.flatMap((id) => {
+    const status = statusById.get(id);
+    return status ? [status] : [];
+  });
+  return {
+    completedStatusIds: resolved.map((status) => status.id),
+    completedStatusNames: resolved.map((status) => status.name),
+  };
+}
+
 function fieldOptionLabel(field: JiraField): string {
   const type = field.schema?.type ? ` · ${field.schema.type}` : "";
   return `${field.name}${type} · ${field.id}`;
@@ -181,6 +196,7 @@ export function SetupPanel({
   const [boardLoadState, setBoardLoadState] = useState<LoadState>("idle");
   const [boardLoadError, setBoardLoadError] = useState<string>();
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
+  const [statusResolutionWarning, setStatusResolutionWarning] = useState<string>();
   const [completedStatusIds, setCompletedStatusIds] = useState<string[]>([]);
   const [storedSetup, setStoredSetup] = useState<SetupConfiguration>();
   const [jql, setJql] = useState("");
@@ -433,6 +449,7 @@ export function SetupPanel({
     let isCurrent = true;
     setBoardLoadState("loading");
     setBoardLoadError(undefined);
+    setStatusResolutionWarning(undefined);
     const boardProjectKeys = new Set([
       selectedProjectKey,
       ...(selectedBoard.projectKeys ?? []),
@@ -486,9 +503,13 @@ export function SetupPanel({
             // placeholders here — fetch the full instance catalog only as a
             // last resort to resolve just those remaining names.
             if (resolved.some((status) => status.name === `Status ${status.id}`)) {
-              const allStatuses = await client
-                .getStatuses(controller.signal)
-                .catch(() => []);
+              let allStatuses: StatusOption[] = [];
+              let catalogFetchFailed = false;
+              try {
+                allStatuses = await client.getStatuses(controller.signal);
+              } catch {
+                catalogFetchFailed = true;
+              }
               if (!isCurrent) return;
               combined = [...combined, ...allStatuses];
               resolved = boardStatusOptions(
@@ -496,6 +517,14 @@ export function SetupPanel({
                 projectStatuses,
                 combined,
               );
+              if (
+                catalogFetchFailed &&
+                resolved.some((status) => status.name === `Status ${status.id}`)
+              ) {
+                setStatusResolutionWarning(
+                  "Some board statuses could not be resolved from Jira; they're shown by ID.",
+                );
+              }
             }
             setStatusOptions(resolved);
           })
@@ -564,16 +593,14 @@ export function SetupPanel({
 
     setSaveStatus("saving");
     try {
-      const completedStatusNames = statusOptions
-        .filter((status) => completedStatusIds.includes(status.id))
-        .map((status) => status.name);
+      const reporting = resolveCompletedStatuses(completedStatusIds, statusOptions);
       await settingsStore.saveSetup({
         jiraBaseUrl: context.baseUrl,
         project: selectedProject,
         board: selectedBoard,
         jql: jql.trim(),
         fieldMapping,
-        reporting: { completedStatusIds, completedStatusNames },
+        reporting,
         defaultDurations,
         updatedAt: new Date().toISOString(),
       });
@@ -654,12 +681,7 @@ export function SetupPanel({
         projectKey: selectedProjectKey,
         projectName: selectedProject?.name ?? selectedProjectKey,
         board: selectedBoard!,
-        reporting: {
-          completedStatusIds: [...completedStatusIds],
-          completedStatusNames: statusOptions
-            .filter((status) => completedStatusIds.includes(status.id))
-            .map((status) => status.name),
-        },
+        reporting: resolveCompletedStatuses(completedStatusIds, statusOptions),
         jql: jql.trim(),
         loadedAt,
         truncated: result.truncated,
@@ -765,12 +787,7 @@ export function SetupPanel({
             projectKey: selectedProjectKey,
             projectName: selectedProject.name,
             board: selectedBoard,
-            reporting: {
-              completedStatusIds: [...completedStatusIds],
-              completedStatusNames: statusOptions
-                .filter((status) => completedStatusIds.includes(status.id))
-                .map((status) => status.name),
-            },
+            reporting: resolveCompletedStatuses(completedStatusIds, statusOptions),
             jql: jql.trim(),
             loadedAt: issueLoadedAt,
             truncated: issueResult.truncated,
@@ -867,65 +884,37 @@ export function SetupPanel({
           }}
         >
           <div className="setup-project-board">
-            <div className="setup-project-column">
-              <label>
-                <span>Search projects</span>
-                <input
-                  type="search"
-                  value={projectSearch}
-                  placeholder="Project name or key"
-                  onChange={(event) => {
-                    setProjectSearch(event.target.value);
-                    setPageStart(0);
-                  }}
-                />
-              </label>
+            <label className="setup-search-field">
+              <span>Search projects</span>
+              <input
+                type="search"
+                value={projectSearch}
+                placeholder="Project name or key"
+                onChange={(event) => {
+                  setProjectSearch(event.target.value);
+                  setPageStart(0);
+                }}
+              />
+            </label>
 
-              <label>
-                <span>Jira project</span>
-                <select
-                  aria-label="Jira project"
-                  value={selectedProjectKey}
-                  onChange={(event) => {
-                    setSelectedProjectKey(event.target.value);
-                    invalidateIssuePreview();
-                  }}
-                >
-                  <option value="">Choose a project…</option>
-                  {projectPage.values.map((project) => (
-                    <option key={project.id} value={project.key}>
-                      {project.key} · {project.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="project-pagination" aria-live="polite">
-                <span>
-                  {projectPage.total === 0
-                    ? "No matching projects"
-                    : `${projectPage.startAt + 1}–${projectPage.startAt + projectPage.values.length} of ${projectPage.total}`}
-                </span>
-                <div>
-                  <button
-                    type="button"
-                    disabled={projectPage.startAt === 0}
-                    onClick={() =>
-                      setPageStart(Math.max(0, pageStart - projectPage.maxResults))
-                    }
-                  >
-                    Previous
-                  </button>
-                  <button
-                    type="button"
-                    disabled={projectPage.isLast}
-                    onClick={() => setPageStart(pageStart + projectPage.maxResults)}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
+            <label className="setup-project-field">
+              <span>Jira project</span>
+              <select
+                aria-label="Jira project"
+                value={selectedProjectKey}
+                onChange={(event) => {
+                  setSelectedProjectKey(event.target.value);
+                  invalidateIssuePreview();
+                }}
+              >
+                <option value="">Choose a project…</option>
+                {projectPage.values.map((project) => (
+                  <option key={project.id} value={project.key}>
+                    {project.key} · {project.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <label className="setup-board-column">
               <span>Jira board</span>
@@ -947,6 +936,32 @@ export function SetupPanel({
                 ))}
               </select>
             </label>
+
+            <div className="project-pagination" aria-live="polite">
+              <span>
+                {projectPage.total === 0
+                  ? "No matching projects"
+                  : `${projectPage.startAt + 1}–${projectPage.startAt + projectPage.values.length} of ${projectPage.total}`}
+              </span>
+              <div>
+                <button
+                  type="button"
+                  disabled={projectPage.startAt === 0}
+                  onClick={() =>
+                    setPageStart(Math.max(0, pageStart - projectPage.maxResults))
+                  }
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={projectPage.isLast}
+                  onClick={() => setPageStart(pageStart + projectPage.maxResults)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
 
           {boardLoadError ? (
@@ -1002,6 +1017,11 @@ export function SetupPanel({
               <p className="field-help">
                 This board-level mapping is inherited by Board Health and every report.
               </p>
+              {statusResolutionWarning ? (
+                <p className="field-warning" role="status">
+                  {statusResolutionWarning}
+                </p>
+              ) : null}
               <div className="reporting-status-list">
                 {statusOptions.map((status) => (
                   <label key={status.id}>
