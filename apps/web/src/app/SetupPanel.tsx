@@ -777,31 +777,23 @@ export function SetupPanel({
   ]);
 
   return (
-    <section id="setup" className="setup-card" aria-labelledby="setup-title">
-      <div className="setup-card-header">
-        <div>
-          <p className="setup-step">MILESTONE 8</p>
-          <h2 id="setup-title">Project setup</h2>
-        </div>
-        <span className={`setup-state setup-state-${loadState}`}>{loadState}</span>
-      </div>
-
-      {loadState === "idle" || loadState === "error" ? (
+    <div id="setup">
+      {loadState === "error" ? (
         <div className="setup-intro">
-          <p>Load the projects and field metadata available to your current Jira user.</p>
+          <p role="alert">{loadError ?? "Power View could not load Jira setup data."}</p>
           <button
             className="primary-button"
             type="button"
             onClick={() => void loadMetadata()}
           >
-            {loadState === "error" ? "Retry setup data" : "Load projects and fields"}
+            Retry setup data
           </button>
-          {loadError ? <span role="alert">{loadError}</span> : null}
         </div>
       ) : null}
 
-      {loadState === "loading" ? (
+      {loadState === "idle" || loadState === "loading" ? (
         <div className="setup-loading" role="status">
+          <span className="reporting-spinner" aria-hidden="true" />
           Loading Jira projects and field metadata…
         </div>
       ) : null}
@@ -1266,6 +1258,6 @@ export function SetupPanel({
           </section>
         </form>
       ) : null}
-    </section>
+    </div>
   );
 }

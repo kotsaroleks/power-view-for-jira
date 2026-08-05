@@ -289,139 +289,100 @@ function AppContent({
       <main className="app-main">
         {page === "settings" ? (
           <section className="page-frame settings-page" aria-labelledby="settings-title">
-            <div className="page-heading">
-              <div>
-                <p className="eyebrow">STEP 1 · WORKSPACE SETUP</p>
-                <h1 id="settings-title">Configure your Jira workspace</h1>
-                <p>
-                  Connect your current Jira session, choose the project data, and save
-                  once. Power View will prepare Reports and Gantt for you.
-                </p>
+            <section className="setup-card" aria-labelledby="settings-title">
+              <div className="setup-card-header">
+                <div>
+                  <p className="report-eyebrow">WORKSPACE SETUP</p>
+                  <h2 id="settings-title">Configure your Jira workspace</h2>
+                  <p>Uses your active browser session. No credentials are stored.</p>
+                </div>
+                {context && (connection.status === "authenticated" ||
+                  connection.status === "checking") ? (
+                  <div
+                    className={`connection-badge connection-badge-${connection.status}`}
+                  >
+                    {connection.status === "checking" ? (
+                      <>
+                        <span className="reporting-spinner" aria-hidden="true" />
+                        Connecting…
+                      </>
+                    ) : (
+                      <>
+                        <span className="app-status-dot" aria-hidden="true" />
+                        Connected as {connection.user.displayName}
+                      </>
+                    )}
+                  </div>
+                ) : null}
               </div>
-              <span className="step-badge">1 of 2</span>
-            </div>
 
-            <div className="settings-grid">
-              <section className="connection-panel" aria-label="Jira connection">
-                <div className="section-heading">
-                  <span className="section-icon">01</span>
+              {isLoading ? (
+                <div className="notice" role="status">
+                  <span className="notice-icon" aria-hidden="true">
+                    i
+                  </span>
+                  <strong>Reading Jira context…</strong>
+                </div>
+              ) : !context ? (
+                <div className="notice notice-warning" role="alert">
+                  <span className="notice-icon" aria-hidden="true">
+                    !
+                  </span>
                   <div>
-                    <h2>Jira connection</h2>
-                    <p>Uses your active browser session. No credentials are stored.</p>
+                    <strong>{contextError ?? "No Jira context is available."}</strong>
+                    <p>Return to Jira and open Power View again from the board.</p>
                   </div>
                 </div>
-
-                {isLoading ? (
-                  <div className="notice" role="status">
-                    <span className="notice-icon" aria-hidden="true">
-                      i
-                    </span>
-                    <strong>Reading Jira context…</strong>
+              ) : (
+                <>
+                  <div className="app-context-summary">
+                    <span className="app-status-dot" aria-hidden="true" />
+                    <strong>Context detected</strong>
+                    <span>{context.projectKey ?? "Not detected"}</span>
+                    {context.boardId ? <span>Board {context.boardId}</span> : null}
+                    {context.issueKey ? <span>{context.issueKey}</span> : null}
+                    <span>{context.baseUrl}</span>
                   </div>
-                ) : context ? (
-                  <div className="app-context-card" aria-label="Current Jira context">
-                    <div className="app-context-heading">
-                      <span className="app-status-dot" aria-hidden="true" />
-                      Context detected
-                    </div>
-                    <dl>
+
+                  {connection.status === "error" ? (
+                    <div className="notice notice-warning" role="alert">
+                      <span className="notice-icon" aria-hidden="true">
+                        !
+                      </span>
                       <div>
-                        <dt>Project</dt>
-                        <dd>{context.projectKey ?? "Not detected"}</dd>
-                      </div>
-                      {context.boardId ? (
-                        <div>
-                          <dt>Board</dt>
-                          <dd>{context.boardId}</dd>
-                        </div>
-                      ) : null}
-                      {context.issueKey ? (
-                        <div>
-                          <dt>Issue</dt>
-                          <dd>{context.issueKey}</dd>
-                        </div>
-                      ) : null}
-                      <div>
-                        <dt>Jira</dt>
-                        <dd>{context.baseUrl}</dd>
-                      </div>
-                    </dl>
-                    <div className="connection-actions">
-                      <button
-                        className="primary-button"
-                        type="button"
-                        disabled={connection.status === "checking"}
-                        onClick={() => void testConnection()}
-                      >
-                        {connection.status === "checking"
-                          ? "Connecting…"
-                          : authenticated
-                            ? "Reconnect"
-                            : "Connect to Jira"}
-                      </button>
-                    </div>
-                    {connection.status === "authenticated" ? (
-                      <div className="connection-result connection-success" role="status">
-                        <strong>Connected as {connection.user.displayName}</strong>
-                        <p>
-                          {connection.serverInfo.serverTitle ?? "Jira"} ·{" "}
-                          {connection.serverInfo.deploymentType}
-                          {connection.serverInfo.version
-                            ? ` · ${connection.serverInfo.version}`
-                            : ""}
-                        </p>
-                      </div>
-                    ) : null}
-                    {connection.status === "error" ? (
-                      <div className="connection-result connection-error" role="alert">
                         <strong>{connection.error.message}</strong>
                         <p>{connection.error.details ?? "Retry the connection."}</p>
                         <span>Error code: {connection.error.code}</span>
+                        <button
+                          className="primary-button"
+                          type="button"
+                          onClick={() => void testConnection()}
+                        >
+                          Reconnect
+                        </button>
                       </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="notice notice-warning" role="alert">
-                    <span className="notice-icon" aria-hidden="true">
-                      !
-                    </span>
-                    <div>
-                      <strong>{contextError ?? "No Jira context is available."}</strong>
-                      <p>Return to Jira and open Power View again from the board.</p>
                     </div>
-                  </div>
-                )}
-              </section>
-
-              <section className="configuration-panel" aria-label="Project configuration">
-                <div className="section-heading section-heading-inline">
-                  <span className="section-icon">02</span>
-                  <div>
-                    <h2>Project configuration</h2>
-                    <p>Define the data source and date mapping used by your tools.</p>
-                  </div>
-                </div>
-                {authenticated ? (
-                  <SetupPanel
-                    context={context}
-                    runtime={runtime}
-                    {...(settingsStore ? { settingsStore } : {})}
-                    onDiagnosticsChanged={() => void loadDiagnostics()}
-                    onScheduleReady={setReadySchedule}
-                    onSetupComplete={(schedule) => {
-                      setReadySchedule(schedule);
-                      navigate("chooser");
-                    }}
-                  />
-                ) : (
-                  <div className="locked-panel">
-                    <span aria-hidden="true">↗</span>
-                    <strong>Connect Jira to continue</strong>
-                    <p>Project fields and JQL become available after connection.</p>
-                  </div>
-                )}
-              </section>
-            </div>
+                  ) : authenticated ? (
+                    <SetupPanel
+                      context={context}
+                      runtime={runtime}
+                      {...(settingsStore ? { settingsStore } : {})}
+                      onDiagnosticsChanged={() => void loadDiagnostics()}
+                      onScheduleReady={setReadySchedule}
+                      onSetupComplete={(schedule) => {
+                        setReadySchedule(schedule);
+                        navigate("chooser");
+                      }}
+                    />
+                  ) : (
+                    <div className="setup-loading" role="status">
+                      <span className="reporting-spinner" aria-hidden="true" />
+                      Connecting to Jira…
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
           </section>
         ) : null}
 
@@ -431,7 +392,7 @@ function AppContent({
               <span className="success-orb" aria-hidden="true">
                 ✓
               </span>
-              <p className="eyebrow">WORKSPACE READY</p>
+              <p className="report-eyebrow">WORKSPACE READY</p>
               <h1 id="chooser-title">What do you want to open?</h1>
               <p>Your Jira connection and project settings are ready.</p>
             </div>
@@ -492,7 +453,7 @@ function AppContent({
                 ← Workspace
               </button>
               <div>
-                <p className="eyebrow">REPORTING</p>
+                <p className="report-eyebrow">REPORTING</p>
                 <h1>Reports</h1>
                 <p>Generate decision-ready team updates from live Jira data.</p>
               </div>
@@ -554,7 +515,7 @@ function AppContent({
                 ← Workspace
               </button>
               <div>
-                <p className="eyebrow">PLANNING</p>
+                <p className="report-eyebrow">PLANNING</p>
                 <h1>Gantt</h1>
                 <p>Review schedule health, dependencies, and delivery risk.</p>
               </div>
@@ -607,7 +568,7 @@ function AppContent({
                 ← Back
               </button>
               <div>
-                <p className="eyebrow">SUPPORT</p>
+                <p className="report-eyebrow">SUPPORT</p>
                 <h1 id="diagnostics-title">Diagnostics</h1>
                 <p>Sanitized technical information for troubleshooting Power View.</p>
               </div>

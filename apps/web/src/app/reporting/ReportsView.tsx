@@ -18,7 +18,7 @@ import {
   type ReportHistoryItem,
   type ReportHistoryStore,
 } from "@power-view/storage";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { generateReport } from "./reporting-generator";
 import { renderStandupText } from "./standup";
@@ -95,7 +95,7 @@ interface ActivityLogEntry {
   occurredAt: string;
   issueKey: string;
   actorName: string;
-  sentence: string;
+  change: string;
 }
 
 function joinFragments(fragments: string[]): string {
@@ -137,8 +137,8 @@ function buildActivityLog(events: ReportChangeEvent[]): ActivityLogEntry[] {
         key: event.id,
         occurredAt: event.occurredAt,
         issueKey: event.issueKey,
-        actorName: "Jira",
-        sentence: `${event.issueKey} was created`,
+        actorName: "—",
+        change: "Issue created",
       });
       continue;
     }
@@ -159,7 +159,7 @@ function buildActivityLog(events: ReportChangeEvent[]): ActivityLogEntry[] {
         occurredAt: first.occurredAt,
         issueKey: first.issueKey,
         actorName,
-        sentence: `${actorName} updated ${first.issueKey} — ${joinFragments(fragments)}`,
+        change: joinFragments(fragments),
       },
     ];
   });
@@ -212,9 +212,11 @@ function pruneToChanged(nodes: IssueTreeNode[], changedIds: Set<string>): IssueT
 function IssueTreeItem({
   node,
   changedIds,
+  lastChangedBy,
 }: {
   node: IssueTreeNode;
   changedIds: Set<string>;
+  lastChangedBy: Map<string, string>;
 }) {
   const { issue, children } = node;
   const changed = changedIds.has(issue.id);
@@ -237,11 +239,21 @@ function IssueTreeItem({
         {issue.assignee ? (
           <span className="report-issue-tree-assignee">{issue.assignee.displayName}</span>
         ) : null}
+        {changed ? (
+          <span className="report-issue-tree-who">
+            {lastChangedBy.get(issue.id) ?? "Someone"}
+          </span>
+        ) : null}
       </div>
       {children.length ? (
         <ul className="report-issue-tree-children">
           {children.map((child) => (
-            <IssueTreeItem key={child.issue.id} node={child} changedIds={changedIds} />
+            <IssueTreeItem
+              key={child.issue.id}
+              node={child}
+              changedIds={changedIds}
+              lastChangedBy={lastChangedBy}
+            />
           ))}
         </ul>
       ) : null}
@@ -257,6 +269,13 @@ function IssueScopeTree({
   changes: ReportChangeEvent[];
 }) {
   const changedIds = useMemo(() => new Set(changes.map((event) => event.issueId)), [changes]);
+  const lastChangedBy = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const event of changes) {
+      if (event.actor?.displayName) map.set(event.issueId, event.actor.displayName);
+    }
+    return map;
+  }, [changes]);
   const tree = useMemo(
     () => pruneToChanged(buildIssueTree(issues), changedIds),
     [issues, changedIds],
@@ -277,7 +296,12 @@ function IssueScopeTree({
       {tree.length ? (
         <ul className="report-issue-tree">
           {tree.map((node) => (
-            <IssueTreeItem key={node.issue.id} node={node} changedIds={changedIds} />
+            <IssueTreeItem
+              key={node.issue.id}
+              node={node}
+              changedIds={changedIds}
+              lastChangedBy={lastChangedBy}
+            />
           ))}
         </ul>
       ) : (
@@ -458,16 +482,28 @@ function DailyWeeklyOutput({
           <span>{activityLog.length} entries</span>
         </div>
         {activityLog.length ? (
-          <ol className="report-activity-log">
-            {activityLog.map((entry) => (
-              <li key={entry.key}>
-                <span className="report-activity-log-time">
-                  {formatDate(entry.occurredAt)}
-                </span>
-                <span>{entry.sentence}</span>
-              </li>
-            ))}
-          </ol>
+          <div className="report-table-scroll">
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Issue</th>
+                  <th scope="col">Who did the change</th>
+                  <th scope="col">What changed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activityLog.map((entry) => (
+                  <tr key={entry.key}>
+                    <td>{formatDate(entry.occurredAt)}</td>
+                    <td>{entry.issueKey}</td>
+                    <td>{entry.actorName}</td>
+                    <td>{entry.change}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="report-unavailable">
             <strong>No activity recorded</strong>
@@ -542,6 +578,7 @@ export function ReportsView({
   const [statusMessage, setStatusMessage] = useState<string>();
   const [snapshot, setSnapshot] = useState<GeneratedReportSnapshot>();
   const [history, setHistory] = useState<ReportHistoryItem[]>([]);
+  const outputRef = useRef<HTMLDivElement>(null);
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -645,8 +682,23 @@ export function ReportsView({
 
   const openHistory = async (id: string) => {
     const item = await historyStore.get(id);
-    if (item) setSnapshot(item);
+    if (item) {
+      setSnapshot(item);
+      setStatusMessage(undefined);
+      setError(undefined);
+    } else {
+      setStatusMessage(undefined);
+      setError("That report snapshot could not be found in local history.");
+    }
   };
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const frame = requestAnimationFrame(() => {
+      outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [snapshot]);
 
   const deleteHistory = async (id: string) => {
     if (!window.confirm("Delete this local report snapshot?")) return;
@@ -668,7 +720,7 @@ export function ReportsView({
     <section id="reports" className="reporting-card" aria-labelledby="reports-title">
       <div className="reporting-header">
         <div>
-          <p className="setup-step">REPORTING</p>
+          <p className="report-eyebrow">REPORTING</p>
           <h2 id="reports-title">Daily, Weekly and Sprint reports</h2>
         </div>
         <span className="setup-state">LOCAL HISTORY</span>
@@ -799,7 +851,7 @@ export function ReportsView({
       ) : null}
 
       {!loading && snapshot ? (
-        <div className="reporting-output" aria-live="polite">
+        <div className="reporting-output" aria-live="polite" ref={outputRef}>
           {snapshot.request.type !== "sprint" ? (
             <DailyWeeklyOutput
               snapshot={snapshot}
@@ -810,7 +862,7 @@ export function ReportsView({
           {snapshot.request.type === "sprint" ? (
             <div className="reporting-output-header">
               <div>
-                <p className="setup-step">GENERATED {formatDate(snapshot.generatedAt)}</p>
+                <p className="report-eyebrow">GENERATED {formatDate(snapshot.generatedAt)}</p>
                 <h3>
                   {snapshot.board.name} · {snapshot.request.type.toUpperCase()}
                 </h3>

@@ -110,8 +110,6 @@ describe("App", () => {
     render(<App runtime={runtime} />);
 
     expect(await screen.findByText("Connected as Alex Rivera")).toBeInTheDocument();
-    expect(screen.getByText(/Example Jira · cloud · 1001\.0\.0/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Project setup" })).toBeInTheDocument();
   });
 
   it.each([

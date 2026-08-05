@@ -324,7 +324,7 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
     <section className="gantt-edit-panel" aria-labelledby="gantt-edit-title">
       <div className="gantt-edit-heading">
         <div>
-          <p className="setup-step">EDIT MODE</p>
+          <p className="report-eyebrow">EDIT MODE</p>
           <h4 id="gantt-edit-title">Update {task.issueKey} in Jira</h4>
         </div>
         <span className="edit-session-badge">BROWSER SESSION</span>

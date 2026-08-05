@@ -205,7 +205,7 @@ export function GanttView({
         className="gantt-workspace gantt-empty"
         aria-labelledby="gantt-title"
       >
-        <p className="setup-step">MILESTONE 8 · GANTT</p>
+        <p className="report-eyebrow">GANTT</p>
         <h2 id="gantt-title">No scheduled issues</h2>
         <p>The current JQL query returned no issues. Adjust it in Project setup.</p>
       </section>
@@ -216,7 +216,7 @@ export function GanttView({
     <section id="gantt" className="gantt-workspace" aria-labelledby="gantt-title">
       <header className="gantt-titlebar">
         <div>
-          <p className="setup-step">MILESTONE 8 · GANTT</p>
+          <p className="report-eyebrow">GANTT</p>
           <h2 id="gantt-title">Schedule workspace</h2>
           <p>
             {model.tasks.length} tasks · {model.syntheticDateCount} inferred dates ·{" "}
