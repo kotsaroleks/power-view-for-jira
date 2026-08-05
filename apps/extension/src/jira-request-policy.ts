@@ -5,6 +5,7 @@ const ALLOWED_READ_ROUTES = new Map<string, ReadonlySet<string>>([
   ["/rest/api/2/serverInfo", new Set()],
   ["/rest/api/2/project", new Set()],
   ["/rest/api/2/field", new Set()],
+  ["/rest/api/2/status", new Set()],
   [
     "/rest/api/2/search",
     new Set(["jql", "startAt", "maxResults", "fields", "validateQuery"]),
@@ -12,12 +13,16 @@ const ALLOWED_READ_ROUTES = new Map<string, ReadonlySet<string>>([
   ["/rest/api/3/myself", new Set()],
   ["/rest/api/3/serverInfo", new Set()],
   ["/rest/api/3/field", new Set()],
+  ["/rest/api/3/status", new Set()],
   [
     "/rest/api/3/search/jql",
     new Set(["jql", "nextPageToken", "maxResults", "fields", "fieldsByKeys", "failFast"]),
   ],
   ["/rest/api/3/project/search", new Set(["startAt", "maxResults", "orderBy", "query"])],
-  ["/rest/agile/1.0/board", new Set(["startAt", "maxResults", "type", "name", "projectKeyOrId"])],
+  [
+    "/rest/agile/1.0/board",
+    new Set(["startAt", "maxResults", "type", "name", "projectKeyOrId"]),
+  ],
 ]);
 
 const ISSUE_KEY_PATTERN = "[A-Z][A-Z0-9_]*-\\d+";
@@ -97,7 +102,10 @@ function validIssueLinkBody(value: unknown): boolean {
 }
 
 function validBulkChangelogBody(value: unknown): boolean {
-  if (!isRecord(value) || !hasOnlyKeys(value, ["issueIdsOrKeys", "fieldIds", "maxResults", "nextPageToken"])) {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, ["issueIdsOrKeys", "fieldIds", "maxResults", "nextPageToken"])
+  ) {
     return false;
   }
   const issueIds = value.issueIdsOrKeys;
@@ -108,16 +116,22 @@ function validBulkChangelogBody(value: unknown): boolean {
     Array.isArray(issueIds) &&
     issueIds.length > 0 &&
     issueIds.length <= 1_000 &&
-    issueIds.every((item) => typeof item === "string" && item.length > 0 && item.length <= 255) &&
+    issueIds.every(
+      (item) => typeof item === "string" && item.length > 0 && item.length <= 255,
+    ) &&
     Array.isArray(fieldIds) &&
     fieldIds.length <= 10 &&
-    fieldIds.every((item) => typeof item === "string" && item.length > 0 && item.length <= 512) &&
+    fieldIds.every(
+      (item) => typeof item === "string" && item.length > 0 && item.length <= 512,
+    ) &&
     typeof maxResults === "number" &&
     Number.isInteger(maxResults) &&
     maxResults >= 1 &&
     maxResults <= 1_000 &&
     (nextPageToken === undefined ||
-      (typeof nextPageToken === "string" && nextPageToken.length > 0 && nextPageToken.length <= 4_096))
+      (typeof nextPageToken === "string" &&
+        nextPageToken.length > 0 &&
+        nextPageToken.length <= 4_096))
   );
 }
 
@@ -149,22 +163,51 @@ function allowedQueryParameters(
     return new Set(["issueKey", "query", "username", "startAt", "maxResults"]);
   }
 
+  if (/^\/rest\/api\/[23]\/project\/[A-Za-z0-9_-]{1,255}\/statuses$/.test(request.path)) {
+    return new Set();
+  }
+
   if (/^\/rest\/agile\/1\.0\/board\/\d+$/.test(request.path)) return new Set();
-  if (/^\/rest\/agile\/1\.0\/board\/\d+\/configuration$/.test(request.path)) return new Set();
+  if (/^\/rest\/agile\/1\.0\/board\/\d+\/configuration$/.test(request.path))
+    return new Set();
   if (/^\/rest\/(?:agile|software)\/1\.0\/board\/\d+\/issue$/.test(request.path)) {
-    return new Set(["startAt", "nextPageToken", "maxResults", "jql", "validateQuery", "fields", "expand"]);
+    return new Set([
+      "startAt",
+      "nextPageToken",
+      "maxResults",
+      "jql",
+      "validateQuery",
+      "fields",
+      "expand",
+    ]);
   }
   if (/^\/rest\/agile\/1\.0\/board\/\d+\/sprint$/.test(request.path)) {
     return new Set(["startAt", "maxResults", "state"]);
   }
   if (/^\/rest\/agile\/1\.0\/sprint\/\d+$/.test(request.path)) return new Set();
-  if (/^\/rest\/(?:agile|software)\/1\.0\/board\/\d+\/sprint\/\d+\/issue$/.test(request.path)) {
-    return new Set(["startAt", "nextPageToken", "maxResults", "jql", "validateQuery", "fields", "expand"]);
+  if (
+    /^\/rest\/(?:agile|software)\/1\.0\/board\/\d+\/sprint\/\d+\/issue$/.test(
+      request.path,
+    )
+  ) {
+    return new Set([
+      "startAt",
+      "nextPageToken",
+      "maxResults",
+      "jql",
+      "validateQuery",
+      "fields",
+      "expand",
+    ]);
   }
-  if (new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/changelog$`).test(request.path)) {
+  if (
+    new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/changelog$`).test(request.path)
+  ) {
     return new Set(["startAt", "maxResults"]);
   }
-  if (new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/worklog$`).test(request.path)) {
+  if (
+    new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/worklog$`).test(request.path)
+  ) {
     return new Set(["startAt", "maxResults", "startedAfter", "startedBefore", "expand"]);
   }
 

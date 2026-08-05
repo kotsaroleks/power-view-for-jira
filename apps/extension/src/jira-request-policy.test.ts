@@ -148,6 +148,20 @@ describe("Jira request policy", () => {
   it("allows read-only reporting endpoints and strict bulk changelog reads", () => {
     expect(() =>
       validatedJiraRequestUrl(
+        { ...request, path: "/rest/api/3/status" },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...request, path: "/rest/api/3/project/POWER/statuses" },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
         { ...request, path: "/rest/agile/1.0/board/7/configuration" },
         request.baseUrl,
         false,
