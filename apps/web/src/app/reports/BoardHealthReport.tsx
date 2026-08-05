@@ -618,44 +618,51 @@ export function BoardHealthReportView({
             </div>
             <span>{activeSprintReports.length} active sprints</span>
           </div>
-          <div className="active-sprints-overview-grid">
-            {activeSprintReports.map(({ sprint, report: sprintSummary }) => (
-              <article className="active-sprint-overview-card" key={sprint.id}>
-                <div className="active-sprint-overview-heading">
-                  <strong>{sprint.name}</strong>
-                  <span>{sprintSummary.issues.total} issues</span>
-                </div>
-                <div className="active-sprint-overview-metrics">
-                  <span>
-                    <strong>
-                      {reportPercentage(
-                        sprintSummary.issues.done,
-                        sprintSummary.issues.total,
-                      )}
-                      %
-                    </strong>
-                    Done
-                  </span>
-                  <span>
-                    <strong>{sprintSummary.issues.inProgress}</strong>
-                    In progress
-                  </span>
-                  <span>
-                    <strong>{sprintSummary.issues.notStarted}</strong>
-                    Not started
-                  </span>
-                  <span>
-                    <strong>{sprintSummary.unassigned}</strong>
-                    Unassigned
-                  </span>
-                  <span>
-                    <strong>{sprintSummary.blocked}</strong>
-                    Blocked
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
+          {sprintIssueLoading ? (
+            <div className="reporting-loading" role="status" aria-live="polite">
+              <span className="reporting-spinner" aria-hidden="true" />
+              <span>Loading sprint issues…</span>
+            </div>
+          ) : (
+            <div className="active-sprints-overview-grid">
+              {activeSprintReports.map(({ sprint, report: sprintSummary }) => (
+                <article className="active-sprint-overview-card" key={sprint.id}>
+                  <div className="active-sprint-overview-heading">
+                    <strong>{sprint.name}</strong>
+                    <span>{sprintSummary.issues.total} issues</span>
+                  </div>
+                  <div className="active-sprint-overview-metrics">
+                    <span>
+                      <strong>
+                        {reportPercentage(
+                          sprintSummary.issues.done,
+                          sprintSummary.issues.total,
+                        )}
+                        %
+                      </strong>
+                      Done
+                    </span>
+                    <span>
+                      <strong>{sprintSummary.issues.inProgress}</strong>
+                      In progress
+                    </span>
+                    <span>
+                      <strong>{sprintSummary.issues.notStarted}</strong>
+                      Not started
+                    </span>
+                    <span>
+                      <strong>{sprintSummary.unassigned}</strong>
+                      Unassigned
+                    </span>
+                    <span>
+                      <strong>{sprintSummary.blocked}</strong>
+                      Blocked
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 
