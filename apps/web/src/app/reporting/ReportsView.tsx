@@ -554,7 +554,14 @@ export function ReportsView({
         </div>
       </div>
 
-      {snapshot ? (
+      {loading ? (
+        <div className="reporting-loading" role="status" aria-live="polite">
+          <span className="reporting-spinner" aria-hidden="true" />
+          <span>Generating… {loadingMessage}</span>
+        </div>
+      ) : null}
+
+      {!loading && snapshot ? (
         <div className="reporting-output" aria-live="polite">
           {snapshot.request.type !== "sprint" ? (
             <DailyWeeklyOutput

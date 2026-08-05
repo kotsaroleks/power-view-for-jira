@@ -2180,6 +2180,32 @@ h1 {
   border-top: 8px solid #f7f8fa;
 }
 
+.reporting-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-6);
+  border-top: 8px solid #f7f8fa;
+  color: #44546f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.reporting-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #dcdfe4;
+  border-top-color: #0c66e4;
+  border-radius: 50%;
+  animation: reporting-spin 0.7s linear infinite;
+}
+
+@keyframes reporting-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .reporting-output-header {
   padding: 0 0 var(--space-5);
 }
