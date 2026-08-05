@@ -792,12 +792,12 @@ h1 {
   gap: 8px 20px;
   margin: 0 28px;
   border: 1px solid #b3d4ff;
-  border-radius: 9px;
-  padding: 11px 13px;
+  border-radius: 10px;
+  padding: 12px 14px;
   background: #f0f7ff;
   color: #0747a6;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .report-alert-warning {
@@ -3303,19 +3303,23 @@ h1 {
 .gantt-edit-success,
 .gantt-edit-error {
   margin: 0;
-  border-radius: 7px;
-  padding: 8px 10px;
-  font-size: 11px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .gantt-edit-success {
-  background: #dffcf0;
-  color: #216e4e;
+  border-color: #baf3db;
+  background: #dcfff1;
+  color: #164b35;
 }
 
 .gantt-edit-error {
-  background: #ffebe6;
-  color: #ae2e24;
+  border-color: #f5cd47;
+  background: #fff7d6;
+  color: #533f04;
 }
 
 .gantt-empty {
