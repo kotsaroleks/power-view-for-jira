@@ -109,8 +109,6 @@ describe("App", () => {
     }));
     render(<App runtime={runtime} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Connect to Jira" }));
-
     expect(await screen.findByText("Connected as Alex Rivera")).toBeInTheDocument();
     expect(screen.getByText(/Example Jira · cloud · 1001\.0\.0/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Project setup" })).toBeInTheDocument();
@@ -153,8 +151,6 @@ describe("App", () => {
           },
     );
     render(<App runtime={runtime} />);
-
-    fireEvent.click(await screen.findByRole("button", { name: "Connect to Jira" }));
 
     expect(await screen.findByText(message)).toBeInTheDocument();
     expect(screen.getByText(`Error code: ${code}`)).toBeInTheDocument();
@@ -295,9 +291,7 @@ describe("App", () => {
     const store = new SettingsStore(new MemoryStorage());
     render(<App runtime={runtimeFor(jiraRequest)} settingsStore={store} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Connect to Jira" }));
     await screen.findByText("Connected as Alex");
-    fireEvent.click(screen.getByRole("button", { name: "Load projects and fields" }));
     expect(
       await screen.findByRole("option", { name: "Power Delivery Board · scrum" }),
     ).toBeInTheDocument();

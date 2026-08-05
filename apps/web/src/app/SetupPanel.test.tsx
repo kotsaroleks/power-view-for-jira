@@ -243,8 +243,6 @@ describe("SetupPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Load projects and fields" }));
-
     expect(
       await screen.findByRole("option", { name: "POWER · Power View" }),
     ).toBeInTheDocument();
@@ -313,7 +311,6 @@ describe("SetupPanel", () => {
     render(
       <SetupPanel context={context} runtime={setupRuntime()} settingsStore={store} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Load projects and fields" }));
     await screen.findByRole("option", { name: "POWER · Power View" });
     await screen.findByRole("checkbox", { name: "Done" });
     await waitFor(() =>
@@ -344,7 +341,6 @@ describe("SetupPanel", () => {
         settingsStore={store}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Load projects and fields" }));
     await screen.findByRole("option", { name: "POWER · Power View" });
     await screen.findByRole("checkbox", { name: "Done" });
     await waitFor(() =>

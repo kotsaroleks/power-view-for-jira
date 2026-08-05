@@ -18,7 +18,7 @@ import {
   type JiraClient,
 } from "@power-view/jira-client";
 import { SettingsStore } from "@power-view/storage";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { GanttView } from "./gantt/GanttView";
@@ -83,7 +83,9 @@ function AppContent({
   const [page, setPage] = useState<AppPage>("settings");
   const connectionAbort = useRef<AbortController | undefined>(undefined);
 
-  const loadDiagnostics = async (): Promise<DiagnosticsSnapshot | undefined> => {
+  const loadDiagnostics = useCallback(async (): Promise<
+    DiagnosticsSnapshot | undefined
+  > => {
     try {
       const response = await sendExtensionRequest(runtime, createDiagnosticsGetRequest());
       if (response.type === "DIAGNOSTICS_RESULT") {
@@ -100,7 +102,7 @@ function AppContent({
       setDiagnosticsError("Power View could not load diagnostics.");
     }
     return undefined;
-  };
+  }, [runtime]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -137,7 +139,7 @@ function AppContent({
     };
   }, [runtime]);
 
-  const testConnection = async () => {
+  const testConnection = useCallback(async () => {
     if (!context) {
       return;
     }
@@ -182,7 +184,14 @@ function AppContent({
       setJiraClient(undefined);
       void loadDiagnostics();
     }
-  };
+  }, [context, runtime, loadDiagnostics]);
+
+  const hasAutoConnected = useRef(false);
+  useEffect(() => {
+    if (!context || hasAutoConnected.current) return;
+    hasAutoConnected.current = true;
+    void testConnection();
+  }, [context, testConnection]);
 
   const copyDiagnostics = async () => {
     setCopyStatus(undefined);

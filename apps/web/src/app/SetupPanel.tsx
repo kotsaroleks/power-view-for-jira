@@ -243,7 +243,7 @@ export function SetupPanel({
     [],
   );
 
-  const loadMetadata = async () => {
+  const loadMetadata = useCallback(async () => {
     requestAbort.current?.abort();
     const controller = new AbortController();
     requestAbort.current = controller;
@@ -281,7 +281,14 @@ export function SetupPanel({
           : "Power View could not load Jira projects and fields.",
       );
     }
-  };
+  }, [applyProjectPage, client, context.projectKey, projectSearch]);
+
+  const hasAutoLoadedMetadata = useRef(false);
+  useEffect(() => {
+    if (hasAutoLoadedMetadata.current) return;
+    hasAutoLoadedMetadata.current = true;
+    void loadMetadata();
+  }, [loadMetadata]);
 
   useEffect(() => {
     if (loadState !== "ready") {
