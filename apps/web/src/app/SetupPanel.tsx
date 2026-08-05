@@ -43,6 +43,11 @@ export interface SetupPanelProps {
   onDiagnosticsChanged?: () => void;
   onScheduleReady?: (schedule: ReadyGanttSchedule | undefined) => void;
   onSetupComplete?: (schedule: ReadyGanttSchedule) => void;
+  /** Skip straight past this page when a matching saved setup already exists.
+   * Only appropriate on the very first arrival at Settings in a session — pass
+   * false when the user explicitly navigated here to review/edit an existing
+   * setup, otherwise they'd get bounced straight back to where they came from. */
+  autoContinue?: boolean;
 }
 
 export interface ReadyGanttSchedule {
@@ -153,6 +158,7 @@ export function SetupPanel({
   onDiagnosticsChanged,
   onScheduleReady,
   onSetupComplete,
+  autoContinue = true,
 }: SetupPanelProps) {
   const client = useMemo(
     () =>
@@ -689,7 +695,7 @@ export function SetupPanel({
   loadIssuesRef.current = loadIssues;
   const hasAutoSubmitted = useRef(false);
   useEffect(() => {
-    if (hasAutoSubmitted.current) return;
+    if (!autoContinue || hasAutoSubmitted.current) return;
     if (
       boardLoadState === "ready" &&
       selectedBoard &&
@@ -700,7 +706,7 @@ export function SetupPanel({
       hasAutoSubmitted.current = true;
       void loadIssuesRef.current();
     }
-  }, [boardLoadState, selectedBoard, storedSetup, jql, completedStatusIds]);
+  }, [autoContinue, boardLoadState, selectedBoard, storedSetup, jql, completedStatusIds]);
 
   const refreshLoadedIssues = useCallback(async (): Promise<void> => {
     issueAbort.current?.abort();
@@ -802,6 +808,7 @@ export function SetupPanel({
   // only to immediately navigate away. If auto-continuing fails, fall through to
   // showing the form (with the error) once loadIssues settles on "error".
   const isReturningBoard =
+    autoContinue &&
     boardLoadState === "ready" &&
     Boolean(selectedBoard) &&
     storedSetup?.board?.id === selectedBoard?.id;

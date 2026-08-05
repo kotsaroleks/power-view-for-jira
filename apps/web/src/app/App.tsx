@@ -367,6 +367,7 @@ function AppContent({
                       context={context}
                       runtime={runtime}
                       {...(settingsStore ? { settingsStore } : {})}
+                      autoContinue={!readySchedule}
                       onDiagnosticsChanged={() => void loadDiagnostics()}
                       onScheduleReady={setReadySchedule}
                       onSetupComplete={(schedule) => {
