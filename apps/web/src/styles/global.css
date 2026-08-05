@@ -2361,6 +2361,37 @@ h1 {
   padding-bottom: 11px;
 }
 
+.report-activity-log {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.report-activity-log li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid #f1f2f4;
+  font-size: 13px;
+  color: #172b4d;
+}
+
+.report-activity-log li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.report-activity-log-time {
+  color: #6b778c;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .report-pulse-list div:last-child {
   border-bottom: 0;
   padding-bottom: 0;

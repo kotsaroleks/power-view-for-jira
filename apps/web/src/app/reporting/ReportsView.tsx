@@ -4,6 +4,7 @@ import {
   type BoardReportConfiguration,
   type GeneratedReportSnapshot,
   type JiraBoard,
+  type ReportChangeEvent,
   type ReportLanguage,
   type ReportScope,
   type ReportType,
@@ -88,6 +89,84 @@ function activityLabel(type: GeneratedReportSnapshot["changes"][number]["type"])
   }[type];
 }
 
+interface ActivityLogEntry {
+  key: string;
+  occurredAt: string;
+  issueKey: string;
+  actorName: string;
+  sentence: string;
+}
+
+function joinFragments(fragments: string[]): string {
+  if (fragments.length === 0) return "";
+  if (fragments.length === 1) return fragments[0] ?? "";
+  return `${fragments.slice(0, -1).join(", ")} and ${fragments[fragments.length - 1]}`;
+}
+
+function changeFragment(event: ReportChangeEvent): string | undefined {
+  switch (event.type) {
+    case "status-changed":
+      return event.to ? `set status to "${event.to}"` : undefined;
+    case "assignee-changed":
+      return event.to ? `reassigned to ${event.to}` : "unassigned the issue";
+    case "story-points-changed":
+      return event.to !== undefined && event.to !== null
+        ? `updated story points to ${event.to}`
+        : undefined;
+    case "original-estimate-changed":
+      return event.to !== undefined && event.to !== null
+        ? `updated original estimate to ${event.to}`
+        : undefined;
+    case "sprint-added":
+      return "added the issue to the sprint";
+    case "sprint-removed":
+      return "removed the issue from the sprint";
+    default:
+      return undefined;
+  }
+}
+
+function buildActivityLog(events: ReportChangeEvent[]): ActivityLogEntry[] {
+  const groups = new Map<string, ReportChangeEvent[]>();
+  const created: ActivityLogEntry[] = [];
+  for (const event of events) {
+    if (event.type === "issue-completed" || event.type === "issue-reopened") continue;
+    if (event.type === "issue-created") {
+      created.push({
+        key: event.id,
+        occurredAt: event.occurredAt,
+        issueKey: event.issueKey,
+        actorName: "Jira",
+        sentence: `${event.issueKey} was created`,
+      });
+      continue;
+    }
+    const key = `${event.issueId}|${event.occurredAt}|${event.actor?.id ?? "unknown"}`;
+    groups.set(key, [...(groups.get(key) ?? []), event]);
+  }
+  const grouped: ActivityLogEntry[] = [...groups.values()].flatMap((groupEvents) => {
+    const first = groupEvents[0];
+    if (!first) return [];
+    const fragments = groupEvents
+      .map((event) => changeFragment(event))
+      .filter((fragment): fragment is string => fragment !== undefined);
+    if (fragments.length === 0) return [];
+    const actorName = first.actor?.displayName ?? "Someone";
+    return [
+      {
+        key: `${first.issueId}|${first.occurredAt}|${first.actor?.id ?? "unknown"}`,
+        occurredAt: first.occurredAt,
+        issueKey: first.issueKey,
+        actorName,
+        sentence: `${actorName} updated ${first.issueKey} — ${joinFragments(fragments)}`,
+      },
+    ];
+  });
+  return [...created, ...grouped].sort((left, right) =>
+    left.occurredAt.localeCompare(right.occurredAt),
+  );
+}
+
 function DailyWeeklyOutput({
   snapshot,
   language,
@@ -98,6 +177,7 @@ function DailyWeeklyOutput({
   setStatusMessage: (message: string) => void;
 }) {
   const summary = snapshot.result.executiveSummary;
+  const activityLog = buildActivityLog(snapshot.result.activity);
   const activity = Object.entries(
     snapshot.result.activity.reduce<Record<string, number>>((counts, event) => {
       const label = activityLabel(event.type);
@@ -238,6 +318,33 @@ function DailyWeeklyOutput({
           </div>
         </article>
       </div>
+
+      <section className="reporting-people daily-weekly-people">
+        <div className="people-report-heading">
+          <div>
+            <h3>Activity log</h3>
+            <p>Who changed what, and when, during this period.</p>
+          </div>
+          <span>{activityLog.length} entries</span>
+        </div>
+        {activityLog.length ? (
+          <ol className="report-activity-log">
+            {activityLog.map((entry) => (
+              <li key={entry.key}>
+                <span className="report-activity-log-time">
+                  {formatDate(entry.occurredAt)}
+                </span>
+                <span>{entry.sentence}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="report-unavailable">
+            <strong>No activity recorded</strong>
+            <p>There were no tracked changes in this period.</p>
+          </div>
+        )}
+      </section>
 
       <section className="reporting-people daily-weekly-people">
         <div className="people-report-heading">
