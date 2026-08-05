@@ -694,12 +694,13 @@ export function SetupPanel({
       boardLoadState === "ready" &&
       selectedBoard &&
       storedSetup?.board?.id === selectedBoard.id &&
-      jql.trim().length > 0
+      jql.trim().length > 0 &&
+      completedStatusIds.length > 0
     ) {
       hasAutoSubmitted.current = true;
       void loadIssuesRef.current();
     }
-  }, [boardLoadState, selectedBoard, storedSetup, jql]);
+  }, [boardLoadState, selectedBoard, storedSetup, jql, completedStatusIds]);
 
   const refreshLoadedIssues = useCallback(async (): Promise<void> => {
     issueAbort.current?.abort();
