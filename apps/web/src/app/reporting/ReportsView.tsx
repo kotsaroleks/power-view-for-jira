@@ -212,14 +212,15 @@ function pruneToChanged(nodes: IssueTreeNode[], changedIds: Set<string>): IssueT
 function IssueTreeItem({
   node,
   changedIds,
-  lastChangedBy,
+  entriesByIssueKey,
 }: {
   node: IssueTreeNode;
   changedIds: Set<string>;
-  lastChangedBy: Map<string, string>;
+  entriesByIssueKey: Map<string, ActivityLogEntry[]>;
 }) {
   const { issue, children } = node;
   const changed = changedIds.has(issue.id);
+  const entries = entriesByIssueKey.get(issue.key) ?? [];
   return (
     <li>
       <div
@@ -239,12 +240,27 @@ function IssueTreeItem({
         {issue.assignee ? (
           <span className="report-issue-tree-assignee">{issue.assignee.displayName}</span>
         ) : null}
-        {changed ? (
-          <span className="report-issue-tree-who">
-            {lastChangedBy.get(issue.id) ?? "Someone"}
-          </span>
-        ) : null}
       </div>
+      {entries.length ? (
+        <table className="report-issue-tree-changes">
+          <thead>
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Who did the change</th>
+              <th scope="col">What changed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry) => (
+              <tr key={entry.key}>
+                <td>{formatDate(entry.occurredAt)}</td>
+                <td>{entry.actorName}</td>
+                <td>{entry.change}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
       {children.length ? (
         <ul className="report-issue-tree-children">
           {children.map((child) => (
@@ -252,7 +268,7 @@ function IssueTreeItem({
               key={child.issue.id}
               node={child}
               changedIds={changedIds}
-              lastChangedBy={lastChangedBy}
+              entriesByIssueKey={entriesByIssueKey}
             />
           ))}
         </ul>
@@ -264,18 +280,20 @@ function IssueTreeItem({
 function IssueScopeTree({
   issues,
   changes,
+  activityLog,
 }: {
   issues: ReportingIssueSnapshot[];
   changes: ReportChangeEvent[];
+  activityLog: ActivityLogEntry[];
 }) {
   const changedIds = useMemo(() => new Set(changes.map((event) => event.issueId)), [changes]);
-  const lastChangedBy = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const event of changes) {
-      if (event.actor?.displayName) map.set(event.issueId, event.actor.displayName);
+  const entriesByIssueKey = useMemo(() => {
+    const map = new Map<string, ActivityLogEntry[]>();
+    for (const entry of activityLog) {
+      map.set(entry.issueKey, [...(map.get(entry.issueKey) ?? []), entry]);
     }
     return map;
-  }, [changes]);
+  }, [activityLog]);
   const tree = useMemo(
     () => pruneToChanged(buildIssueTree(issues), changedIds),
     [issues, changedIds],
@@ -288,7 +306,8 @@ function IssueScopeTree({
           <h3>Changed issues</h3>
           <p>
             Story → Task → Subtask/Bug hierarchy for issues that changed during this
-            period. Faded rows are unchanged ancestors shown for context.
+            period, with who changed what and when. Faded rows are unchanged ancestors
+            shown for context.
           </p>
         </div>
         <span>{changedCount} changed</span>
@@ -300,7 +319,7 @@ function IssueScopeTree({
               key={node.issue.id}
               node={node}
               changedIds={changedIds}
-              lastChangedBy={lastChangedBy}
+              entriesByIssueKey={entriesByIssueKey}
             />
           ))}
         </ul>
@@ -413,7 +432,11 @@ function DailyWeeklyOutput({
         </article>
       </div>
 
-      <IssueScopeTree issues={scopedIssues} changes={snapshot.result.activity} />
+      <IssueScopeTree
+        issues={scopedIssues}
+        changes={snapshot.result.activity}
+        activityLog={activityLog}
+      />
 
       <div className="report-panels">
         <article className="report-panel">
@@ -472,45 +495,6 @@ function DailyWeeklyOutput({
           </div>
         </article>
       </div>
-
-      <section className="reporting-people daily-weekly-people">
-        <div className="people-report-heading">
-          <div>
-            <h3>Activity log</h3>
-            <p>Who changed what, and when, during this period.</p>
-          </div>
-          <span>{activityLog.length} entries</span>
-        </div>
-        {activityLog.length ? (
-          <div className="report-table-scroll">
-            <table className="report-table">
-              <thead>
-                <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">Issue</th>
-                  <th scope="col">Who did the change</th>
-                  <th scope="col">What changed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activityLog.map((entry) => (
-                  <tr key={entry.key}>
-                    <td>{formatDate(entry.occurredAt)}</td>
-                    <td>{entry.issueKey}</td>
-                    <td>{entry.actorName}</td>
-                    <td>{entry.change}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="report-unavailable">
-            <strong>No activity recorded</strong>
-            <p>There were no tracked changes in this period.</p>
-          </div>
-        )}
-      </section>
 
       <section className="reporting-people daily-weekly-people">
         <div className="people-report-heading">

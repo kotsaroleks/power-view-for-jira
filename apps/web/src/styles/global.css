@@ -2275,46 +2275,6 @@ h1 {
   padding-bottom: 11px;
 }
 
-.report-table-scroll {
-  max-height: 420px;
-  overflow: auto;
-  border: 1px solid #f1f2f4;
-  border-radius: 12px;
-}
-
-.report-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  color: #172b4d;
-}
-
-.report-table th,
-.report-table td {
-  padding: var(--space-2) var(--space-3);
-  text-align: left;
-  white-space: nowrap;
-}
-
-.report-table th {
-  position: sticky;
-  top: 0;
-  background: #f7f8fa;
-  color: #44546f;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.report-table tbody tr {
-  border-top: 1px solid #f1f2f4;
-}
-
-.report-table td:nth-child(4) {
-  white-space: normal;
-}
-
 .report-issue-tree,
 .report-issue-tree-children {
   list-style: none;
@@ -2389,13 +2349,30 @@ h1 {
   color: #6b778c;
 }
 
-.report-issue-tree-who {
-  flex-shrink: 0;
-  padding: 2px var(--space-2);
-  border-radius: 999px;
-  background: #e9f2ff;
-  color: #0055cc;
+.report-issue-tree-changes {
+  width: calc(100% - var(--space-5));
+  margin: var(--space-2) 0 0 var(--space-5);
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #44546f;
+}
+
+.report-issue-tree-changes th,
+.report-issue-tree-changes td {
+  padding: 3px var(--space-2);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.report-issue-tree-changes th {
+  color: #6b778c;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.report-issue-tree-changes td:last-child {
+  white-space: normal;
 }
 
 .report-pulse-list div:last-child {
