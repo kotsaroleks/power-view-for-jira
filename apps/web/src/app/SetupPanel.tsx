@@ -682,6 +682,25 @@ export function SetupPanel({
     }
   };
 
+  // If this board already has a complete saved setup (returning to a board you've
+  // configured before, not the first time through), skip straight to loading issues
+  // instead of making the user resubmit a form that's already correctly filled in.
+  const loadIssuesRef = useRef(loadIssues);
+  loadIssuesRef.current = loadIssues;
+  const hasAutoSubmitted = useRef(false);
+  useEffect(() => {
+    if (hasAutoSubmitted.current) return;
+    if (
+      boardLoadState === "ready" &&
+      selectedBoard &&
+      storedSetup?.board?.id === selectedBoard.id &&
+      jql.trim().length > 0
+    ) {
+      hasAutoSubmitted.current = true;
+      void loadIssuesRef.current();
+    }
+  }, [boardLoadState, selectedBoard, storedSetup, jql]);
+
   const refreshLoadedIssues = useCallback(async (): Promise<void> => {
     issueAbort.current?.abort();
     const controller = new AbortController();
