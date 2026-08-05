@@ -859,84 +859,88 @@ export function SetupPanel({
             void loadIssues();
           }}
         >
-          <label>
-            <span>Search projects</span>
-            <input
-              type="search"
-              value={projectSearch}
-              placeholder="Project name or key"
-              onChange={(event) => {
-                setProjectSearch(event.target.value);
-                setPageStart(0);
-              }}
-            />
-          </label>
+          <div className="setup-project-board">
+            <div className="setup-project-column">
+              <label>
+                <span>Search projects</span>
+                <input
+                  type="search"
+                  value={projectSearch}
+                  placeholder="Project name or key"
+                  onChange={(event) => {
+                    setProjectSearch(event.target.value);
+                    setPageStart(0);
+                  }}
+                />
+              </label>
 
-          <label>
-            <span>Jira project</span>
-            <select
-              aria-label="Jira project"
-              value={selectedProjectKey}
-              onChange={(event) => {
-                setSelectedProjectKey(event.target.value);
-                invalidateIssuePreview();
-              }}
-            >
-              <option value="">Choose a project…</option>
-              {projectPage.values.map((project) => (
-                <option key={project.id} value={project.key}>
-                  {project.key} · {project.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              <label>
+                <span>Jira project</span>
+                <select
+                  aria-label="Jira project"
+                  value={selectedProjectKey}
+                  onChange={(event) => {
+                    setSelectedProjectKey(event.target.value);
+                    invalidateIssuePreview();
+                  }}
+                >
+                  <option value="">Choose a project…</option>
+                  {projectPage.values.map((project) => (
+                    <option key={project.id} value={project.key}>
+                      {project.key} · {project.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <div className="project-pagination" aria-live="polite">
-            <span>
-              {projectPage.total === 0
-                ? "No matching projects"
-                : `${projectPage.startAt + 1}–${projectPage.startAt + projectPage.values.length} of ${projectPage.total}`}
-            </span>
-            <div>
-              <button
-                type="button"
-                disabled={projectPage.startAt === 0}
-                onClick={() =>
-                  setPageStart(Math.max(0, pageStart - projectPage.maxResults))
-                }
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                disabled={projectPage.isLast}
-                onClick={() => setPageStart(pageStart + projectPage.maxResults)}
-              >
-                Next
-              </button>
+              <div className="project-pagination" aria-live="polite">
+                <span>
+                  {projectPage.total === 0
+                    ? "No matching projects"
+                    : `${projectPage.startAt + 1}–${projectPage.startAt + projectPage.values.length} of ${projectPage.total}`}
+                </span>
+                <div>
+                  <button
+                    type="button"
+                    disabled={projectPage.startAt === 0}
+                    onClick={() =>
+                      setPageStart(Math.max(0, pageStart - projectPage.maxResults))
+                    }
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={projectPage.isLast}
+                    onClick={() => setPageStart(pageStart + projectPage.maxResults)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <label>
-            <span>Jira board</span>
-            <select
-              aria-label="Jira board"
-              value={selectedBoardId}
-              disabled={!selectedProject || boardLoadState === "loading"}
-              onChange={(event) => {
-                setSelectedBoardId(event.target.value);
-                setSaveStatus("idle");
-                invalidateIssuePreview();
-              }}
-            >
-              <option value="">Choose a board…</option>
-              {boards.map((board) => (
-                <option key={board.id} value={board.id}>
-                  {board.name} · {board.type}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="setup-board-column">
+              <span>Jira board</span>
+              <select
+                aria-label="Jira board"
+                value={selectedBoardId}
+                disabled={!selectedProject || boardLoadState === "loading"}
+                onChange={(event) => {
+                  setSelectedBoardId(event.target.value);
+                  setSaveStatus("idle");
+                  invalidateIssuePreview();
+                }}
+              >
+                <option value="">Choose a board…</option>
+                {boards.map((board) => (
+                  <option key={board.id} value={board.id}>
+                    {board.name} · {board.type}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           {boardLoadError ? (
             <div className="setup-errors" role="alert">
