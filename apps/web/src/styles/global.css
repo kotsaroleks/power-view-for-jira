@@ -1195,13 +1195,20 @@ h1 {
   align-items: center;
   gap: 8px;
   border: 0;
-  padding: 0;
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin: -2px -4px;
   background: transparent;
   color: #172b4d;
   font: inherit;
   font-weight: 750;
   text-align: left;
   cursor: pointer;
+  outline: none;
+}
+
+.people-report-expand:focus-visible {
+  box-shadow: 0 0 0 2px #deebff, 0 0 0 3px #0c66e4;
 }
 
 .people-report-expand:hover strong,
@@ -2476,11 +2483,18 @@ h1 {
   flex: 1;
   gap: 3px;
   border: 0;
-  padding: 0;
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin: -4px -6px;
   background: transparent;
   color: #172b4d;
   text-align: left;
   cursor: pointer;
+  outline: none;
+}
+
+.reporting-history-open:focus-visible {
+  box-shadow: 0 0 0 2px #deebff, 0 0 0 3px #0c66e4;
 }
 
 /* Application information architecture */
