@@ -90,6 +90,15 @@ function activityLabel(type: GeneratedReportSnapshot["changes"][number]["type"])
   }[type];
 }
 
+function isIssueFinished(
+  issue: ReportingIssueSnapshot,
+  statusMapping: BoardReportConfiguration,
+): boolean {
+  return issue.status.id
+    ? statusMapping.completedStatusIds.includes(issue.status.id)
+    : statusMapping.completedStatusNames.includes(issue.status.name);
+}
+
 interface ActivityLogEntry {
   key: string;
   occurredAt: string;
@@ -344,6 +353,8 @@ function DailyWeeklyOutput({
 }) {
   const summary = snapshot.result.executiveSummary;
   const activityLog = buildActivityLog(snapshot.result.activity);
+  const [expandedPeople, setExpandedPeople] = useState<Set<string>>(new Set());
+  const [showFinishedByPerson, setShowFinishedByPerson] = useState<Set<string>>(new Set());
   const scope = snapshot.request.scope;
   const scopedIssues =
     scope.kind === "assignee"
@@ -510,19 +521,99 @@ function DailyWeeklyOutput({
           aria-label="Report contributors"
         >
           <div className="people-report-row people-report-header" role="row">
-            <span>Person</span>
-            <span>Assigned work</span>
-            <span>Completed</span>
-            <span>Worklog</span>
+            <span role="columnheader">Person</span>
+            <span role="columnheader">Assigned work</span>
+            <span role="columnheader">Completed</span>
+            <span role="columnheader">Worklog</span>
           </div>
-          {snapshot.result.people.map((person) => (
-            <div className="people-report-row" role="row" key={person.user.id}>
-              <strong>{person.user.displayName}</strong>
-              <span>{person.assignedIssues.length}</span>
-              <span>{person.completedIssues.length}</span>
-              <span>{(person.worklogSeconds / 3600).toFixed(1)}h</span>
-            </div>
-          ))}
+          {snapshot.result.people.map((person) => {
+            const expanded = expandedPeople.has(person.user.id);
+            const showFinished = showFinishedByPerson.has(person.user.id);
+            const visibleIssues = showFinished
+              ? person.assignedIssues
+              : person.assignedIssues.filter(
+                  (issue) => !isIssueFinished(issue, snapshot.statusMapping),
+                );
+            const finishedCount = person.assignedIssues.length - visibleIssues.length;
+            return (
+              <div className="people-report-person" key={person.user.id}>
+                <div className="people-report-row" role="row">
+                  <button
+                    className="people-report-expand"
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-controls={`daily-person-issues-${person.user.id}`}
+                    onClick={() =>
+                      setExpandedPeople((current) => {
+                        const next = new Set(current);
+                        if (next.has(person.user.id)) next.delete(person.user.id);
+                        else next.add(person.user.id);
+                        return next;
+                      })
+                    }
+                  >
+                    <span className="people-report-chevron" aria-hidden="true">
+                      {expanded ? "⌄" : "›"}
+                    </span>
+                    <strong>{person.user.displayName}</strong>
+                  </button>
+                  <span>{person.assignedIssues.length}</span>
+                  <span>{person.completedIssues.length}</span>
+                  <span>{(person.worklogSeconds / 3600).toFixed(1)}h</span>
+                </div>
+                {expanded ? (
+                  <div
+                    className="people-report-detail"
+                    id={`daily-person-issues-${person.user.id}`}
+                    role="region"
+                    aria-label={`${person.user.displayName} issues`}
+                  >
+                    <div className="people-report-detail-heading">
+                      <strong>
+                        {person.user.displayName} · {visibleIssues.length} issues
+                      </strong>
+                      <label className="report-show-finished">
+                        <input
+                          type="checkbox"
+                          checked={showFinished}
+                          onChange={() =>
+                            setShowFinishedByPerson((current) => {
+                              const next = new Set(current);
+                              if (next.has(person.user.id)) next.delete(person.user.id);
+                              else next.add(person.user.id);
+                              return next;
+                            })
+                          }
+                        />
+                        <span>
+                          Show finished
+                          {!showFinished && finishedCount > 0 ? ` (${finishedCount})` : ""}
+                        </span>
+                      </label>
+                      <span>Click an issue to open it in Jira</span>
+                    </div>
+                    <div className="people-report-issues">
+                      {visibleIssues.map((issue) => (
+                        <a
+                          className="people-report-issue"
+                          href={issue.browseUrl}
+                          key={issue.id}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <span>
+                            <strong>{issue.key}</strong>
+                            <span>{issue.summary}</span>
+                          </span>
+                          <span className="report-issue-tree-status">{issue.status.name}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
           <div className="people-report-row" role="row">
             <strong>Unassigned</strong>
             <span>{snapshot.result.unassigned.issues.length}</span>
