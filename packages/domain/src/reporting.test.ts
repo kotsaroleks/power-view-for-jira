@@ -66,4 +66,34 @@ describe("reporting domain", () => {
     expect(result.people[0]?.user.id).toBe("ada");
     expect(result.unassigned.issues).toHaveLength(1);
   });
+
+  it("excludes changelog events from outside the report period", () => {
+    const result = calculateReportResult({
+      issues: [issue("1", "done", "ada")],
+      changes: [
+        {
+          id: "old",
+          issueId: "1",
+          issueKey: "POWER-1",
+          type: "issue-completed",
+          occurredAt: "2026-01-01T12:00:00.000Z",
+        },
+        {
+          id: "recent",
+          issueId: "1",
+          issueKey: "POWER-1",
+          type: "issue-reopened",
+          occurredAt: "2026-01-01T12:00:00.000Z",
+        },
+      ],
+      worklogs: [],
+      period: buildDailyPeriod("2026-08-02", "2026-08-02T10:00:00.000Z"),
+      type: "daily",
+      scope: { kind: "team" },
+      statusMapping: mapping,
+    });
+    expect(result.executiveSummary.completedDuringPeriod).toBe(0);
+    expect(result.executiveSummary.reopenedDuringPeriod).toBe(0);
+    expect(result.activity).toHaveLength(0);
+  });
 });

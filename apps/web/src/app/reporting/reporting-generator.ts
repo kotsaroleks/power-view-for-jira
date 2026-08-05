@@ -251,9 +251,15 @@ export async function generateReport(
 
   if (result.sprint) {
     const issueById = new Map(candidateIssues.map((issue) => [issue.id, issue]));
+    const periodStart = new Date(period.start).getTime();
+    const periodEnd = new Date(period.dataCutoff).getTime();
     const groupScopeChanges = (type: "sprint-added" | "sprint-removed") => {
       const grouped = new Map<string, ReportChangeEvent[]>();
-      for (const event of changes.filter((item) => item.type === type)) {
+      for (const event of changes.filter((item) => {
+        if (item.type !== type) return false;
+        const occurredAt = new Date(item.occurredAt).getTime();
+        return occurredAt >= periodStart && occurredAt < periodEnd;
+      })) {
         grouped.set(event.issueId, [...(grouped.get(event.issueId) ?? []), event]);
       }
       return [...grouped.entries()].flatMap(([issueId, events]) => {

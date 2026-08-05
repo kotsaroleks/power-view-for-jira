@@ -240,12 +240,17 @@ export function calculateReportResult(
   const scopedWorklogs = selectedUserId
     ? input.worklogs.filter((worklog) => worklog.author.id === selectedUserId)
     : input.worklogs;
+  // The changelog fetch returns an issue's entire history, not just what happened during
+  // the report period, so every period-scoped metric below must filter by inPeriod first.
+  const periodChanges = scopedChanges.filter((change) =>
+    inPeriod(change.occurredAt, input.period),
+  );
   const doneIssues = scopedIssues.filter((issue) =>
     completed(issue, input.statusMapping),
   );
   const people = makePeopleBlocks(
     scopedIssues,
-    scopedChanges,
+    periodChanges,
     scopedWorklogs,
     input.statusMapping,
     input.period,
@@ -254,7 +259,7 @@ export function calculateReportResult(
   const unassignedIssues = scopedIssues.filter((issue) => !issue.assignee);
   const unassigned: UnassignedReportBlock = {
     issues: unassignedIssues,
-    changes: scopedChanges.filter((change) =>
+    changes: periodChanges.filter((change) =>
       unassignedIssues.some((issue) => issue.id === change.issueId),
     ),
   };
@@ -263,17 +268,17 @@ export function calculateReportResult(
     completedIssues: doneIssues.length,
     incompleteIssues: scopedIssues.length - doneIssues.length,
     createdIssues: new Set(
-      scopedChanges
+      periodChanges
         .filter((change) => change.type === "issue-created")
         .map((change) => change.issueId),
     ).size,
     completedDuringPeriod: new Set(
-      scopedChanges
+      periodChanges
         .filter((change) => change.type === "issue-completed")
         .map((change) => change.issueId),
     ).size,
     reopenedDuringPeriod: new Set(
-      scopedChanges
+      periodChanges
         .filter((change) => change.type === "issue-reopened")
         .map((change) => change.issueId),
     ).size,
@@ -290,13 +295,13 @@ export function calculateReportResult(
     executiveSummary,
     people,
     unassigned,
-    activity: [...scopedChanges].sort((left, right) =>
+    activity: [...periodChanges].sort((left, right) =>
       left.occurredAt.localeCompare(right.occurredAt),
     ),
   };
   if (input.type === "sprint" && progressMode) {
-    const added = scopedChanges.filter((change) => change.type === "sprint-added");
-    const removed = scopedChanges.filter((change) => change.type === "sprint-removed");
+    const added = periodChanges.filter((change) => change.type === "sprint-added");
+    const removed = periodChanges.filter((change) => change.type === "sprint-removed");
     const issueById = new Map(scopedIssues.map((issue) => [issue.id, issue]));
     const group = (events: ReportChangeEvent[]): SprintScopeChange[] => {
       const grouped = new Map<string, ReportChangeEvent[]>();
