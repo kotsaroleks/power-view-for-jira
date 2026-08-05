@@ -12,6 +12,8 @@ import {
 import type { JiraClient } from "@power-view/jira-client";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
+import { ChevronIcon } from "../ChevronIcon";
+
 export interface BoardHealthReportProps {
   client?: JiraClient;
   boardId?: string;
@@ -807,7 +809,7 @@ export function BoardHealthReportView({
                       }
                     >
                       <span className="people-report-chevron" aria-hidden="true">
-                        {expandedPeople.has(person.key) ? "⌄" : "›"}
+                        <ChevronIcon expanded={expandedPeople.has(person.key)} />
                       </span>
                       <strong>{person.name}</strong>
                     </button>

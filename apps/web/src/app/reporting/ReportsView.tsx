@@ -20,6 +20,7 @@ import {
 } from "@power-view/storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { ChevronIcon } from "../ChevronIcon";
 import { generateReport } from "./reporting-generator";
 import { renderStandupText } from "./standup";
 
@@ -580,7 +581,7 @@ function DailyWeeklyOutput({
                     }
                   >
                     <span className="people-report-chevron" aria-hidden="true">
-                      {expanded ? "⌄" : "›"}
+                      <ChevronIcon expanded={expanded} />
                     </span>
                     <strong>{person.user.displayName}</strong>
                   </button>
