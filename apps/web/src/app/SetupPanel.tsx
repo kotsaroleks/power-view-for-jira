@@ -517,12 +517,11 @@ export function SetupPanel({
                 projectStatuses,
                 combined,
               );
-              if (
-                catalogFetchFailed &&
-                resolved.some((status) => status.name === `Status ${status.id}`)
-              ) {
+              if (resolved.some((status) => status.name === `Status ${status.id}`)) {
                 setStatusResolutionWarning(
-                  "Some board statuses could not be resolved from Jira; they're shown by ID.",
+                  catalogFetchFailed
+                    ? "Some board statuses could not be resolved from Jira; they're shown by ID. Reopen this board to try again."
+                    : "Some board statuses aren't in Jira's current status catalog (they may have been deleted or renamed); they're shown by ID.",
                 );
               }
             }
