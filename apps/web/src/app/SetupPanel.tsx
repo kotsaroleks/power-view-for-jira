@@ -796,6 +796,39 @@ export function SetupPanel({
     statusOptions,
   ]);
 
+  // A returning board with a matching saved setup is auto-continued straight to the
+  // chooser (see the effect above) — keep showing a preloader instead of the form
+  // itself while that's still being decided, so the form never flashes on screen
+  // only to immediately navigate away. If auto-continuing fails, fall through to
+  // showing the form (with the error) once loadIssues settles on "error".
+  const isReturningBoard =
+    boardLoadState === "ready" &&
+    Boolean(selectedBoard) &&
+    storedSetup?.board?.id === selectedBoard?.id;
+  const resolving =
+    loadState !== "error" &&
+    boardLoadState !== "error" &&
+    (loadState !== "ready" ||
+      boardLoadState !== "ready" ||
+      (isReturningBoard && issueLoadState !== "error"));
+
+  // Only hide the form behind the preloader while we're still deciding whether to
+  // auto-continue. Once the form has been shown once, later loading blips from the
+  // user changing project/board manually shouldn't hide the whole form again.
+  const [hasResolvedOnce, setHasResolvedOnce] = useState(false);
+  useEffect(() => {
+    if (!resolving) setHasResolvedOnce(true);
+  }, [resolving]);
+
+  if (resolving && !hasResolvedOnce) {
+    return (
+      <div id="setup" className="setup-loading" role="status">
+        <span className="reporting-spinner" aria-hidden="true" />
+        Preparing your workspace…
+      </div>
+    );
+  }
+
   return (
     <div id="setup">
       {loadState === "error" ? (
