@@ -1223,6 +1223,40 @@ h1 {
   line-height: 1;
 }
 
+.people-report-person {
+  border-radius: 8px;
+}
+
+.people-report-person:has(.people-report-detail) {
+  background: #f7f8fa;
+  box-shadow: inset 3px 0 0 #0c66e4;
+}
+
+.people-report-expand[aria-expanded="true"] .people-report-chevron {
+  border-color: #0c66e4;
+  background: #deebff;
+  color: #0055cc;
+}
+
+.people-report-assigned {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #0055cc;
+  font-weight: 700;
+}
+
+.people-report-assigned small {
+  color: #6b778c;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.people-report-completed {
+  color: #216e4e;
+  font-weight: 700;
+}
+
 .people-report-detail {
   grid-column: 1 / -1;
   border-top: 1px solid #dfe1e6;

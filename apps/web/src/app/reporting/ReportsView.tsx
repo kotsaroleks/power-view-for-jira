@@ -584,8 +584,15 @@ function DailyWeeklyOutput({
                     </span>
                     <strong>{person.user.displayName}</strong>
                   </button>
-                  <span>{person.assignedIssues.length}</span>
-                  <span>{person.completedIssues.length}</span>
+                  <span className="people-report-assigned">
+                    <strong>{visibleIssues.length}</strong>
+                    {finishedCount > 0 ? (
+                      <small>of {person.assignedIssues.length}</small>
+                    ) : null}
+                  </span>
+                  <span className="people-report-completed">
+                    {person.completedIssues.length}
+                  </span>
                   <span>{(person.worklogSeconds / 3600).toFixed(1)}h</span>
                 </div>
                 {expanded ? (
@@ -632,7 +639,15 @@ function DailyWeeklyOutput({
                             <strong>{issue.key}</strong>
                             <span>{issue.summary}</span>
                           </span>
-                          <span className="report-issue-tree-status">{issue.status.name}</span>
+                          <span
+                            className={`report-issue-tree-status ${
+                              isIssueFinished(issue, snapshot.statusMapping)
+                                ? "report-issue-tree-status-done"
+                                : ""
+                            }`}
+                          >
+                            {issue.status.name}
+                          </span>
                         </a>
                       ))}
                     </div>
