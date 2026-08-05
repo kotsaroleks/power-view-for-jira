@@ -62,6 +62,8 @@ export interface ReportingIssueSnapshot {
   originalEstimateSeconds?: number;
   timeSpentSeconds?: number;
   sprintIds: string[];
+  parentId?: string;
+  parentKey?: string;
 }
 
 export type ReportChangeType =

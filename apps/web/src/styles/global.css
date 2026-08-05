@@ -2392,6 +2392,76 @@ h1 {
   font-weight: 600;
 }
 
+.report-issue-tree,
+.report-issue-tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.report-issue-tree {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.report-issue-tree-children {
+  margin-top: var(--space-2);
+  margin-left: var(--space-5);
+  padding-left: var(--space-4);
+  border-left: 2px solid #f1f2f4;
+}
+
+.report-issue-tree-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: #172b4d;
+}
+
+.report-issue-tree-type {
+  flex-shrink: 0;
+  padding: 2px var(--space-2);
+  border-radius: 4px;
+  background: #f1f2f4;
+  color: #44546f;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-issue-tree-key {
+  flex-shrink: 0;
+  color: #0c66e4;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.report-issue-tree-key:hover {
+  text-decoration: underline;
+}
+
+.report-issue-tree-summary {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #44546f;
+}
+
+.report-issue-tree-status {
+  flex-shrink: 0;
+  color: #44546f;
+  font-weight: 600;
+}
+
+.report-issue-tree-assignee {
+  flex-shrink: 0;
+  color: #6b778c;
+}
+
 .report-pulse-list div:last-child {
   border-bottom: 0;
   padding-bottom: 0;

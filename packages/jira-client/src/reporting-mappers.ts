@@ -131,6 +131,9 @@ export function mapReportingIssue(
     : undefined;
   const sprintIds = stringArray(fields.sprint);
   const key = typeof raw.key === "string" ? raw.key : String(raw.id);
+  const parent = record(fields.parent);
+  const parentId = parent ? id(parent.id) : undefined;
+  const parentKey = parent && typeof parent.key === "string" ? parent.key : undefined;
   return {
     id: id(raw.id)!,
     key,
@@ -154,6 +157,8 @@ export function mapReportingIssue(
     ...(originalEstimateSeconds === undefined ? {} : { originalEstimateSeconds }),
     ...(timeSpentSeconds === undefined ? {} : { timeSpentSeconds }),
     sprintIds,
+    ...(parentId ? { parentId } : {}),
+    ...(parentKey ? { parentKey } : {}),
     ...(project ? {} : {}),
   };
 }

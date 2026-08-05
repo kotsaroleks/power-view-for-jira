@@ -5,6 +5,7 @@ import {
   type GeneratedReportSnapshot,
   type JiraBoard,
   type ReportChangeEvent,
+  type ReportingIssueSnapshot,
   type ReportLanguage,
   type ReportScope,
   type ReportType,
@@ -167,6 +168,94 @@ function buildActivityLog(events: ReportChangeEvent[]): ActivityLogEntry[] {
   );
 }
 
+interface IssueTreeNode {
+  issue: ReportingIssueSnapshot;
+  children: IssueTreeNode[];
+}
+
+function buildIssueTree(issues: ReportingIssueSnapshot[]): IssueTreeNode[] {
+  const byId = new Map(issues.map((issue) => [issue.id, issue]));
+  const childrenById = new Map<string, ReportingIssueSnapshot[]>();
+  const roots: ReportingIssueSnapshot[] = [];
+  for (const issue of issues) {
+    const parentInScope = issue.parentId && byId.has(issue.parentId);
+    if (parentInScope && issue.parentId) {
+      childrenById.set(issue.parentId, [
+        ...(childrenById.get(issue.parentId) ?? []),
+        issue,
+      ]);
+    } else {
+      roots.push(issue);
+    }
+  }
+  const toNode = (issue: ReportingIssueSnapshot): IssueTreeNode => ({
+    issue,
+    children: (childrenById.get(issue.id) ?? [])
+      .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }))
+      .map(toNode),
+  });
+  return roots
+    .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }))
+    .map(toNode);
+}
+
+function IssueTreeItem({ node }: { node: IssueTreeNode }) {
+  const { issue, children } = node;
+  return (
+    <li>
+      <div className="report-issue-tree-row">
+        <span className="report-issue-tree-type">{issue.issueType.name}</span>
+        <a
+          className="report-issue-tree-key"
+          href={issue.browseUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {issue.key}
+        </a>
+        <span className="report-issue-tree-summary">{issue.summary}</span>
+        <span className="report-issue-tree-status">{issue.status.name}</span>
+        {issue.assignee ? (
+          <span className="report-issue-tree-assignee">{issue.assignee.displayName}</span>
+        ) : null}
+      </div>
+      {children.length ? (
+        <ul className="report-issue-tree-children">
+          {children.map((child) => (
+            <IssueTreeItem key={child.issue.id} node={child} />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function IssueScopeTree({ issues }: { issues: ReportingIssueSnapshot[] }) {
+  const tree = useMemo(() => buildIssueTree(issues), [issues]);
+  return (
+    <section className="reporting-people daily-weekly-people">
+      <div className="people-report-heading">
+        <div>
+          <h3>Issues in scope</h3>
+          <p>Story → Task → Subtask/Bug hierarchy for this report.</p>
+        </div>
+        <span>{issues.length} issues</span>
+      </div>
+      {tree.length ? (
+        <ul className="report-issue-tree">
+          {tree.map((node) => (
+            <IssueTreeItem key={node.issue.id} node={node} />
+          ))}
+        </ul>
+      ) : (
+        <div className="report-unavailable">
+          <strong>No issues in scope</strong>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function DailyWeeklyOutput({
   snapshot,
   language,
@@ -178,6 +267,11 @@ function DailyWeeklyOutput({
 }) {
   const summary = snapshot.result.executiveSummary;
   const activityLog = buildActivityLog(snapshot.result.activity);
+  const scope = snapshot.request.scope;
+  const scopedIssues =
+    scope.kind === "assignee"
+      ? snapshot.issues.filter((issue) => issue.assignee?.id === scope.userId)
+      : snapshot.issues;
   const activity = Object.entries(
     snapshot.result.activity.reduce<Record<string, number>>((counts, event) => {
       const label = activityLabel(event.type);
@@ -260,6 +354,8 @@ function DailyWeeklyOutput({
           <small>Issues without an owner</small>
         </article>
       </div>
+
+      <IssueScopeTree issues={scopedIssues} />
 
       <div className="report-panels">
         <article className="report-panel">
