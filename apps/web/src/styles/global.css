@@ -2421,6 +2421,10 @@ h1 {
   color: #172b4d;
 }
 
+.report-issue-tree-row-context {
+  opacity: 0.55;
+}
+
 .report-issue-tree-type {
   flex-shrink: 0;
   padding: 2px var(--space-2);

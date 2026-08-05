@@ -199,11 +199,30 @@ function buildIssueTree(issues: ReportingIssueSnapshot[]): IssueTreeNode[] {
     .map(toNode);
 }
 
-function IssueTreeItem({ node }: { node: IssueTreeNode }) {
+// Keeps a node only if it (or a descendant) actually changed during the period, while
+// still surfacing untouched ancestors so the Story → Task → Subtask/Bug shape stays intact.
+function pruneToChanged(nodes: IssueTreeNode[], changedIds: Set<string>): IssueTreeNode[] {
+  return nodes.flatMap((node) => {
+    const children = pruneToChanged(node.children, changedIds);
+    if (!changedIds.has(node.issue.id) && children.length === 0) return [];
+    return [{ issue: node.issue, children }];
+  });
+}
+
+function IssueTreeItem({
+  node,
+  changedIds,
+}: {
+  node: IssueTreeNode;
+  changedIds: Set<string>;
+}) {
   const { issue, children } = node;
+  const changed = changedIds.has(issue.id);
   return (
     <li>
-      <div className="report-issue-tree-row">
+      <div
+        className={`report-issue-tree-row ${changed ? "" : "report-issue-tree-row-context"}`}
+      >
         <span className="report-issue-tree-type">{issue.issueType.name}</span>
         <a
           className="report-issue-tree-key"
@@ -222,7 +241,7 @@ function IssueTreeItem({ node }: { node: IssueTreeNode }) {
       {children.length ? (
         <ul className="report-issue-tree-children">
           {children.map((child) => (
-            <IssueTreeItem key={child.issue.id} node={child} />
+            <IssueTreeItem key={child.issue.id} node={child} changedIds={changedIds} />
           ))}
         </ul>
       ) : null}
@@ -230,26 +249,41 @@ function IssueTreeItem({ node }: { node: IssueTreeNode }) {
   );
 }
 
-function IssueScopeTree({ issues }: { issues: ReportingIssueSnapshot[] }) {
-  const tree = useMemo(() => buildIssueTree(issues), [issues]);
+function IssueScopeTree({
+  issues,
+  changes,
+}: {
+  issues: ReportingIssueSnapshot[];
+  changes: ReportChangeEvent[];
+}) {
+  const changedIds = useMemo(() => new Set(changes.map((event) => event.issueId)), [changes]);
+  const tree = useMemo(
+    () => pruneToChanged(buildIssueTree(issues), changedIds),
+    [issues, changedIds],
+  );
+  const changedCount = changedIds.size;
   return (
     <section className="reporting-people daily-weekly-people">
       <div className="people-report-heading">
         <div>
-          <h3>Issues in scope</h3>
-          <p>Story → Task → Subtask/Bug hierarchy for this report.</p>
+          <h3>Changed issues</h3>
+          <p>
+            Story → Task → Subtask/Bug hierarchy for issues that changed during this
+            period. Faded rows are unchanged ancestors shown for context.
+          </p>
         </div>
-        <span>{issues.length} issues</span>
+        <span>{changedCount} changed</span>
       </div>
       {tree.length ? (
         <ul className="report-issue-tree">
           {tree.map((node) => (
-            <IssueTreeItem key={node.issue.id} node={node} />
+            <IssueTreeItem key={node.issue.id} node={node} changedIds={changedIds} />
           ))}
         </ul>
       ) : (
         <div className="report-unavailable">
-          <strong>No issues in scope</strong>
+          <strong>No issues changed</strong>
+          <p>There were no tracked changes in this period.</p>
         </div>
       )}
     </section>
@@ -355,7 +389,7 @@ function DailyWeeklyOutput({
         </article>
       </div>
 
-      <IssueScopeTree issues={scopedIssues} />
+      <IssueScopeTree issues={scopedIssues} changes={snapshot.result.activity} />
 
       <div className="report-panels">
         <article className="report-panel">
