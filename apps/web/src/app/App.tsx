@@ -208,7 +208,13 @@ function AppContent({
     }
   };
 
+  // Distinguishes a genuine first-load landing on Settings (auto-continue is fine)
+  // from any later, user-initiated visit to Settings (must not auto-bounce back) —
+  // readySchedule alone can't tell these apart, since it resets on every fresh
+  // mount (e.g. reopening the extension) just like a true first load would.
+  const hasNavigatedRef = useRef(false);
   const navigate = (nextPage: AppPage) => {
+    hasNavigatedRef.current = true;
     setPage(nextPage);
     if (!navigator.userAgent.toLowerCase().includes("jsdom")) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -367,7 +373,7 @@ function AppContent({
                       context={context}
                       runtime={runtime}
                       {...(settingsStore ? { settingsStore } : {})}
-                      autoContinue={!readySchedule}
+                      autoContinue={!hasNavigatedRef.current}
                       onDiagnosticsChanged={() => void loadDiagnostics()}
                       onScheduleReady={setReadySchedule}
                       onSetupComplete={(schedule) => {
