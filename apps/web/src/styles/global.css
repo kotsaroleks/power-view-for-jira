@@ -2285,15 +2285,23 @@ h1 {
 }
 
 .report-issue-tree {
-  max-height: 480px;
+  max-height: 640px;
+  gap: var(--space-4);
   overflow-y: auto;
 }
 
+.report-issue-tree-root {
+  border: 1px solid #eaecf0;
+  border-radius: 10px;
+  padding: var(--space-3) var(--space-4);
+  background: #fbfcfd;
+}
+
 .report-issue-tree-children {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
   margin-left: var(--space-5);
   padding-left: var(--space-4);
-  border-left: 2px solid #f1f2f4;
+  border-left: 2px solid #eaecf0;
 }
 
 .report-issue-tree-row {
@@ -2305,7 +2313,7 @@ h1 {
 }
 
 .report-issue-tree-row-context {
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .report-issue-tree-type {
@@ -2317,6 +2325,26 @@ h1 {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.report-issue-tree-type-story {
+  background: #eae6ff;
+  color: #5e4db2;
+}
+
+.report-issue-tree-type-task {
+  background: #deebff;
+  color: #0055cc;
+}
+
+.report-issue-tree-type-subtask {
+  background: #e6fcff;
+  color: #206a83;
+}
+
+.report-issue-tree-type-bug {
+  background: #ffebe6;
+  color: #ae2e24;
 }
 
 .report-issue-tree-key {
@@ -2340,8 +2368,16 @@ h1 {
 
 .report-issue-tree-status {
   flex-shrink: 0;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: #f1f2f4;
   color: #44546f;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.report-issue-tree-status-done {
+  background: #dcfff1;
+  color: #216e4e;
 }
 
 .report-issue-tree-assignee {
@@ -2351,24 +2387,36 @@ h1 {
 
 .report-issue-tree-changes {
   width: calc(100% - var(--space-5));
-  margin: var(--space-2) 0 0 var(--space-5);
+  margin: var(--space-3) 0 0 var(--space-5);
   border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
   font-size: 11px;
   color: #44546f;
 }
 
 .report-issue-tree-changes th,
 .report-issue-tree-changes td {
-  padding: 3px var(--space-2);
+  padding: var(--space-2) var(--space-2);
   text-align: left;
   white-space: nowrap;
 }
 
 .report-issue-tree-changes th {
+  background: #f7f8fa;
   color: #6b778c;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.report-issue-tree-changes tbody tr:nth-child(odd) {
+  background: #fbfcfd;
+}
+
+.report-issue-tree-changes td:nth-child(2) {
+  color: #0c66e4;
+  font-weight: 600;
 }
 
 .report-issue-tree-changes td:last-child {

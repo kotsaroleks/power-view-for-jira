@@ -218,24 +218,41 @@ function pruneToChanged(nodes: IssueTreeNode[], changedIds: Set<string>): IssueT
   });
 }
 
+function issueTypeAccentClass(typeName: string): string {
+  const normalized = typeName.trim().toLowerCase();
+  if (normalized.includes("story")) return "report-issue-tree-type-story";
+  if (normalized.includes("sub-task") || normalized.includes("subtask"))
+    return "report-issue-tree-type-subtask";
+  if (normalized.includes("bug")) return "report-issue-tree-type-bug";
+  if (normalized.includes("task")) return "report-issue-tree-type-task";
+  return "report-issue-tree-type-other";
+}
+
 function IssueTreeItem({
   node,
   changedIds,
   entriesByIssueKey,
+  statusMapping,
+  depth = 0,
 }: {
   node: IssueTreeNode;
   changedIds: Set<string>;
   entriesByIssueKey: Map<string, ActivityLogEntry[]>;
+  statusMapping: BoardReportConfiguration;
+  depth?: number;
 }) {
   const { issue, children } = node;
   const changed = changedIds.has(issue.id);
   const entries = entriesByIssueKey.get(issue.key) ?? [];
+  const finished = isIssueFinished(issue, statusMapping);
   return (
-    <li>
+    <li className={depth === 0 ? "report-issue-tree-root" : undefined}>
       <div
         className={`report-issue-tree-row ${changed ? "" : "report-issue-tree-row-context"}`}
       >
-        <span className="report-issue-tree-type">{issue.issueType.name}</span>
+        <span className={`report-issue-tree-type ${issueTypeAccentClass(issue.issueType.name)}`}>
+          {issue.issueType.name}
+        </span>
         <a
           className="report-issue-tree-key"
           href={issue.browseUrl}
@@ -245,7 +262,11 @@ function IssueTreeItem({
           {issue.key}
         </a>
         <span className="report-issue-tree-summary">{issue.summary}</span>
-        <span className="report-issue-tree-status">{issue.status.name}</span>
+        <span
+          className={`report-issue-tree-status ${finished ? "report-issue-tree-status-done" : ""}`}
+        >
+          {issue.status.name}
+        </span>
         {issue.assignee ? (
           <span className="report-issue-tree-assignee">{issue.assignee.displayName}</span>
         ) : null}
@@ -278,6 +299,8 @@ function IssueTreeItem({
               node={child}
               changedIds={changedIds}
               entriesByIssueKey={entriesByIssueKey}
+              statusMapping={statusMapping}
+              depth={depth + 1}
             />
           ))}
         </ul>
@@ -290,10 +313,12 @@ function IssueScopeTree({
   issues,
   changes,
   activityLog,
+  statusMapping,
 }: {
   issues: ReportingIssueSnapshot[];
   changes: ReportChangeEvent[];
   activityLog: ActivityLogEntry[];
+  statusMapping: BoardReportConfiguration;
 }) {
   const changedIds = useMemo(() => new Set(changes.map((event) => event.issueId)), [changes]);
   const entriesByIssueKey = useMemo(() => {
@@ -329,6 +354,7 @@ function IssueScopeTree({
               node={node}
               changedIds={changedIds}
               entriesByIssueKey={entriesByIssueKey}
+              statusMapping={statusMapping}
             />
           ))}
         </ul>
@@ -447,6 +473,7 @@ function DailyWeeklyOutput({
         issues={scopedIssues}
         changes={snapshot.result.activity}
         activityLog={activityLog}
+        statusMapping={snapshot.statusMapping}
       />
 
       <div className="report-panels">
