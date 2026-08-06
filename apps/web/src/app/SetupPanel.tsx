@@ -972,6 +972,7 @@ export function SetupPanel({
           <details className="optional-fields">
             <summary>Advanced: query, completed statuses, and date fields</summary>
 
+            <div className="accordion-body">
             <label>
               <span>JQL query</span>
               <textarea
@@ -1107,10 +1108,12 @@ export function SetupPanel({
                 </select>
               </label>
             </fieldset>
+            </div>
           </details>
 
           <details className="optional-fields">
             <summary>Optional reporting, hierarchy, and story-point fields</summary>
+            <div className="accordion-body">
             <p className="field-help">
               Map Sprint to enable planning coverage and the current-sprint report.
               Missing report data is shown as unavailable, never as zero.
@@ -1164,10 +1167,12 @@ export function SetupPanel({
                 ))}
               </select>
             </label>
+            </div>
           </details>
 
           <details className="optional-fields duration-settings">
             <summary>Default durations for inferred end dates</summary>
+            <div className="accordion-body">
             <p className="field-help">
               Values are calendar days and are saved with this project setup.
             </p>
@@ -1194,6 +1199,7 @@ export function SetupPanel({
                   />
                 </label>
               ))}
+            </div>
             </div>
           </details>
 

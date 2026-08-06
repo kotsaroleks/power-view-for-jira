@@ -552,6 +552,15 @@ h1 {
   border-left-color: var(--accent);
 }
 
+/* `<details>` only grid-ifies as [summary, everything-else] — the browser
+   wraps all post-summary children into one anonymous box, so `gap` on
+   .optional-fields never reaches between those children. This wrapper is
+   the real grid for that content, so its items get the intended gap. */
+.accordion-body {
+  display: grid;
+  gap: var(--space-4);
+}
+
 .optional-fields summary {
   cursor: pointer;
   color: var(--accent-strong);
