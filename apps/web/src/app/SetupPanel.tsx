@@ -488,6 +488,9 @@ export function SetupPanel({
         }
         setBoardLoadState("ready");
         invalidateIssuePreview();
+        const hasInitialPlaceholder = statuses.some(
+          (status) => status.name === `Status ${status.id}`,
+        );
         void loadBoardStatuses(client, selectedBoard.id, controller.signal)
           .then(async (issueStatuses) => {
             if (!isCurrent) return;
@@ -527,7 +530,17 @@ export function SetupPanel({
             }
             setStatusOptions(resolved);
           })
-          .catch(() => undefined);
+          .catch(() => {
+            // The refinement pass (sampling board issues and, if needed, the
+            // full status catalog) failed outright — statusOptions is still
+            // whatever boardStatusOptions produced synchronously above, so
+            // any placeholder left in it will otherwise show with zero
+            // explanation. Say so rather than going silent.
+            if (!isCurrent || !hasInitialPlaceholder) return;
+            setStatusResolutionWarning(
+              "Some board statuses could not be resolved from Jira; they're shown by ID. Reopen this board to try again.",
+            );
+          });
       })
       .catch(() => {
         if (!isCurrent) return;
