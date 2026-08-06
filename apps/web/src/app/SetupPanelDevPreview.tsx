@@ -4,7 +4,7 @@ import { SettingsStore, type StorageArea } from "@power-view/storage";
 
 import { SetupPanel } from "./SetupPanel";
 
-const context: JiraPageContext = {
+export const previewContext: JiraPageContext = {
   baseUrl: "https://stryker-emergencycare.atlassian.net",
   pageUrl: "https://stryker-emergencycare.atlassian.net/browse/LBR-42",
   detectedAt: new Date().toISOString(),
@@ -134,7 +134,18 @@ const issueSearchPage = {
   isLast: true,
 };
 
-function runtime(): ExtensionRuntime {
+const currentUser = { accountId: "user-1", displayName: "Riley Chen" };
+const serverInfo = { baseUrl: previewContext.baseUrl, version: "9.12.0" };
+const diagnosticsSnapshot = {
+  extensionVersion: "0.2.1",
+  browserVersion: "127.0.0.0",
+  cacheStatus: "ready",
+  loadedIssueCount: 2,
+  jiraBaseUrl: previewContext.baseUrl,
+  deploymentType: "cloud",
+};
+
+export function previewRuntime(): ExtensionRuntime {
   return {
     sendMessage: (message: unknown) => {
       const request = message as {
@@ -142,23 +153,43 @@ function runtime(): ExtensionRuntime {
         requestId: string;
         payload?: { path: string };
       };
+      if (request.type === "CONTEXT_GET") {
+        return Promise.resolve({
+          type: "CONTEXT_RESULT",
+          requestId: request.requestId,
+          ok: true,
+          context: previewContext,
+        });
+      }
+      if (request.type === "DIAGNOSTICS_GET") {
+        return Promise.resolve({
+          type: "DIAGNOSTICS_RESULT",
+          requestId: request.requestId,
+          ok: true,
+          diagnostics: diagnosticsSnapshot,
+        });
+      }
       if (request.type === "JIRA_REQUEST" && request.payload) {
         const path = request.payload.path;
         const data = path.endsWith("/field")
           ? fields
-          : path.endsWith("/status")
-            ? jiraStatuses
-            : path.endsWith("/statuses")
-              ? projectStatuses
-              : path === "/rest/agile/1.0/board"
-                ? boardPage
-                : path.endsWith("/configuration")
-                  ? boardConfiguration
-                  : path.endsWith("/issue")
-                    ? boardIssuePage
-                    : path.endsWith("/search/jql")
-                      ? issueSearchPage
-                      : projects;
+          : path.endsWith("/myself")
+            ? currentUser
+            : path.endsWith("/serverInfo")
+              ? serverInfo
+              : path.endsWith("/status")
+                ? jiraStatuses
+                : path.endsWith("/statuses")
+                  ? projectStatuses
+                  : path === "/rest/agile/1.0/board"
+                    ? boardPage
+                    : path.endsWith("/configuration")
+                      ? boardConfiguration
+                      : path.endsWith("/issue")
+                        ? boardIssuePage
+                        : path.endsWith("/search/jql")
+                          ? issueSearchPage
+                          : projects;
         return Promise.resolve({
           type: "JIRA_RESPONSE",
           requestId: request.requestId,
@@ -174,7 +205,7 @@ function runtime(): ExtensionRuntime {
   };
 }
 
-class MemoryStorage implements StorageArea {
+export class MemoryStorage implements StorageArea {
   private readonly values = new Map<string, unknown>();
   get(keys: string | string[]): Promise<Record<string, unknown>> {
     const selected = Array.isArray(keys) ? keys : [keys];
@@ -227,11 +258,11 @@ export function SetupPanelDevPreview() {
               <strong>Context detected</strong>
               <span>LBR</span>
               <span>Board 1296</span>
-              <span>{context.baseUrl}</span>
+              <span>{previewContext.baseUrl}</span>
             </div>
             <SetupPanel
-              context={context}
-              runtime={runtime()}
+              context={previewContext}
+              runtime={previewRuntime()}
               settingsStore={new SettingsStore(new MemoryStorage())}
               autoContinue={false}
             />
