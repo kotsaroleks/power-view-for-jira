@@ -297,10 +297,15 @@ function AppContent({
           <section className="page-frame settings-page" aria-labelledby="settings-title">
             <section className="setup-card" aria-labelledby="settings-title">
               <div className="setup-card-header">
-                <div>
-                  <p className="report-eyebrow">WORKSPACE SETUP</p>
-                  <h2 id="settings-title">Configure your Jira workspace</h2>
-                  <p>Uses your active browser session. No credentials are stored.</p>
+                <div className="setup-card-heading">
+                  <span className="setup-icon" aria-hidden="true">
+                    ⚙
+                  </span>
+                  <div>
+                    <p className="report-eyebrow">WORKSPACE SETUP</p>
+                    <h2 id="settings-title">Configure your Jira workspace</h2>
+                    <p>Uses your active browser session. No credentials are stored.</p>
+                  </div>
                 </div>
                 {context && (connection.status === "authenticated" ||
                   connection.status === "checking") ? (

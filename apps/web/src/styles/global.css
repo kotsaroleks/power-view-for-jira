@@ -340,6 +340,26 @@ h1 {
   gap: var(--space-5);
   padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid #dfe1e6;
+  background: linear-gradient(115deg, #f7fbff, #ffffff 62%);
+}
+
+.setup-card-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.setup-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 18px;
+  box-shadow: 0 12px 30px rgb(12 102 228 / 18%);
 }
 
 .setup-card-header h2 {
@@ -434,9 +454,17 @@ h1 {
 .setup-form label > span,
 .optional-fields summary,
 .setup-form legend {
-  color: #172b4d;
   font-size: 12px;
   font-weight: 750;
+}
+
+.setup-form label > span {
+  color: #172b4d;
+}
+
+.setup-form legend {
+  color: var(--accent-strong);
+  letter-spacing: 0.04em;
 }
 
 .setup-form input,
@@ -480,16 +508,21 @@ h1 {
 }
 
 .project-pagination button {
-  border: 1px solid #b3b9c4;
+  border: 1px solid #b3d4ff;
   border-radius: 6px;
   padding: 5px 8px;
   background: #ffffff;
-  color: #172b4d;
+  color: var(--accent-strong);
   font-size: 11px;
   cursor: pointer;
 }
 
+.project-pagination button:hover:not(:disabled) {
+  background: var(--accent-softer);
+}
+
 .project-pagination button:disabled {
+  border-color: #dfe1e6;
   color: #8993a4;
   cursor: default;
 }
@@ -498,9 +531,10 @@ h1 {
   display: grid;
   gap: var(--space-3);
   margin: 0;
-  border: 1px solid #dfe1e6;
+  border: 1px solid #cce0ff;
   border-radius: 12px;
   padding: var(--space-4);
+  background: var(--accent-softer);
 }
 
 .setup-form legend {
@@ -525,9 +559,10 @@ h1 {
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr);
   gap: 10px;
+  border-left: 3px solid #cce0ff;
   border-radius: 8px;
   padding: 9px 10px;
-  background: #f7f8fa;
+  background: #f7fbff;
   font-size: 11px;
 }
 
@@ -536,15 +571,20 @@ h1 {
 }
 
 .candidate-row strong {
+  color: var(--accent-strong);
   overflow-wrap: anywhere;
 }
 
 .optional-fields {
-  border: 1px solid #dfe1e6;
-  border-left: 3px solid #dfe1e6;
+  border: 1px solid #e4eefc;
+  border-left: 3px solid #b3d4ff;
   border-radius: 10px;
   padding: var(--space-4);
   transition: border-color 0.15s ease;
+}
+
+.optional-fields:hover {
+  border-left-color: var(--accent-strong);
 }
 
 .optional-fields[open] {
@@ -593,7 +633,7 @@ h1 {
 
 .setup-save-row {
   justify-content: flex-start;
-  border-top: 1px solid #f1f2f4;
+  border-top: 1px solid #deebff;
   padding-top: 18px;
 }
 
@@ -2187,6 +2227,12 @@ h1 {
   color: #172b4d;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.reporting-status-list label:has(input:checked) {
+  border-color: #b3d4ff;
+  background: #deebff;
+  color: var(--accent-strong);
 }
 
 .reporting-status-message {
