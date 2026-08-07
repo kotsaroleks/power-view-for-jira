@@ -13,8 +13,10 @@ import {
 } from "@power-view/domain";
 import type { JiraClient } from "@power-view/jira-client";
 import {
+  IndexedDbJiraHistoryCache,
   IndexedDbReportHistoryStore,
   MemoryReportHistoryStore,
+  type JiraHistoryCache,
   type ReportHistoryItem,
   type ReportHistoryStore,
 } from "@power-view/storage";
@@ -32,12 +34,18 @@ export interface ReportsViewProps {
   jql: string;
   statusMapping: BoardReportConfiguration;
   historyStore?: ReportHistoryStore;
+  historyCache?: JiraHistoryCache;
 }
 
 function defaultHistoryStore(): ReportHistoryStore {
   return typeof indexedDB === "undefined"
     ? new MemoryReportHistoryStore()
     : new IndexedDbReportHistoryStore();
+}
+
+// Without IndexedDB there is simply no cache: reports are generated as before, uncached.
+function defaultHistoryCache(): JiraHistoryCache | undefined {
+  return typeof indexedDB === "undefined" ? undefined : new IndexedDbJiraHistoryCache();
 }
 
 function formatDate(value: string): string {
@@ -677,6 +685,7 @@ export function ReportsView({
   jql,
   statusMapping,
   historyStore = defaultHistoryStore(),
+  historyCache = defaultHistoryCache(),
 }: ReportsViewProps) {
   const [assigneeOptions, setAssigneeOptions] = useState<
     Array<{ id: string; name: string }>
@@ -754,7 +763,7 @@ export function ReportsView({
     };
   }, [board.id, board.type, client]);
 
-  const generate = async () => {
+  const generate = async (forceRefresh = false) => {
     if (statusMapping.completedStatusIds.length === 0) {
       setError("Configure at least one completed status in Workspace Settings.");
       return;
@@ -783,8 +792,15 @@ export function ReportsView({
           ...(type === "sprint" ? { progressMode } : {}),
           statusMapping,
         },
-        onProgress: (progress) => setLoadingMessage(progress.stage),
+        onProgress: (progress) =>
+          setLoadingMessage(
+            progress.cached
+              ? `${progress.stage} (${progress.cached}/${progress.total ?? 0} cached)`
+              : progress.stage,
+          ),
         signal: controller.signal,
+        ...(historyCache ? { historyCache } : {}),
+        ...(forceRefresh ? { forceRefresh: true } : {}),
       });
       await historyStore.save(nextSnapshot);
       setSnapshot(nextSnapshot);
@@ -949,12 +965,18 @@ export function ReportsView({
             {statusMessage}
           </p>
         ) : null}
+        <p className="field-help">
+          Changelog and worklog history is cached per issue. Shift-click Generate report to
+          re-read it from Jira — needed only when history was edited outside Jira&apos;s
+          normal flow.
+        </p>
         <div className="setup-save-row">
           <button
             className="primary-button"
             type="button"
             disabled={loading || statusMapping.completedStatusIds.length === 0}
-            onClick={() => void generate()}
+            title="Shift-click to bypass the cached Jira history."
+            onClick={(event) => void generate(event.shiftKey)}
           >
             {loading ? `Generating… ${loadingMessage}` : "Generate report"}
           </button>

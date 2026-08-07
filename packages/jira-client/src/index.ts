@@ -1,3 +1,4 @@
+export { MAX_CLIENT_CONCURRENCY, mapWithConcurrency } from "./concurrency";
 export { JiraClientError, isJiraClientError } from "./errors";
 export {
   createJiraClient,

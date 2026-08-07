@@ -4,7 +4,6 @@ import {
   PRODUCT_VERSION,
   type BoardReportConfiguration,
   type GeneratedReportSnapshot,
-  type JiraBoard,
   type JiraDeploymentType,
   type JiraSprint,
   type ReportChangeEvent,
@@ -16,6 +15,14 @@ import {
   type SprintProgressMode,
 } from "@power-view/domain";
 import type { JiraClient as ReportingClient } from "@power-view/jira-client";
+import type { JiraHistoryCache } from "@power-view/storage";
+
+import {
+  changelogFingerprint,
+  fetchWithHistoryCache,
+  worklogFingerprint,
+  type HistoryIssueRef,
+} from "./history-cache";
 
 export interface GenerateReportRequest {
   type: ReportType;
@@ -33,6 +40,9 @@ export interface ReportGenerationProgress {
   stage:
     "board" | "sprint" | "issues" | "changes" | "worklogs" | "calculating" | "saving";
   loaded?: number;
+  /** Issues answered from the history cache, so a near-instant re-run does not look stuck. */
+  cached?: number;
+  total?: number;
 }
 
 export interface GenerateReportOptions {
@@ -42,6 +52,10 @@ export interface GenerateReportOptions {
   request: GenerateReportRequest;
   onProgress?: (progress: ReportGenerationProgress) => void;
   signal?: AbortSignal;
+  /** Optional; omitted or broken, the report is generated exactly as before, just uncached. */
+  historyCache?: JiraHistoryCache;
+  /** Bypasses cache reads — but not writes — for history edited in Jira out of band. */
+  forceRefresh?: boolean;
 }
 
 const MAX_REPORT_ISSUES = 5_000;
@@ -115,6 +129,34 @@ function addCreatedEvents(
   });
 }
 
+// Any changelog entry bumps the issue's `updated` timestamp, so an issue last touched
+// before the period started cannot hold an entry inside it — and every consumer of
+// `changes` filters to the period. On a sprint report this drops most of the board-only
+// issues that only exist to reconstruct sprint scope history. An issue with no `updatedAt`
+// tells us nothing and must still be fetched.
+function changelogCandidates(
+  issues: ReportingIssueSnapshot[],
+  periodStart: string,
+): HistoryIssueRef[] {
+  const start = new Date(periodStart).getTime();
+  return issues
+    .filter((issue) => {
+      const updatedAt = issue.updatedAt ? new Date(issue.updatedAt).getTime() : NaN;
+      return !Number.isFinite(updatedAt) || updatedAt >= start;
+    })
+    .map(toHistoryIssueRef);
+}
+
+// `updatedAt` rides along because it is the history cache's validity key; the client only
+// ever sees `id`/`key`.
+function toHistoryIssueRef(issue: ReportingIssueSnapshot): HistoryIssueRef {
+  return {
+    id: issue.id,
+    key: issue.key,
+    ...(issue.updatedAt ? { updatedAt: issue.updatedAt } : {}),
+  };
+}
+
 function dedupeEvents(events: ReportChangeEvent[]): ReportChangeEvent[] {
   return [...new Map(events.map((event) => [event.id, event])).values()].sort(
     (left, right) => left.occurredAt.localeCompare(right.occurredAt),
@@ -147,11 +189,10 @@ export async function generateReport(
   const { client, request } = options;
   abortIfRequested(options.signal);
   options.onProgress?.({ stage: "board" });
-  const board: JiraBoard = await client.getBoard(request.boardId, options.signal);
-  const boardConfiguration = await client.getBoardConfiguration(
-    request.boardId,
-    options.signal,
-  );
+  const [board, boardConfiguration] = await Promise.all([
+    client.getBoard(request.boardId, options.signal),
+    client.getBoardConfiguration(request.boardId, options.signal),
+  ]);
   const storyPointsFieldId =
     request.statusMapping.storyPointsFieldId ?? boardConfiguration.storyPointsFieldId;
   const statusMapping: BoardReportConfiguration = {
@@ -167,48 +208,86 @@ export async function generateReport(
   }
   const generatedAt = new Date().toISOString();
   const period = buildReportPeriod(request.type, request.localDate, generatedAt, sprint);
-  const currentPage = await loadAllIssues(
-    options,
-    request.boardId,
-    request.sprintId,
-    storyPointsFieldId,
-  );
-  let currentIssues = currentPage.issues;
-  let candidateIssues = currentIssues;
-  if (request.type === "sprint") {
-    const boardPage = await loadAllIssues(
-      options,
-      request.boardId,
-      undefined,
-      storyPointsFieldId,
-    );
-    candidateIssues = mergeIssues(currentIssues, boardPage.issues);
-    currentIssues = currentPage.issues;
-  }
+  // Both loads need storyPointsFieldId from the board configuration above, but not from
+  // each other.
+  const [currentPage, boardPage] = await Promise.all([
+    loadAllIssues(options, request.boardId, request.sprintId, storyPointsFieldId),
+    request.type === "sprint"
+      ? loadAllIssues(options, request.boardId, undefined, storyPointsFieldId)
+      : undefined,
+  ]);
+  const currentIssues = currentPage.issues;
+  const candidateIssues = boardPage
+    ? mergeIssues(currentIssues, boardPage.issues)
+    : currentIssues;
 
   abortIfRequested(options.signal);
   options.onProgress?.({ stage: "changes" });
+  // Worklogs stay on the full candidate set: `calculateReportResult` scopes them by author
+  // only, never by issue, so a board-only issue's worklog still reaches the people blocks
+  // and the executive summary's worklogSeconds. Narrowing this to `currentIssues` would
+  // change report output.
+  const worklogIssueRefs = candidateIssues.map(toHistoryIssueRef);
+  const changelogRequest = {
+    ...(storyPointsFieldId ? { storyPointsFieldId } : {}),
+    ...(statusMapping.sprintFieldId
+      ? { sprintFieldId: statusMapping.sprintFieldId }
+      : {}),
+    ...(request.sprintId ? { sprintId: request.sprintId } : {}),
+    completedStatusIds: statusMapping.completedStatusIds,
+    completedStatusNames: statusMapping.completedStatusNames,
+  };
+  // The cache wraps the two fetches rather than the client: the client stays
+  // transport-only and unit-testable without IndexedDB.
+  const [changelogOutcome, worklogOutcome] = await Promise.allSettled([
+    fetchWithHistoryCache<ReportChangeEvent>({
+      ...(options.historyCache ? { cache: options.historyCache } : {}),
+      storeName: "changelogs",
+      baseUrl: options.baseUrl,
+      issues: changelogCandidates(candidateIssues, period.start),
+      fingerprint: changelogFingerprint(changelogRequest),
+      ...(options.forceRefresh ? { forceRefresh: true } : {}),
+      issueIdOf: (event) => event.issueId,
+      onCacheHits: (cached, total) =>
+        options.onProgress?.({ stage: "changes", cached, total }),
+      fetch: (issues) =>
+        client.getIssueChangelogs({
+          issues,
+          ...changelogRequest,
+          ...(options.signal ? { signal: options.signal } : {}),
+        }),
+    }),
+    fetchWithHistoryCache<ReportWorklog>({
+      ...(options.historyCache ? { cache: options.historyCache } : {}),
+      storeName: "worklogs",
+      baseUrl: options.baseUrl,
+      issues: worklogIssueRefs,
+      fingerprint: worklogFingerprint(period.start, period.dataCutoff),
+      ...(options.forceRefresh ? { forceRefresh: true } : {}),
+      issueIdOf: (worklog) => worklog.issueId,
+      onCacheHits: (cached, total) =>
+        options.onProgress?.({ stage: "worklogs", cached, total }),
+      fetch: (issues) =>
+        client.getIssueWorklogs({
+          issues,
+          periodStart: period.start,
+          periodEnd: period.dataCutoff,
+          ...(options.signal ? { signal: options.signal } : {}),
+        }),
+    }),
+  ]);
+
   let changes: ReportChangeEvent[] = [];
   let changelogUnavailable = false;
   let changelogErrorDetail: string | undefined;
-  try {
-    changes = await client.getIssueChangelogs({
-      issues: candidateIssues.map((issue) => ({ id: issue.id, key: issue.key })),
-      ...(storyPointsFieldId ? { storyPointsFieldId } : {}),
-      ...(statusMapping.sprintFieldId
-        ? { sprintFieldId: statusMapping.sprintFieldId }
-        : {}),
-      ...(request.sprintId ? { sprintId: request.sprintId } : {}),
-      completedStatusIds: statusMapping.completedStatusIds,
-      completedStatusNames: statusMapping.completedStatusNames,
-      ...(options.signal ? { signal: options.signal } : {}),
-    });
-  } catch (cause) {
+  if (changelogOutcome.status === "fulfilled") {
+    changes = changelogOutcome.value;
+  } else {
+    const cause: unknown = changelogOutcome.reason;
     if (options.signal?.aborted) throw cause;
     console.error("Power View could not load Jira changelog data.", cause);
     changelogUnavailable = true;
     changelogErrorDetail = cause instanceof Error ? cause.message : undefined;
-    changes = [];
   }
   changes = dedupeEvents([
     ...changes,
@@ -219,19 +298,14 @@ export async function generateReport(
   let worklogs: ReportWorklog[] = [];
   let worklogUnavailable = false;
   let worklogErrorDetail: string | undefined;
-  try {
-    worklogs = await client.getIssueWorklogs({
-      issues: candidateIssues.map((issue) => ({ id: issue.id, key: issue.key })),
-      periodStart: period.start,
-      periodEnd: period.dataCutoff,
-      ...(options.signal ? { signal: options.signal } : {}),
-    });
-  } catch (cause) {
+  if (worklogOutcome.status === "fulfilled") {
+    worklogs = worklogOutcome.value;
+  } else {
+    const cause: unknown = worklogOutcome.reason;
     if (options.signal?.aborted) throw cause;
     console.error("Power View could not load Jira worklog data.", cause);
     worklogUnavailable = true;
     worklogErrorDetail = cause instanceof Error ? cause.message : undefined;
-    worklogs = [];
   }
 
   abortIfRequested(options.signal);

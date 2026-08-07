@@ -174,6 +174,30 @@ function uniqueUsers(
   );
 }
 
+interface PositionedChange {
+  position: number;
+  change: ReportChangeEvent;
+}
+
+function pushBucket<K, V>(buckets: Map<K, V[]>, key: K, value: V): void {
+  const bucket = buckets.get(key);
+  if (bucket) bucket.push(value);
+  else buckets.set(key, [value]);
+}
+
+// The lookups below replace a `changes.filter(...)`, whose result was in `changes` order.
+// Downstream `createdIssues` / `completedIssues` / `reopenedIssues` inherit that order, so
+// the union of the issue and actor buckets is re-sorted by original position rather than
+// concatenated, and collapsed where a change matches on both sides of the OR.
+function unionByPosition(buckets: readonly (readonly PositionedChange[])[]) {
+  const merged = buckets.flat().sort((left, right) => left.position - right.position);
+  return merged
+    .filter(
+      (entry, index) => index === 0 || entry.position !== merged[index - 1]?.position,
+    )
+    .map((entry) => entry.change);
+}
+
 function makePeopleBlocks(
   issues: ReportingIssueSnapshot[],
   changes: ReportChangeEvent[],
@@ -190,13 +214,23 @@ function makePeopleBlocks(
     scope.kind === "team"
       ? worklogs
       : worklogs.filter((worklog) => worklog.author.id === scope.userId);
+  const issuesByAssigneeId = new Map<string, ReportingIssueSnapshot[]>();
+  for (const issue of scopedIssues) {
+    if (issue.assignee) pushBucket(issuesByAssigneeId, issue.assignee.id, issue);
+  }
+  const changesByIssueId = new Map<string, PositionedChange[]>();
+  const changesByActorId = new Map<string, PositionedChange[]>();
+  changes.forEach((change, position) => {
+    const entry: PositionedChange = { position, change };
+    pushBucket(changesByIssueId, change.issueId, entry);
+    if (change.actor) pushBucket(changesByActorId, change.actor.id, entry);
+  });
   return uniqueUsers(scopedIssues, scopedWorklogs).map((user) => {
-    const assignedIssues = scopedIssues.filter((issue) => issue.assignee?.id === user.id);
-    const userChanges = changes.filter(
-      (change) =>
-        assignedIssues.some((issue) => issue.id === change.issueId) ||
-        change.actor?.id === user.id,
-    );
+    const assignedIssues = issuesByAssigneeId.get(user.id) ?? [];
+    const userChanges = unionByPosition([
+      ...assignedIssues.map((issue) => changesByIssueId.get(issue.id) ?? []),
+      changesByActorId.get(user.id) ?? [],
+    ]);
     const userWorklogs = scopedWorklogs.filter(
       (worklog) => worklog.author.id === user.id && inPeriod(worklog.startedAt, period),
     );
@@ -230,11 +264,11 @@ export function calculateReportResult(
   const scopedIssues = selectedUserId
     ? input.issues.filter((issue) => issue.assignee?.id === selectedUserId)
     : input.issues;
+  const scopedIssueIds = new Set(scopedIssues.map((issue) => issue.id));
   const scopedChanges = selectedUserId
     ? input.changes.filter(
         (change) =>
-          scopedIssues.some((issue) => issue.id === change.issueId) ||
-          change.actor?.id === selectedUserId,
+          scopedIssueIds.has(change.issueId) || change.actor?.id === selectedUserId,
       )
     : input.changes;
   const scopedWorklogs = selectedUserId
@@ -257,11 +291,10 @@ export function calculateReportResult(
     input.scope,
   );
   const unassignedIssues = scopedIssues.filter((issue) => !issue.assignee);
+  const unassignedIssueIds = new Set(unassignedIssues.map((issue) => issue.id));
   const unassigned: UnassignedReportBlock = {
     issues: unassignedIssues,
-    changes: periodChanges.filter((change) =>
-      unassignedIssues.some((issue) => issue.id === change.issueId),
-    ),
+    changes: periodChanges.filter((change) => unassignedIssueIds.has(change.issueId)),
   };
   const executiveSummary: ExecutiveSummary = {
     totalIssues: scopedIssues.length,

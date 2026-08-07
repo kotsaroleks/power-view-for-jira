@@ -24,6 +24,23 @@ export interface ReportHistoryStore {
   delete(id: string): Promise<void>;
 }
 
+const SNAPSHOT_STORE = "reportSnapshots";
+const INDEX_STORE = "reportIndex";
+
+// v1 held snapshots only; v2 adds the header-only index store that list() reads.
+const DATABASE_VERSION = 2;
+
+/**
+ * The header fields `list()` needs, kept beside the snapshot so the history list
+ * never has to deserialize issues/changes/worklogs. `jiraBaseUrl` lives outside
+ * `item` because it is a filter key but not part of the returned row.
+ */
+interface ReportIndexRecord {
+  id: string;
+  jiraBaseUrl: string;
+  item: ReportHistoryItem;
+}
+
 function toHistoryItem(snapshot: GeneratedReportSnapshot): ReportHistoryItem {
   return {
     id: snapshot.id,
@@ -34,6 +51,33 @@ function toHistoryItem(snapshot: GeneratedReportSnapshot): ReportHistoryItem {
     ...(snapshot.request.sprintId ? { sprintId: snapshot.request.sprintId } : {}),
     complete: snapshot.completeness.complete,
   };
+}
+
+function toIndexRecord(snapshot: GeneratedReportSnapshot): ReportIndexRecord {
+  return {
+    id: snapshot.id,
+    jiraBaseUrl: snapshot.jira.baseUrl,
+    item: toHistoryItem(snapshot),
+  };
+}
+
+function matchesFilter(record: ReportIndexRecord, filter: ReportHistoryFilter): boolean {
+  return (
+    (!filter.jiraBaseUrl || record.jiraBaseUrl === filter.jiraBaseUrl) &&
+    (!filter.boardId || record.item.boardId === filter.boardId) &&
+    (!filter.type || record.item.type === filter.type) &&
+    (!filter.sprintId || record.item.sprintId === filter.sprintId)
+  );
+}
+
+function toHistoryItems(
+  records: readonly ReportIndexRecord[],
+  filter: ReportHistoryFilter,
+): ReportHistoryItem[] {
+  return records
+    .filter((record) => matchesFilter(record, filter))
+    .sort((left, right) => right.item.generatedAt.localeCompare(left.item.generatedAt))
+    .map((record) => record.item);
 }
 
 export class MemoryReportHistoryStore implements ReportHistoryStore {
@@ -53,18 +97,8 @@ export class MemoryReportHistoryStore implements ReportHistoryStore {
   }
 
   list(filter: ReportHistoryFilter = {}): Promise<ReportHistoryItem[]> {
-    return Promise.resolve(
-      [...this.snapshots.values()]
-        .filter(
-          (snapshot) =>
-            (!filter.jiraBaseUrl || snapshot.jira.baseUrl === filter.jiraBaseUrl) &&
-            (!filter.boardId || snapshot.request.boardId === filter.boardId) &&
-            (!filter.type || snapshot.request.type === filter.type) &&
-            (!filter.sprintId || snapshot.request.sprintId === filter.sprintId),
-        )
-        .sort((left, right) => right.generatedAt.localeCompare(left.generatedAt))
-        .map(toHistoryItem),
-    );
+    const records = [...this.snapshots.values()].map(toIndexRecord);
+    return Promise.resolve(toHistoryItems(records, filter));
   }
 
   delete(id: string): Promise<void> {
@@ -89,59 +123,66 @@ export class IndexedDbReportHistoryStore implements ReportHistoryStore {
   ) {}
 
   async save(snapshot: GeneratedReportSnapshot): Promise<void> {
-    const database = await this.open();
-    await this.transaction(database, "readwrite", (store) => {
-      return store.add(structuredClone(snapshot));
+    const record = toIndexRecord(snapshot);
+    await this.write((snapshots, index) => {
+      snapshots.add(structuredClone(snapshot));
+      index.add(record);
     });
   }
 
   async get(id: string): Promise<GeneratedReportSnapshot | undefined> {
-    const database = await this.open();
-    return this.transaction<GeneratedReportSnapshot | undefined>(
-      database,
-      "readonly",
+    return this.read<GeneratedReportSnapshot | undefined>(
+      SNAPSHOT_STORE,
       (store) => store.get(id) as IndexedDbRequest<GeneratedReportSnapshot | undefined>,
     );
   }
 
   async list(filter: ReportHistoryFilter = {}): Promise<ReportHistoryItem[]> {
-    const database = await this.open();
-    const snapshots = await this.transaction<GeneratedReportSnapshot[]>(
-      database,
-      "readonly",
-      (store) => store.getAll(),
+    const records = await this.read<ReportIndexRecord[]>(INDEX_STORE, (store) =>
+      store.getAll(),
     );
-    return snapshots
-      .filter(
-        (snapshot) =>
-          (!filter.jiraBaseUrl || snapshot.jira.baseUrl === filter.jiraBaseUrl) &&
-          (!filter.boardId || snapshot.request.boardId === filter.boardId) &&
-          (!filter.type || snapshot.request.type === filter.type) &&
-          (!filter.sprintId || snapshot.request.sprintId === filter.sprintId),
-      )
-      .sort((left, right) => right.generatedAt.localeCompare(left.generatedAt))
-      .map(toHistoryItem);
+    return toHistoryItems(records, filter);
   }
 
   async delete(id: string): Promise<void> {
-    const database = await this.open();
-    await this.transaction(database, "readwrite", (store) => store.delete(id));
+    await this.write((snapshots, index) => {
+      snapshots.delete(id);
+      index.delete(id);
+    });
   }
 
   private open(): Promise<IDBDatabase> {
     if (this.databasePromise) return this.databasePromise;
     this.databasePromise = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = this.factory.open(this.databaseName, 1);
+      const request = this.factory.open(this.databaseName, DATABASE_VERSION);
       request.onupgradeneeded = () => {
         const database = request.result;
-        if (!database.objectStoreNames.contains("reportSnapshots")) {
-          const store = database.createObjectStore("reportSnapshots", { keyPath: "id" });
+        const upgrade = request.transaction;
+        if (!upgrade) {
+          reject(new Error("Could not upgrade report history."));
+          return;
+        }
+        if (!database.objectStoreNames.contains(SNAPSHOT_STORE)) {
+          const store = database.createObjectStore(SNAPSHOT_STORE, { keyPath: "id" });
           store.createIndex("generatedAt", "generatedAt", { unique: false });
           store.createIndex("boardIdGeneratedAt", ["request.boardId", "generatedAt"], {
             unique: false,
           });
           store.createIndex("type", "request.type", { unique: false });
           store.createIndex("sprintId", "request.sprintId", { unique: false });
+        }
+        if (!database.objectStoreNames.contains(INDEX_STORE)) {
+          const index = database.createObjectStore(INDEX_STORE, { keyPath: "id" });
+          // Reports saved under v1 have no index row. Walk them once here — the
+          // open request only resolves after this transaction commits, so list()
+          // can never observe a half-backfilled index.
+          const cursorRequest = upgrade.objectStore(SNAPSHOT_STORE).openCursor();
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            index.put(toIndexRecord(cursor.value as GeneratedReportSnapshot));
+            cursor.continue();
+          };
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -151,19 +192,41 @@ export class IndexedDbReportHistoryStore implements ReportHistoryStore {
     return this.databasePromise;
   }
 
-  private transaction<T = undefined>(
-    database: IDBDatabase,
-    mode: IDBTransactionMode,
+  private async read<T>(
+    storeName: string,
     operation: (store: IDBObjectStore) => IndexedDbRequest<T>,
   ): Promise<T> {
+    const database = await this.open();
     return new Promise<T>((resolve, reject) => {
-      const transaction = database.transaction("reportSnapshots", mode);
-      const request = operation(transaction.objectStore("reportSnapshots"));
+      const transaction = database.transaction(storeName, "readonly");
+      const request = operation(transaction.objectStore(storeName));
       request.onsuccess = () => resolve(request.result);
       request.onerror = () =>
         reject(request.error ?? new Error("Report history operation failed."));
       transaction.onerror = () =>
         reject(transaction.error ?? new Error("Report history transaction failed."));
+    });
+  }
+
+  /** Snapshot and index rows are written together so the two can never diverge. */
+  private async write(
+    operation: (snapshots: IDBObjectStore, index: IDBObjectStore) => void,
+  ): Promise<void> {
+    const database = await this.open();
+    return new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(
+        [SNAPSHOT_STORE, INDEX_STORE],
+        "readwrite",
+      );
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () =>
+        reject(transaction.error ?? new Error("Report history transaction failed."));
+      transaction.onabort = () =>
+        reject(transaction.error ?? new Error("Report history transaction failed."));
+      operation(
+        transaction.objectStore(SNAPSHOT_STORE),
+        transaction.objectStore(INDEX_STORE),
+      );
     });
   }
 }

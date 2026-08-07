@@ -49,7 +49,14 @@ export interface GetBoardsRequest {
 export interface GetBoardIssuesRequest {
   boardId: string;
   jql?: string;
+  /** Extra fields requested alongside the standard reporting set. */
   fields?: string[];
+  /**
+   * Replaces the standard reporting field set outright. Callers that only need an id or a
+   * status pay for a fraction of the payload; the mapped snapshot is correspondingly
+   * sparse, so only use this when the unrequested fields are genuinely unread.
+   */
+  fieldsOverride?: string[];
   pageSize?: number;
   cursor?: string | number;
   storyPointsFieldId?: string;
@@ -74,6 +81,7 @@ export interface GetIssueChangelogsRequest {
   completedStatusIds?: string[];
   completedStatusNames?: string[];
   signal?: AbortSignal;
+  onProgress?: (completed: number, total: number) => void;
 }
 
 export interface GetIssueWorklogsRequest {
@@ -81,6 +89,7 @@ export interface GetIssueWorklogsRequest {
   periodStart?: string;
   periodEnd?: string;
   signal?: AbortSignal;
+  onProgress?: (completed: number, total: number) => void;
 }
 
 export interface ReportingJiraClient {

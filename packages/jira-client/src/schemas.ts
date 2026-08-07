@@ -217,6 +217,17 @@ export const rawJiraIssueSchema = z
   })
   .passthrough();
 
+// A caller that overrides `fields` gets back only what it asked for, so none of the
+// standard-field requirements above can be enforced on the response.
+export const rawPartialJiraIssueSchema = z
+  .object({
+    id: jiraIdSchema,
+    key: z.string().min(1).max(255),
+    self: z.url().max(2048).optional(),
+    fields: z.object({}).passthrough().optional(),
+  })
+  .passthrough();
+
 export const rawCloudIssueSearchPageSchema = z
   .object({
     issues: z.array(rawJiraIssueSchema),

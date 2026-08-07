@@ -110,6 +110,29 @@ describe("createJiraClient", () => {
     });
   });
 
+  it("replaces the standard field set when a fields override is given", async () => {
+    const { transport, requestMock } = transportWith({
+      issues: [{ id: "10001", key: "POWER-1", fields: {} }],
+      startAt: 0,
+      maxResults: 100,
+      total: 1,
+    });
+    const client = createJiraClient(transport, {
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+    });
+
+    const page = await client.getSprintIssues({
+      boardId: "7",
+      sprintId: "101",
+      fieldsOverride: ["id"],
+      storyPointsFieldId: "customfield_10016",
+    });
+
+    expect(requestMock.mock.calls[0]?.[0]).toMatchObject({ query: { fields: "id" } });
+    expect(page.values.map((value) => value.id)).toEqual(["10001"]);
+  });
+
   it("uses REST v3 for Jira Cloud", async () => {
     const { transport, requestMock } = transportWith({
       accountId: "a1",
@@ -394,7 +417,9 @@ describe("createJiraClient", () => {
     ]);
   });
 
-  it("fetches changelogs for Cloud via the per-issue GET endpoint, not the bulk POST endpoint", async () => {
+  it("fetches changelogs for Cloud via the bulk POST endpoint, falling back per issue when it fails", async () => {
+    // The transport only understands the per-issue page shape, so the bulk attempt fails
+    // schema validation — the same one-strike-and-fall-back path a blocked endpoint takes.
     const { transport, requestMock } = transportWith({ values: [], isLast: true });
     const client = createJiraClient(transport, {
       baseUrl: "https://example.atlassian.net",
@@ -407,11 +432,36 @@ describe("createJiraClient", () => {
 
     await client.getIssueChangelogs({ issues });
 
+    expect(requestMock).toHaveBeenCalledTimes(4);
+    const [bulkCall, ...perIssueCalls] = requestMock.mock.calls;
+    const bulkRequest = bulkCall?.[0] as JiraTransportRequest;
+    expect(bulkRequest.method).toBe("POST");
+    expect(bulkRequest.path).toBe("/rest/api/3/changelog/bulkfetch");
+    for (const [index, call] of perIssueCalls.entries()) {
+      const request = call[0] as JiraTransportRequest;
+      expect(request.method).toBe("GET");
+      expect(request.path).toBe(`/rest/api/3/issue/${issues[index]?.key}/changelog`);
+    }
+  });
+
+  it("fetches changelogs for Data Center via the per-issue GET endpoint only", async () => {
+    const { transport, requestMock } = transportWith({ values: [], isLast: true });
+    const client = createJiraClient(transport, {
+      baseUrl: "https://jira.example.com",
+      deploymentType: "data-center",
+    });
+    const issues = Array.from({ length: 3 }, (_, index) => ({
+      id: String(10_000 + index),
+      key: `POWER-${index}`,
+    }));
+
+    await client.getIssueChangelogs({ issues });
+
     expect(requestMock).toHaveBeenCalledTimes(3);
     for (const [index, call] of requestMock.mock.calls.entries()) {
       const request = call[0] as JiraTransportRequest;
       expect(request.method).toBe("GET");
-      expect(request.path).toBe(`/rest/api/3/issue/${issues[index]?.key}/changelog`);
+      expect(request.path).toBe(`/rest/api/2/issue/${issues[index]?.key}/changelog`);
     }
   });
 });

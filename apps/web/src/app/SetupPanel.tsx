@@ -96,7 +96,11 @@ async function loadBoardStatuses(
   signal: AbortSignal,
 ): Promise<StatusOption[]> {
   const statuses = new Map<string, StatusOption>();
-  const page = await client.getBoardIssues({ boardId, pageSize: 100 }, signal);
+  const page = await client.getBoardIssues(
+    // Only issue.status is read below, so skip the standard field payload.
+    { boardId, pageSize: 100, fieldsOverride: ["status"] },
+    signal,
+  );
   page.values.forEach((issue) => {
     const id = issue.status.id ?? issue.status.name;
     statuses.set(id, { id, name: issue.status.name });

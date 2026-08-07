@@ -40,6 +40,7 @@ import type {
   JiraSprintPage,
   ReportingIssuePage,
 } from "./reporting-api";
+import { MAX_CLIENT_CONCURRENCY, mapWithConcurrency } from "./concurrency";
 import { JiraClientError } from "./errors";
 import { mapJiraField, mapJiraIssue, mapJiraServerInfo, mapJiraUser } from "./mappers";
 import {
@@ -51,6 +52,7 @@ import {
   rawJiraUserSchema,
   rawJiraUsersSchema,
   rawJiraIssueSchema,
+  rawPartialJiraIssueSchema,
   rawJiraProjectStatusesSchema,
   rawJiraStatusesSchema,
 } from "./schemas";
@@ -101,6 +103,16 @@ const STANDARD_ISSUE_FIELDS = [
   "timeoriginalestimate",
   "timespent",
 ] as const;
+
+function issueRequestFields(request: GetBoardIssuesRequest): string[] {
+  return request.fieldsOverride
+    ? [...request.fieldsOverride]
+    : [
+        ...STANDARD_ISSUE_FIELDS,
+        ...(request.fields ?? []),
+        ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
+      ];
+}
 
 export type IssuePageCursor = string | number | undefined;
 
@@ -447,11 +459,7 @@ export abstract class BaseJiraClient implements JiraClient {
     request: GetBoardIssuesRequest,
     signal?: AbortSignal,
   ): Promise<ReportingIssuePage> {
-    const fields = [
-      ...STANDARD_ISSUE_FIELDS,
-      ...(request.fields ?? []),
-      ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
-    ];
+    const fields = issueRequestFields(request);
     const path = `/rest/agile/1.0/board/${request.boardId}/issue`;
     // The Agile REST API (board/sprint issue listing) has always used offset
     // pagination on both Cloud and Data Center — unlike the newer
@@ -473,7 +481,11 @@ export abstract class BaseJiraClient implements JiraClient {
       reportingDataCenterIssuePageSchema,
       signal,
     );
-    const rawIssues = raw.issues.map((issue) => rawJiraIssueSchema.parse(issue));
+    const rawIssues = raw.issues.map((issue) =>
+      (request.fieldsOverride ? rawPartialJiraIssueSchema : rawJiraIssueSchema).parse(
+        issue,
+      ),
+    );
     const values = rawIssues.map((issue) =>
       mapReportingIssue(issue, this.baseUrl, request.storyPointsFieldId),
     );
@@ -534,11 +546,7 @@ export abstract class BaseJiraClient implements JiraClient {
     request: GetSprintIssuesRequest,
     signal?: AbortSignal,
   ): Promise<ReportingIssuePage> {
-    const fields = [
-      ...STANDARD_ISSUE_FIELDS,
-      ...(request.fields ?? []),
-      ...(request.storyPointsFieldId ? [request.storyPointsFieldId] : []),
-    ];
+    const fields = issueRequestFields(request);
     const path = `/rest/agile/1.0/board/${request.boardId}/sprint/${request.sprintId}/issue`;
     // See getBoardIssues: this Agile REST family always uses offset
     // pagination on both Cloud and Data Center.
@@ -558,7 +566,11 @@ export abstract class BaseJiraClient implements JiraClient {
       reportingDataCenterIssuePageSchema,
       signal,
     );
-    const rawIssues = raw.issues.map((issue) => rawJiraIssueSchema.parse(issue));
+    const rawIssues = raw.issues.map((issue) =>
+      (request.fieldsOverride ? rawPartialJiraIssueSchema : rawJiraIssueSchema).parse(
+        issue,
+      ),
+    );
     const values = rawIssues.map((issue) =>
       mapReportingIssue(issue, this.baseUrl, request.storyPointsFieldId),
     );
@@ -574,77 +586,99 @@ export abstract class BaseJiraClient implements JiraClient {
   }
 
   async getIssueChangelogs(request: GetIssueChangelogsRequest) {
-    const events = [] as ReturnType<typeof mapChangelogEntry>;
-    // The Cloud bulk changelog endpoint (POST /rest/api/3/changelog/bulkfetch) has been
-    // observed to fail as a generic network error in some Jira environments (e.g. behind
-    // a corporate proxy/WAF that only this endpoint trips), regardless of batch size or
-    // retries. The classic per-issue GET changelog endpoint works reliably on both Cloud
-    // and Data Center, so use it unconditionally instead.
-    for (const issue of request.issues) {
-      let startAt = 0;
-      let isLast = false;
-      while (!isLast) {
-        const raw = await this.transport.request(
-          {
-            baseUrl: this.baseUrl,
-            method: "GET",
-            path: `/rest/api/${this.apiVersion}/issue/${issue.key}/changelog`,
-            query: { startAt, maxResults: 100 },
-            headers: { Accept: "application/json" },
-          },
-          reportingIssueChangelogPageSchema,
-          request.signal,
-        );
-        for (const entry of raw.values)
-          events.push(...mapChangelogEntry(entry, issue, request));
-        const loaded = startAt + raw.values.length;
-        isLast =
-          raw.isLast ?? (raw.values.length === 0 || loaded >= (raw.total ?? loaded));
-        startAt = loaded;
-      }
-    }
-    return events;
+    // The per-issue GET changelog endpoint is the only one that exists on Data Center and
+    // the only one that works everywhere: the Cloud bulk endpoint
+    // (POST /rest/api/3/changelog/bulkfetch) has been observed to fail as a generic
+    // network error behind some corporate proxies/WAFs that trip on that one route,
+    // regardless of batch size or retries. JiraCloudClient therefore tries bulk exactly
+    // once per client instance and, on any failure, delegates back here permanently — so
+    // this implementation stays the contract every caller ultimately relies on.
+    let completed = 0;
+    const perIssue = await mapWithConcurrency(
+      request.issues,
+      MAX_CLIENT_CONCURRENCY,
+      async (issue) => {
+        const events = [] as ReturnType<typeof mapChangelogEntry>;
+        let startAt = 0;
+        let isLast = false;
+        // Pagination stays serial: page N+1 needs page N's startAt.
+        while (!isLast) {
+          const raw = await this.transport.request(
+            {
+              baseUrl: this.baseUrl,
+              method: "GET",
+              path: `/rest/api/${this.apiVersion}/issue/${issue.key}/changelog`,
+              query: { startAt, maxResults: 100 },
+              headers: { Accept: "application/json" },
+            },
+            reportingIssueChangelogPageSchema,
+            request.signal,
+          );
+          for (const entry of raw.values)
+            events.push(...mapChangelogEntry(entry, issue, request));
+          const loaded = startAt + raw.values.length;
+          isLast =
+            raw.isLast ?? (raw.values.length === 0 || loaded >= (raw.total ?? loaded));
+          startAt = loaded;
+        }
+        completed += 1;
+        request.onProgress?.(completed, request.issues.length);
+        return events;
+      },
+      request.signal,
+    );
+    return perIssue.flat();
   }
 
   async getIssueWorklogs(request: GetIssueWorklogsRequest) {
-    const worklogs: ReportWorklog[] = [];
-    for (const issue of request.issues) {
-      let startAt = 0;
-      let isLast = false;
-      while (!isLast) {
-        const raw = await this.transport.request(
-          {
-            baseUrl: this.baseUrl,
-            method: "GET",
-            path: `/rest/api/${this.apiVersion}/issue/${issue.key}/worklog`,
-            query: {
-              startAt,
-              maxResults: 100,
-              ...(this.deploymentType === "cloud" && request.periodStart
-                ? { startedAfter: new Date(request.periodStart).getTime() }
-                : {}),
-              ...(this.deploymentType === "cloud" && request.periodEnd
-                ? { startedBefore: new Date(request.periodEnd).getTime() }
-                : {}),
+    let completed = 0;
+    const perIssue = await mapWithConcurrency(
+      request.issues,
+      MAX_CLIENT_CONCURRENCY,
+      async (issue) => {
+        const worklogs: ReportWorklog[] = [];
+        let startAt = 0;
+        let isLast = false;
+        // Pagination stays serial: page N+1 needs page N's startAt.
+        while (!isLast) {
+          const raw = await this.transport.request(
+            {
+              baseUrl: this.baseUrl,
+              method: "GET",
+              path: `/rest/api/${this.apiVersion}/issue/${issue.key}/worklog`,
+              query: {
+                startAt,
+                maxResults: 100,
+                ...(this.deploymentType === "cloud" && request.periodStart
+                  ? { startedAfter: new Date(request.periodStart).getTime() }
+                  : {}),
+                ...(this.deploymentType === "cloud" && request.periodEnd
+                  ? { startedBefore: new Date(request.periodEnd).getTime() }
+                  : {}),
+              },
+              headers: { Accept: "application/json" },
             },
-            headers: { Accept: "application/json" },
-          },
-          reportingWorklogPageSchema,
-          request.signal,
-        );
-        for (const rawWorklog of raw.worklogs) {
-          const normalized = mapWorklog(
-            { ...rawWorklog, issueId: rawWorklog.issueId ?? issue.id },
-            issue.key,
+            reportingWorklogPageSchema,
+            request.signal,
           );
-          if (normalized) worklogs.push(normalized);
+          for (const rawWorklog of raw.worklogs) {
+            const normalized = mapWorklog(
+              { ...rawWorklog, issueId: rawWorklog.issueId ?? issue.id },
+              issue.key,
+            );
+            if (normalized) worklogs.push(normalized);
+          }
+          const loaded = startAt + raw.worklogs.length;
+          isLast = raw.worklogs.length === 0 || loaded >= raw.total;
+          startAt = loaded;
         }
-        const loaded = startAt + raw.worklogs.length;
-        isLast = raw.worklogs.length === 0 || loaded >= raw.total;
-        startAt = loaded;
-      }
-    }
-    return worklogs;
+        completed += 1;
+        request.onProgress?.(completed, request.issues.length);
+        return worklogs;
+      },
+      request.signal,
+    );
+    return perIssue.flat();
   }
 
   async getIssueEditMetadata(

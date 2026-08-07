@@ -8,6 +8,18 @@ export {
   type ReportHistoryItem,
   type ReportHistoryStore,
 } from "./report-history-store";
+export {
+  IndexedDbJiraHistoryCache,
+  MemoryJiraHistoryCache,
+  isFreshCacheRecord,
+  jiraHistoryCacheKey,
+  MAX_CACHE_RECORD_AGE_MS,
+  type ChangelogCacheRecord,
+  type JiraHistoryCache,
+  type JiraHistoryCacheRecord,
+  type JiraHistoryCacheStoreName,
+  type WorklogCacheRecord,
+} from "./jira-history-cache";
 export { UpdateStore } from "./update-store";
 
 export const CURRENT_STORAGE_SCHEMA_VERSION = 3;

@@ -340,6 +340,8 @@ export function BoardHealthReportView({
                   boardId,
                   sprintId: sprint.id,
                   pageSize: 100,
+                  // Only issue.id is kept below, so skip the standard field payload.
+                  fieldsOverride: ["id"],
                   ...(cursor === undefined ? {} : { cursor }),
                 },
                 controller.signal,
