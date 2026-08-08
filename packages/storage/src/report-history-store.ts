@@ -1,4 +1,4 @@
-import type { GeneratedReportSnapshot, ReportType } from "@power-view/domain";
+import type { GeneratedReportSnapshot, ReportScope, ReportType } from "@power-view/domain";
 
 export interface ReportHistoryFilter {
   jiraBaseUrl?: string;
@@ -14,6 +14,11 @@ export interface ReportHistoryItem {
   boardId: string;
   boardName: string;
   sprintId?: string;
+  sprintName?: string;
+  scope: ReportScope;
+  assigneeName?: string;
+  periodStart: string;
+  periodEnd: string;
   complete: boolean;
 }
 
@@ -27,8 +32,10 @@ export interface ReportHistoryStore {
 const SNAPSHOT_STORE = "reportSnapshots";
 const INDEX_STORE = "reportIndex";
 
-// v1 held snapshots only; v2 adds the header-only index store that list() reads.
-const DATABASE_VERSION = 2;
+// v1 held snapshots only; v2 adds the header-only index store that list() reads;
+// v3 widens ReportHistoryItem with period/scope/sprintName/assigneeName and
+// unconditionally re-backfills the index store on every version bump so it stays fresh.
+const DATABASE_VERSION = 3;
 
 /**
  * The header fields `list()` needs, kept beside the snapshot so the history list
@@ -42,6 +49,12 @@ interface ReportIndexRecord {
 }
 
 function toHistoryItem(snapshot: GeneratedReportSnapshot): ReportHistoryItem {
+  const scope = snapshot.request.scope;
+  const assigneeName =
+    scope.kind === "assignee"
+      ? snapshot.issues.find((issue) => issue.assignee?.id === scope.userId)?.assignee
+          ?.displayName
+      : undefined;
   return {
     id: snapshot.id,
     generatedAt: snapshot.generatedAt,
@@ -49,6 +62,11 @@ function toHistoryItem(snapshot: GeneratedReportSnapshot): ReportHistoryItem {
     boardId: snapshot.request.boardId,
     boardName: snapshot.board.name,
     ...(snapshot.request.sprintId ? { sprintId: snapshot.request.sprintId } : {}),
+    ...(snapshot.sprint?.name ? { sprintName: snapshot.sprint.name } : {}),
+    scope,
+    ...(assigneeName ? { assigneeName } : {}),
+    periodStart: snapshot.request.period.start,
+    periodEnd: snapshot.request.period.end,
     complete: snapshot.completeness.complete,
   };
 }
@@ -171,19 +189,21 @@ export class IndexedDbReportHistoryStore implements ReportHistoryStore {
           store.createIndex("type", "request.type", { unique: false });
           store.createIndex("sprintId", "request.sprintId", { unique: false });
         }
-        if (!database.objectStoreNames.contains(INDEX_STORE)) {
-          const index = database.createObjectStore(INDEX_STORE, { keyPath: "id" });
-          // Reports saved under v1 have no index row. Walk them once here — the
-          // open request only resolves after this transaction commits, so list()
-          // can never observe a half-backfilled index.
-          const cursorRequest = upgrade.objectStore(SNAPSHOT_STORE).openCursor();
-          cursorRequest.onsuccess = () => {
-            const cursor = cursorRequest.result;
-            if (!cursor) return;
-            index.put(toIndexRecord(cursor.value as GeneratedReportSnapshot));
-            cursor.continue();
-          };
-        }
+        const index = database.objectStoreNames.contains(INDEX_STORE)
+          ? upgrade.objectStore(INDEX_STORE)
+          : database.createObjectStore(INDEX_STORE, { keyPath: "id" });
+        // Re-derive every index row from its snapshot on every version bump — not just
+        // when the store is first created. This keeps rows written under an older
+        // ReportHistoryItem shape in sync with schema additions, without needing to
+        // special-case each future field. The open request only resolves after this
+        // transaction commits, so list() can never observe a half-backfilled index.
+        const cursorRequest = upgrade.objectStore(SNAPSHOT_STORE).openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          index.put(toIndexRecord(cursor.value as GeneratedReportSnapshot));
+          cursor.continue();
+        };
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () =>
