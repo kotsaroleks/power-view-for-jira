@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { GeneratedReportSnapshot } from "@power-view/domain";
+import type { GeneratedReportSnapshot, ReportScope } from "@power-view/domain";
 import {
   IndexedDbReportHistoryStore,
   MemoryReportHistoryStore,
@@ -241,6 +241,11 @@ function makeSnapshot(
     boardName: string;
     type: "daily" | "weekly" | "sprint";
     sprintId: string;
+    sprintName: string;
+    scope: ReportScope;
+    assignee: { id: string; displayName: string };
+    periodStart: string;
+    periodEnd: string;
     complete: boolean;
     issueCount: number;
   }> = {},
@@ -253,6 +258,11 @@ function makeSnapshot(
     boardName = "Alpha",
     type = "daily",
     sprintId,
+    sprintName,
+    scope = { kind: "team" },
+    assignee,
+    periodStart = "2026-01-01T00:00:00.000Z",
+    periodEnd = "2026-01-02T00:00:00.000Z",
     complete = true,
     issueCount = 3,
   } = overrides;
@@ -263,6 +273,7 @@ function makeSnapshot(
     summary: "x".repeat(64),
     issueType: { id: "1", name: "Task" },
     status: { id: "3", name: "In Progress" },
+    ...(assignee && index === 0 ? { assignee } : {}),
     sprintIds: [],
   }));
   return {
@@ -275,15 +286,16 @@ function makeSnapshot(
       type,
       boardId,
       ...(sprintId ? { sprintId } : {}),
-      scope: { kind: "team" },
+      scope,
       period: {
         timeZone: "Europe/Kyiv",
-        start: "2026-01-01T00:00:00.000Z",
-        end: "2026-01-02T00:00:00.000Z",
-        dataCutoff: "2026-01-02T00:00:00.000Z",
+        start: periodStart,
+        end: periodEnd,
+        dataCutoff: periodEnd,
       },
     },
     board: { id: boardId, name: boardName, type: "scrum", projectKeys: ["AL"] },
+    ...(sprintName ? { sprint: { id: sprintId ?? "77", name: sprintName, state: "active" } } : {}),
     statusMapping: {
       schemaVersion: 1,
       jiraBaseUrl: baseUrl,
@@ -340,6 +352,9 @@ describe.each(stores)("%s", (_name, create) => {
         type: "daily",
         boardId: "10",
         boardName: "Alpha",
+        scope: { kind: "team" },
+        periodStart: "2026-01-01T00:00:00.000Z",
+        periodEnd: "2026-01-02T00:00:00.000Z",
         complete: true,
       },
       {
@@ -348,6 +363,9 @@ describe.each(stores)("%s", (_name, create) => {
         type: "daily",
         boardId: "10",
         boardName: "Alpha",
+        scope: { kind: "team" },
+        periodStart: "2026-01-01T00:00:00.000Z",
+        periodEnd: "2026-01-02T00:00:00.000Z",
         complete: true,
       },
     ]);
@@ -382,6 +400,55 @@ describe.each(stores)("%s", (_name, create) => {
     expect((await store.list()).map((item) => item.id)).toEqual(["b"]);
     expect(await store.get("a")).toBeUndefined();
   });
+
+  it("reflects distinct scope and period across reports for the same board/type", async () => {
+    const store = create();
+    await store.save(makeSnapshot({ id: "team-report", scope: { kind: "team" } }));
+    await store.save(
+      makeSnapshot({
+        id: "assignee-report",
+        generatedAt: "2026-02-01T00:00:00.000Z",
+        scope: { kind: "assignee", userId: "u1" },
+        assignee: { id: "u1", displayName: "Ada Lovelace" },
+        periodStart: "2026-02-01T00:00:00.000Z",
+        periodEnd: "2026-02-08T00:00:00.000Z",
+      }),
+    );
+
+    const items = await store.list();
+    expect(items).toHaveLength(2);
+    const assigneeItem = items.find((item) => item.id === "assignee-report");
+    const teamItem = items.find((item) => item.id === "team-report");
+    expect(assigneeItem?.scope).toEqual({ kind: "assignee", userId: "u1" });
+    expect(assigneeItem?.periodStart).toBe("2026-02-01T00:00:00.000Z");
+    expect(assigneeItem?.periodEnd).toBe("2026-02-08T00:00:00.000Z");
+    expect(teamItem?.scope).toEqual({ kind: "team" });
+    expect(teamItem?.periodStart).toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  it("resolves assigneeName from the matching issue for an assignee-scoped report", async () => {
+    const store = create();
+    await store.save(
+      makeSnapshot({
+        id: "assignee-report",
+        scope: { kind: "assignee", userId: "u1" },
+        assignee: { id: "u1", displayName: "Ada Lovelace" },
+      }),
+    );
+
+    const [item] = await store.list();
+    expect(item?.assigneeName).toBe("Ada Lovelace");
+  });
+
+  it("includes sprintName for a sprint report", async () => {
+    const store = create();
+    await store.save(
+      makeSnapshot({ id: "sprint-report", type: "sprint", sprintId: "77", sprintName: "Sprint 42" }),
+    );
+
+    const [item] = await store.list();
+    expect(item?.sprintName).toBe("Sprint 42");
+  });
 });
 
 describe("IndexedDbReportHistoryStore", () => {
@@ -411,6 +478,9 @@ describe("IndexedDbReportHistoryStore", () => {
         boardId: "10",
         boardName: "Beta",
         sprintId: "77",
+        scope: { kind: "team" },
+        periodStart: "2026-01-01T00:00:00.000Z",
+        periodEnd: "2026-01-02T00:00:00.000Z",
         complete: false,
       },
       {
@@ -419,11 +489,62 @@ describe("IndexedDbReportHistoryStore", () => {
         type: "daily",
         boardId: "10",
         boardName: "Alpha",
+        scope: { kind: "team" },
+        periodStart: "2026-01-01T00:00:00.000Z",
+        periodEnd: "2026-01-02T00:00:00.000Z",
         complete: true,
       },
     ]);
     // The upgrade must not have destroyed the payloads it walked.
     expect((await store.get("old-b"))?.issues).toHaveLength(3);
+  });
+
+  it("re-backfills index rows already present under the previous schema (v2 -> v3)", async () => {
+    const factory = new FakeIndexedDb();
+    const legacy = factory.database("power-view-reporting");
+    legacy.version = 2;
+    const snapshot = makeSnapshot({
+      id: "old-c",
+      generatedAt: "2026-03-01T00:00:00.000Z",
+      boardName: "Gamma",
+      scope: { kind: "assignee", userId: "u1" },
+      assignee: { id: "u1", displayName: "Ada Lovelace" },
+      periodStart: "2026-03-01T00:00:00.000Z",
+      periodEnd: "2026-03-08T00:00:00.000Z",
+    });
+    legacy.seed("reportSnapshots", [snapshot] as unknown as Record<string, unknown>[]);
+    // Old-shape index row: predates scope/period/assigneeName fields entirely.
+    legacy.seed("reportIndex", [
+      {
+        id: "old-c",
+        jiraBaseUrl: "https://example.atlassian.net",
+        item: {
+          id: "old-c",
+          generatedAt: "2026-03-01T00:00:00.000Z",
+          type: "daily",
+          boardId: "10",
+          boardName: "Gamma",
+          complete: true,
+        },
+      },
+    ]);
+
+    const store = makeIndexedDbStore(factory);
+
+    expect(await store.list()).toEqual([
+      {
+        id: "old-c",
+        generatedAt: "2026-03-01T00:00:00.000Z",
+        type: "daily",
+        boardId: "10",
+        boardName: "Gamma",
+        scope: { kind: "assignee", userId: "u1" },
+        assigneeName: "Ada Lovelace",
+        periodStart: "2026-03-01T00:00:00.000Z",
+        periodEnd: "2026-03-08T00:00:00.000Z",
+        complete: true,
+      },
+    ]);
   });
 
   it("keeps the index in sync with the snapshot store on save and delete", async () => {

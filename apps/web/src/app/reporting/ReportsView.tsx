@@ -1173,11 +1173,14 @@ export function ReportsView({
               >
                 <strong>
                   {item.type.toUpperCase()} · {item.boardName}
+                  {item.sprintName ? ` · ${item.sprintName}` : ""}
                 </strong>
                 <span>
-                  {formatDate(item.generatedAt)} ·{" "}
+                  {formatDate(item.periodStart)} – {formatDate(item.periodEnd)} ·{" "}
+                  {item.scope.kind === "assignee" ? (item.assigneeName ?? "Assignee") : "Team"} ·{" "}
                   {item.complete ? "Complete" : "Partial"}
                 </span>
+                <span>Generated {formatDate(item.generatedAt)}</span>
               </button>
               <button
                 className="secondary-button"
