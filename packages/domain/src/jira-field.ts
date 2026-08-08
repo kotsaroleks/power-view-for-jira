@@ -158,5 +158,29 @@ export function validateFieldMapping(
     }
   }
 
+  if (mapping.storyPointsFieldId) {
+    const field = fieldsById.get(mapping.storyPointsFieldId);
+    if (field && field.schema?.type?.toLowerCase() !== "number") {
+      errors.push("Story points must use a numeric Jira field.");
+    }
+  }
+
+  if (mapping.sprintFieldId) {
+    const field = fieldsById.get(mapping.sprintFieldId);
+    if (field && !isSprintField(field)) {
+      errors.push("Sprint must use Jira's Sprint field.");
+    }
+  }
+
   return errors;
+}
+
+function isSprintField(field: JiraField): boolean {
+  if (normalizedName(field.name) === "sprint") {
+    return true;
+  }
+  return (
+    field.schema?.type?.toLowerCase() === "array" &&
+    Boolean(field.schema?.custom?.toLowerCase().includes("gh-sprint"))
+  );
 }

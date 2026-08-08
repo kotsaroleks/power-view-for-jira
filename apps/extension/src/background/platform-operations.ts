@@ -38,6 +38,31 @@ const diagnosticsStore = new DiagnosticsStore(chrome.storage.session);
 const jiraRequestHandler = new JiraRequestHandler();
 const bridgeRequestTabs = new Map<string, number>();
 
+const CONTEXT_PERMISSION_MEMO_TTL_MS = 2_000;
+
+interface ContextPermissionMemo {
+  value: StoredJiraContext;
+  expiresAt: number;
+}
+
+let contextPermissionMemo: ContextPermissionMemo | undefined;
+
+function clearContextPermissionMemo(): void {
+  contextPermissionMemo = undefined;
+}
+
+// Revoking host access must take effect immediately, not after the memo's TTL
+// expires. Without these listeners, a request could keep reaching a Jira host
+// for up to CONTEXT_PERMISSION_MEMO_TTL_MS after the user revokes access.
+// Do not remove these as "redundant with the TTL" — they are a security
+// requirement, not an optimisation.
+if (chrome.permissions?.onRemoved) {
+  chrome.permissions.onRemoved.addListener(clearContextPermissionMemo);
+}
+if (chrome.permissions?.onAdded) {
+  chrome.permissions.onAdded.addListener(clearContextPermissionMemo);
+}
+
 function operationError(error: SerializableAppError): ExtensionOperationError {
   return new ExtensionOperationError(error);
 }
@@ -183,6 +208,7 @@ async function refreshContext(tabId?: number): Promise<JiraPageContext> {
   }
 
   await contextStore.save(tab.id, response.data.context);
+  clearContextPermissionMemo();
   return response.data.context;
 }
 
@@ -211,6 +237,7 @@ async function storeDetectedContext(
   }
 
   await contextStore.save(sender.tabId, context);
+  clearContextPermissionMemo();
 }
 
 async function openPowerView(
@@ -277,7 +304,17 @@ function diagnosticEndpoint(path: string): RequestDiagnostic["endpoint"] {
   return "unknown";
 }
 
-async function requireActiveJiraContextWithPermission(): Promise<StoredJiraContext> {
+async function requireActiveJiraContextWithPermission(
+  options: { fresh?: boolean } = {},
+): Promise<StoredJiraContext> {
+  if (
+    !options.fresh &&
+    contextPermissionMemo &&
+    contextPermissionMemo.expiresAt > Date.now()
+  ) {
+    return contextPermissionMemo.value;
+  }
+
   const storedContext = await contextStore.getLatest();
   if (!storedContext) {
     throw operationError({
@@ -310,6 +347,10 @@ async function requireActiveJiraContextWithPermission(): Promise<StoredJiraConte
     });
   }
 
+  contextPermissionMemo = {
+    value: storedContext,
+    expiresAt: Date.now() + CONTEXT_PERMISSION_MEMO_TTL_MS,
+  };
   return storedContext;
 }
 
@@ -619,7 +660,7 @@ async function executeJiraRequest(
     let storedContext = await requireActiveJiraContextWithPermission();
     if (request.method !== "GET") {
       await refreshContext(storedContext.tabId);
-      storedContext = await requireActiveJiraContextWithPermission();
+      storedContext = await requireActiveJiraContextWithPermission({ fresh: true });
     }
     const result =
       request.method === "GET"

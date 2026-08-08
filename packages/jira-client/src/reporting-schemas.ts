@@ -123,17 +123,23 @@ export const rawJiraIssueChangelogPageSchema = z
   })
   .passthrough();
 
+// POST /rest/api/3/changelog/bulkfetch (BulkChangelogResponseBean). Pagination is a
+// single continuation token spanning the whole request, not one per issue: a page can
+// therefore end in the middle of one issue's history, and `nextPageToken` is null — not
+// absent — on the last page.
 export const rawCloudBulkChangelogSchema = z
   .object({
+    // Required on purpose: a response without it is not this endpoint answering, and
+    // treating it as "no history" would silently empty the report.
     issueChangeLogs: z.array(
       z
         .object({
           issueId: idSchema,
-          changeHistories: z.array(rawJiraChangelogEntrySchema),
+          changeHistories: z.array(rawJiraChangelogEntrySchema).optional(),
         })
         .passthrough(),
     ),
-    nextPageToken: z.string().min(1).optional(),
+    nextPageToken: z.string().min(1).nullish(),
   })
   .passthrough();
 

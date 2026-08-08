@@ -207,5 +207,44 @@ describe("Jira request policy", () => {
         false,
       ),
     ).toThrow();
+    // fieldIds is optional in the Atlassian schema, so a body without it must pass.
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...request,
+          method: "POST",
+          path: "/rest/api/3/changelog/bulkfetch",
+          body: { issueIdsOrKeys: ["10001"], maxResults: 1000 },
+        },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+  });
+
+  it("still rejects a bulk changelog body whose fieldIds is present but invalid", () => {
+    const invalidFieldIds: unknown[] = [
+      "status",
+      null,
+      [""],
+      ["a".repeat(513)],
+      [1],
+      Array.from({ length: 11 }, () => "status"),
+    ];
+
+    for (const fieldIds of invalidFieldIds) {
+      expect(() =>
+        validatedJiraRequestUrl(
+          {
+            ...request,
+            method: "POST",
+            path: "/rest/api/3/changelog/bulkfetch",
+            body: { issueIdsOrKeys: ["10001"], fieldIds, maxResults: 1000 },
+          },
+          request.baseUrl,
+          false,
+        ),
+      ).toThrow();
+    }
   });
 });

@@ -13,15 +13,18 @@ import {
 } from "@power-view/domain";
 import type { JiraClient } from "@power-view/jira-client";
 import {
+  IndexedDbJiraHistoryCache,
   IndexedDbReportHistoryStore,
   MemoryReportHistoryStore,
+  type JiraHistoryCache,
   type ReportHistoryItem,
   type ReportHistoryStore,
 } from "@power-view/storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChevronIcon } from "../ChevronIcon";
-import { generateReport } from "./reporting-generator";
+import { createProgressThrottle, type ProgressThrottleHandle } from "./progress-throttle";
+import { generateReport, type ReportGenerationProgress } from "./reporting-generator";
 import { renderStandupText } from "./standup";
 
 export interface ReportsViewProps {
@@ -32,12 +35,18 @@ export interface ReportsViewProps {
   jql: string;
   statusMapping: BoardReportConfiguration;
   historyStore?: ReportHistoryStore;
+  historyCache?: JiraHistoryCache;
 }
 
 function defaultHistoryStore(): ReportHistoryStore {
   return typeof indexedDB === "undefined"
     ? new MemoryReportHistoryStore()
     : new IndexedDbReportHistoryStore();
+}
+
+// Without IndexedDB there is simply no cache: reports are generated as before, uncached.
+function defaultHistoryCache(): JiraHistoryCache | undefined {
+  return typeof indexedDB === "undefined" ? undefined : new IndexedDbJiraHistoryCache();
 }
 
 function formatDate(value: string): string {
@@ -50,6 +59,31 @@ function formatDate(value: string): string {
 
 function percentage(value: number | null): string {
   return value === null ? "N/A" : `${value.toFixed(1)}%`;
+}
+
+const progressNumberFormat = new Intl.NumberFormat("uk-UA");
+
+const PROGRESS_STAGE_LABELS: Record<ReportGenerationProgress["stage"], string> = {
+  board: "Loading board",
+  sprint: "Loading sprint",
+  issues: "Loading issues",
+  changes: "Loading changes",
+  worklogs: "Loading worklogs",
+  calculating: "Calculating",
+  saving: "Saving",
+};
+
+function formatProgressMessage(progress: ReportGenerationProgress): string {
+  const label = PROGRESS_STAGE_LABELS[progress.stage];
+  if (progress.loaded === undefined) return `${label}…`;
+  const total =
+    progress.total !== undefined
+      ? ` / ${progressNumberFormat.format(progress.total)}`
+      : "";
+  const cached = progress.cached
+    ? ` (${progressNumberFormat.format(progress.cached)} cached)`
+    : "";
+  return `${label}… ${progressNumberFormat.format(progress.loaded)}${total}${cached}`;
 }
 
 function printableReport(
@@ -677,6 +711,7 @@ export function ReportsView({
   jql,
   statusMapping,
   historyStore = defaultHistoryStore(),
+  historyCache = defaultHistoryCache(),
 }: ReportsViewProps) {
   const [assigneeOptions, setAssigneeOptions] = useState<
     Array<{ id: string; name: string }>
@@ -697,6 +732,16 @@ export function ReportsView({
   const [snapshot, setSnapshot] = useState<GeneratedReportSnapshot>();
   const [history, setHistory] = useState<ReportHistoryItem[]>([]);
   const outputRef = useRef<HTMLDivElement>(null);
+  const controllerRef = useRef<AbortController | null>(null);
+  const progressThrottleRef = useRef<ProgressThrottleHandle | null>(null);
+
+  useEffect(
+    () => () => {
+      controllerRef.current?.abort();
+      progressThrottleRef.current?.cancel();
+    },
+    [],
+  );
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -754,7 +799,7 @@ export function ReportsView({
     };
   }, [board.id, board.type, client]);
 
-  const generate = async () => {
+  const generate = async (forceRefresh = false) => {
     if (statusMapping.completedStatusIds.length === 0) {
       setError("Configure at least one completed status in Workspace Settings.");
       return;
@@ -764,6 +809,11 @@ export function ReportsView({
       return;
     }
     const controller = new AbortController();
+    controllerRef.current = controller;
+    const throttle = createProgressThrottle((progress) =>
+      setLoadingMessage(formatProgressMessage(progress)),
+    );
+    progressThrottleRef.current = throttle;
     setLoading(true);
     setError(undefined);
     setStatusMessage(undefined);
@@ -783,19 +833,32 @@ export function ReportsView({
           ...(type === "sprint" ? { progressMode } : {}),
           statusMapping,
         },
-        onProgress: (progress) => setLoadingMessage(progress.stage),
+        onProgress: throttle.onProgress,
         signal: controller.signal,
+        ...(historyCache ? { historyCache } : {}),
+        ...(forceRefresh ? { forceRefresh: true } : {}),
       });
       await historyStore.save(nextSnapshot);
       setSnapshot(nextSnapshot);
       setStatusMessage("Report generated and saved to local history.");
       await refreshHistory();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Report generation failed.");
+      if (controller.signal.aborted) {
+        setStatusMessage("Report generation cancelled.");
+      } else {
+        setError(cause instanceof Error ? cause.message : "Report generation failed.");
+      }
     } finally {
+      throttle.cancel();
+      if (progressThrottleRef.current === throttle) progressThrottleRef.current = null;
+      if (controllerRef.current === controller) controllerRef.current = null;
       setLoading(false);
       setLoadingMessage("");
     }
+  };
+
+  const cancelGeneration = () => {
+    controllerRef.current?.abort();
   };
 
   const openHistory = async (id: string) => {
@@ -949,22 +1012,37 @@ export function ReportsView({
             {statusMessage}
           </p>
         ) : null}
+        <p className="field-help">
+          Changelog and worklog history is cached per issue. Shift-click Generate report to
+          re-read it from Jira — needed only when history was edited outside Jira&apos;s
+          normal flow.
+        </p>
         <div className="setup-save-row">
           <button
             className="primary-button"
             type="button"
             disabled={loading || statusMapping.completedStatusIds.length === 0}
-            onClick={() => void generate()}
+            title="Shift-click to bypass the cached Jira history."
+            onClick={(event) => void generate(event.shiftKey)}
           >
-            {loading ? `Generating… ${loadingMessage}` : "Generate report"}
+            {loading ? loadingMessage || "Generating…" : "Generate report"}
           </button>
+          {loading ? (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={cancelGeneration}
+            >
+              Cancel
+            </button>
+          ) : null}
         </div>
       </div>
 
       {loading ? (
         <div className="reporting-loading" role="status" aria-live="polite">
           <span className="reporting-spinner" aria-hidden="true" />
-          <span>Generating… {loadingMessage}</span>
+          <span>{loadingMessage || "Generating…"}</span>
         </div>
       ) : null}
 

@@ -35,6 +35,27 @@ const fields: JiraField[] = [
     schema: { type: "string", system: "summary" },
     clauseNames: ["summary"],
   },
+  {
+    id: "customfield_10020",
+    name: "Story Points",
+    custom: true,
+    schema: { type: "number" },
+    clauseNames: ["Story Points"],
+  },
+  {
+    id: "customfield_10014",
+    name: "Epic Link",
+    custom: true,
+    schema: { type: "string" },
+    clauseNames: ["Epic Link"],
+  },
+  {
+    id: "customfield_10021",
+    name: "Sprint",
+    custom: true,
+    schema: { type: "array", custom: "com.pyxis.greenhopper.jira:gh-sprint" },
+    clauseNames: ["Sprint"],
+  },
 ];
 
 describe("date field discovery", () => {
@@ -65,5 +86,35 @@ describe("date field discovery", () => {
       "Start and end dates must use different fields.",
       "Hierarchy field is no longer available in Jira.",
     ]);
+  });
+
+  it("rejects a non-numeric field mapped as story points", () => {
+    expect(
+      validateFieldMapping({ storyPointsFieldId: "customfield_10014" }, fields),
+    ).toEqual(["Story points must use a numeric Jira field."]);
+  });
+
+  it("accepts a numeric field mapped as story points", () => {
+    expect(
+      validateFieldMapping({ storyPointsFieldId: "customfield_10020" }, fields),
+    ).toEqual([]);
+  });
+
+  it("rejects a non-sprint field mapped as sprint", () => {
+    expect(validateFieldMapping({ sprintFieldId: "customfield_10014" }, fields)).toEqual([
+      "Sprint must use Jira's Sprint field.",
+    ]);
+  });
+
+  it("accepts a real sprint field mapped as sprint", () => {
+    expect(
+      validateFieldMapping({ sprintFieldId: "customfield_10021" }, fields),
+    ).toEqual([]);
+  });
+
+  it("allows a flexible, non-date field mapped as hierarchy", () => {
+    expect(
+      validateFieldMapping({ hierarchyFieldId: "customfield_10014" }, fields),
+    ).toEqual([]);
   });
 });

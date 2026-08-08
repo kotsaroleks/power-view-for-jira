@@ -126,3 +126,102 @@ describe("generateReport workspace scope", () => {
     );
   });
 });
+
+describe("generateReport history fetch narrowing", () => {
+  const sprintRequest = {
+    type: "sprint",
+    boardId: "7",
+    sprintId: "101",
+    jql,
+    localDate: "2026-08-04",
+    scope: { kind: "team" },
+    language: "uk",
+    progressMode: "issue-count",
+    statusMapping,
+  } as const;
+
+  function boardIssue(id: string, updatedAt?: string): ReportingIssueSnapshot {
+    const base = { ...issue(id), sprintIds: [] };
+    return updatedAt ? { ...base, updatedAt } : base;
+  }
+
+  function sprintScopeClient() {
+    const client = clientFixture();
+    client.getSprintIssues.mockResolvedValue({
+      values: [issue("1")],
+      startAt: 0,
+      maxResults: 100,
+      total: 1,
+      isLast: true,
+    });
+    client.getBoardIssues.mockResolvedValue({
+      values: [
+        issue("1"),
+        boardIssue("2", "2026-07-01T09:00:00.000Z"),
+        boardIssue("3", "2026-08-05T09:00:00.000Z"),
+        boardIssue("4"),
+      ],
+      startAt: 0,
+      maxResults: 100,
+      total: 4,
+      isLast: true,
+    });
+    return client;
+  }
+
+  it("skips changelogs for issues last updated before the period started", async () => {
+    const client = sprintScopeClient();
+
+    await generateReport({
+      client: client as unknown as JiraClient,
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+      request: sprintRequest,
+    });
+
+    const [changelogRequest] = client.getIssueChangelogs.mock.calls[0] as [
+      { issues: Array<{ id: string }> },
+    ];
+    expect(changelogRequest.issues.map((item) => item.id)).toEqual(["1", "3", "4"]);
+  });
+
+  it("requests worklogs for every candidate issue, including board-only ones", async () => {
+    const client = sprintScopeClient();
+
+    await generateReport({
+      client: client as unknown as JiraClient,
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+      request: sprintRequest,
+    });
+
+    const [worklogRequest] = client.getIssueWorklogs.mock.calls[0] as [
+      { issues: Array<{ id: string }> },
+    ];
+    expect(worklogRequest.issues.map((item) => item.id)).toEqual(["1", "2", "3", "4"]);
+  });
+
+  it("keeps board-only issues in the sprint scope-change blocks", async () => {
+    const client = sprintScopeClient();
+    client.getIssueChangelogs.mockResolvedValue([
+      {
+        id: "sprint-removed:3",
+        issueId: "3",
+        issueKey: "POWER-3",
+        type: "sprint-removed",
+        occurredAt: "2026-08-05T09:00:00.000Z",
+      },
+    ]);
+
+    const snapshot = await generateReport({
+      client: client as unknown as JiraClient,
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+      request: sprintRequest,
+    });
+
+    expect(
+      snapshot.result.sprint?.removedAfterStart.map((entry) => entry.issue.key),
+    ).toEqual(["POWER-3"]);
+  });
+});

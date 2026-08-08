@@ -119,11 +119,14 @@ function validBulkChangelogBody(value: unknown): boolean {
     issueIds.every(
       (item) => typeof item === "string" && item.length > 0 && item.length <= 255,
     ) &&
-    Array.isArray(fieldIds) &&
-    fieldIds.length <= 10 &&
-    fieldIds.every(
-      (item) => typeof item === "string" && item.length > 0 && item.length <= 512,
-    ) &&
+    // fieldIds is optional in the Atlassian schema, and an empty array has no defined
+    // meaning there, so callers omit it rather than send one.
+    (fieldIds === undefined ||
+      (Array.isArray(fieldIds) &&
+        fieldIds.length <= 10 &&
+        fieldIds.every(
+          (item) => typeof item === "string" && item.length > 0 && item.length <= 512,
+        ))) &&
     typeof maxResults === "number" &&
     Number.isInteger(maxResults) &&
     maxResults >= 1 &&
