@@ -307,7 +307,8 @@ function AppContent({
                     <p>Uses your active browser session. No credentials are stored.</p>
                   </div>
                 </div>
-                {context && (connection.status === "authenticated" ||
+                {context &&
+                (connection.status === "authenticated" ||
                   connection.status === "checking") ? (
                   <div
                     className={`connection-badge connection-badge-${connection.status}`}

@@ -1,0 +1,120 @@
+/* Shared design tokens for Power View for Jira (web app + extension popup).
+   Every value here is copied verbatim from what was already in use in
+   apps/web/src/styles/global.css and apps/extension/src/popup/popup.css —
+   this file introduces no new colors/sizes, only names for existing ones. */
+:root {
+  /* Spacing scale — use these instead of ad-hoc pixel values so card,
+     section, and row padding stay consistent across pages.
+     --space-6 (24px): page-level card/panel outer padding.
+     --space-4 (16px): standard section/sub-card padding, and a card's
+       header should match its body's horizontal padding.
+     --space-3 (12px): compact widgets, table/list rows.
+     --space-2 (8px): buttons, pills, tight inline controls.
+     --space-1 (4px): hairline gaps. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+
+  /* Accent color — the single source of truth for the app's blue accent.
+     Swap these three values to re-theme every focus ring, active border,
+     and highlighted state at once instead of hunting down hex literals. */
+  --accent: #0c66e4;
+  --accent-strong: #0055cc;
+  --accent-soft: #deebff;
+  --accent-softer: #f0f7ff;
+
+  /* Text colors */
+  --text-primary: #172b4d;
+  --text-secondary: #626f86;
+  --text-muted: #44546f;
+  --text-faint: #8993a4;
+  --text-subtle: #8590a2;
+  --text-secondary-alt: #6b778c;
+  --color-white: #ffffff;
+
+  /* Borders & surfaces */
+  --border: #dfe1e6;
+  --border-muted: #b3b9c4;
+  --border-subtle: #eaecf0;
+  --surface-subtle: #f1f2f4;
+  --surface-tint: #f7fbff;
+  --surface-tint-alt: #f7f8f9;
+  --surface-faint: #fbfcfd;
+  --surface-faint-alt: #fafbfc;
+  --page-bg: #f7f8fa;
+
+  /* Accent tints (blue family beyond the core 4 accent tokens) */
+  --accent-tint: #e9f2ff;
+  --accent-tint-strong: #b3d4ff;
+  --accent-tint-alt: #cce0ff;
+  --accent-mid: #85b8ff;
+  --accent-light: #579dff;
+
+  /* Warning */
+  --warning-bg: #fff7d6;
+  --warning-accent: #f5cd47;
+  --warning-text: #533f04;
+  --warning-text-strong: #7f5f01;
+
+  /* Success */
+  --success-bg: #dcfff1;
+  --success-text: #216e4e;
+  --success-accent: #1f845a;
+  --success-tint: #baf3db;
+  --success-mid: #4bce97;
+  --success-dark: #164b35;
+
+  /* Error */
+  --error-bg: #ffebe6;
+  --error-text: #ae2e24;
+  --error-text-strong: #c9372c;
+  --error-accent: #f87168;
+  --error-strong: #e2483d;
+
+  /* Border radius scale */
+  --radius-1: 4px;
+  --radius-2: 5px;
+  --radius-3: 6px;
+  --radius-4: 7px;
+  --radius-5: 8px;
+  --radius-6: 9px;
+  --radius-7: 10px;
+  --radius-8: 12px;
+  --radius-9: 14px;
+  --radius-10: 20px;
+  --radius-pill: 999px;
+
+  /* Font size scale */
+  --font-size-1: 9px;
+  --font-size-2: 10px;
+  --font-size-3: 11px;
+  --font-size-4: 12px;
+  --font-size-5: 13px;
+  --font-size-6: 14px;
+  --font-size-7: 15px;
+  --font-size-8: 16px;
+  --font-size-9: 18px;
+  --font-size-10: 20px;
+  --font-size-11: 22px;
+  --font-size-12: 24px;
+
+  /* Font weight scale (non-standard values match what the design already used) */
+  --fw-1: 600;
+  --fw-2: 650;
+  --fw-3: 700;
+  --fw-4: 750;
+  --fw-5: 800;
+  --fw-6: 850;
+
+  /* Shared elevation/focus shadows (only the values actually reused) */
+  --shadow-modal: 0 24px 70px rgb(9 30 66 / 13%);
+  --shadow-focus-ring: 0 0 0 2px var(--accent-soft), 0 0 0 3px var(--accent);
+
+  /* Shared font family */
+  --font-family-base:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}

@@ -1,12 +1,8 @@
+/* Shared color/font tokens live in @power-view/ui/tokens.css,
+   imported before this file in apps/extension/src/popup/index.tsx. */
 :root {
-  color: #172b4d;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-family-base);
   font-synthesis: none;
 }
 
@@ -17,17 +13,17 @@
 body {
   margin: 0;
   min-width: 340px;
-  background: #f7f8fa;
+  background: var(--page-bg);
 }
 
 .popup-shell {
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .popup-heading {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   margin-bottom: 20px;
 }
 
@@ -36,52 +32,52 @@ body {
   width: 42px;
   height: 42px;
   place-items: center;
-  border-radius: 12px;
-  background: #0c66e4;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 800;
+  border-radius: var(--radius-8);
+  background: var(--accent);
+  color: var(--color-white);
+  font-size: var(--font-size-6);
+  font-weight: var(--fw-5);
   letter-spacing: -0.02em;
 }
 
 .eyebrow {
   margin: 0 0 6px;
-  color: #0c66e4;
-  font-size: 11px;
-  font-weight: 800;
+  color: var(--accent);
+  font-size: var(--font-size-3);
+  font-weight: var(--fw-5);
   letter-spacing: 0.12em;
 }
 
 h1 {
   margin: 0;
-  color: #172b4d;
-  font-size: 24px;
+  color: var(--text-primary);
+  font-size: var(--font-size-12);
   letter-spacing: -0.03em;
 }
 
 .description {
   margin: 10px 0 20px;
-  color: #44546f;
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: var(--font-size-6);
   line-height: 1.5;
 }
 
 .context-state {
   margin: 12px 0 18px;
-  border-radius: 10px;
+  border-radius: var(--radius-7);
   padding: 18px;
-  background: #ffffff;
-  color: #44546f;
-  font-size: 13px;
+  background: var(--color-white);
+  color: var(--text-muted);
+  font-size: var(--font-size-5);
 }
 
 .context-card,
 .permission-card {
   margin: 0 0 16px;
-  border: 1px solid #dfe1e6;
-  border-radius: 12px;
-  padding: 16px;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-8);
+  padding: var(--space-4);
+  background: var(--color-white);
 }
 
 .context-card-heading {
@@ -89,9 +85,9 @@ h1 {
   align-items: center;
   gap: 7px;
   margin-bottom: 8px;
-  color: #216e4e;
-  font-size: 12px;
-  font-weight: 750;
+  color: var(--success-text);
+  font-size: var(--font-size-4);
+  font-weight: var(--fw-4);
 }
 
 .status-dot {
@@ -104,7 +100,7 @@ h1 {
 .context-card > strong {
   display: block;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--font-size-5);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -118,91 +114,91 @@ h1 {
 .context-card dl div {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  font-size: 12px;
+  gap: var(--space-3);
+  font-size: var(--font-size-4);
 }
 
 .context-card dt {
-  color: #626f86;
+  color: var(--text-secondary);
 }
 
 .context-card dd {
   margin: 0;
-  font-weight: 700;
+  font-weight: var(--fw-3);
 }
 
 .permission-card h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-7);
 }
 
 .permission-card p {
   margin: 6px 0 14px;
-  color: #44546f;
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--font-size-4);
   line-height: 1.45;
 }
 
 .permission-card form {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .permission-card label {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-4);
+  font-weight: var(--fw-3);
 }
 
 .permission-card input {
   min-height: 38px;
-  border: 1px solid #8590a2;
-  border-radius: 7px;
+  border: 1px solid var(--text-subtle);
+  border-radius: var(--radius-4);
   padding: 0 10px;
-  color: #172b4d;
+  color: var(--text-primary);
   font: inherit;
 }
 
 .permission-card input:focus-visible {
-  border-color: #0c66e4;
-  outline: 2px solid #85b8ff;
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-mid);
   outline-offset: 1px;
 }
 
 .permission-card button {
   min-height: 38px;
   border: 0;
-  border-radius: 7px;
-  background: #e9f2ff;
-  color: #0055cc;
+  border-radius: var(--radius-4);
+  background: var(--accent-tint);
+  color: var(--accent-strong);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-4);
+  font-weight: var(--fw-4);
 }
 
 .popup-actions {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .open-button {
   width: 100%;
   min-height: 42px;
   border: 0;
-  border-radius: 8px;
-  background: #0c66e4;
-  color: #ffffff;
+  border-radius: var(--radius-5);
+  background: var(--accent);
+  color: var(--color-white);
   cursor: pointer;
   font: inherit;
-  font-weight: 700;
+  font-weight: var(--fw-3);
 }
 
 .open-button:hover:not(:disabled) {
-  background: #0055cc;
+  background: var(--accent-strong);
 }
 
 .open-button:focus-visible {
-  outline: 3px solid #85b8ff;
+  outline: 3px solid var(--accent-mid);
   outline-offset: 2px;
 }
 
@@ -215,11 +211,11 @@ h1 {
   min-height: 36px;
   border: 0;
   background: transparent;
-  color: #0c66e4;
+  color: var(--accent);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-4);
+  font-weight: var(--fw-3);
 }
 
 .refresh-button:disabled {
@@ -230,35 +226,35 @@ h1 {
 .error {
   margin: 12px 0 0;
   color: #ae2a19;
-  font-size: 12px;
+  font-size: var(--font-size-4);
 }
 
 .success {
   margin: 12px 0;
-  color: #216e4e;
-  font-size: 12px;
+  color: var(--success-text);
+  font-size: var(--font-size-4);
 }
 
 .privacy-note {
   margin: 16px 0 0;
-  color: #626f86;
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-3);
   text-align: center;
 }
 
 .update-section {
   margin: 14px 0 0;
-  border: 1px solid #dfe1e6;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-7);
   padding: 10px 12px;
-  background: #ffffff;
-  color: #44546f;
-  font-size: 12px;
+  background: var(--color-white);
+  color: var(--text-muted);
+  font-size: var(--font-size-4);
 }
 
 .update-section summary {
   cursor: pointer;
-  font-weight: 700;
+  font-weight: var(--fw-3);
 }
 
 .update-status {
@@ -267,7 +263,7 @@ h1 {
 
 .update-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 8px;
 }
 
@@ -275,13 +271,13 @@ h1 {
   flex: 1;
   min-height: 32px;
   border: 0;
-  border-radius: 7px;
-  background: #e9f2ff;
-  color: #0055cc;
+  border-radius: var(--radius-4);
+  background: var(--accent-tint);
+  color: var(--accent-strong);
   cursor: pointer;
   font: inherit;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--font-size-3);
+  font-weight: var(--fw-3);
 }
 
 .update-actions button:disabled {

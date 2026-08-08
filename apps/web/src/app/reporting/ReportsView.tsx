@@ -235,17 +235,24 @@ function buildIssueTree(issues: ReportingIssueSnapshot[]): IssueTreeNode[] {
   const toNode = (issue: ReportingIssueSnapshot): IssueTreeNode => ({
     issue,
     children: (childrenById.get(issue.id) ?? [])
-      .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }))
+      .sort((left, right) =>
+        left.key.localeCompare(right.key, undefined, { numeric: true }),
+      )
       .map(toNode),
   });
   return roots
-    .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }))
+    .sort((left, right) =>
+      left.key.localeCompare(right.key, undefined, { numeric: true }),
+    )
     .map(toNode);
 }
 
 // Keeps a node only if it (or a descendant) actually changed during the period, while
 // still surfacing untouched ancestors so the Story → Task → Subtask/Bug shape stays intact.
-function pruneToChanged(nodes: IssueTreeNode[], changedIds: Set<string>): IssueTreeNode[] {
+function pruneToChanged(
+  nodes: IssueTreeNode[],
+  changedIds: Set<string>,
+): IssueTreeNode[] {
   return nodes.flatMap((node) => {
     const children = pruneToChanged(node.children, changedIds);
     if (!changedIds.has(node.issue.id) && children.length === 0) return [];
@@ -285,7 +292,9 @@ function IssueTreeItem({
       <div
         className={`report-issue-tree-row ${changed ? "" : "report-issue-tree-row-context"}`}
       >
-        <span className={`report-issue-tree-type ${issueTypeAccentClass(issue.issueType.name)}`}>
+        <span
+          className={`report-issue-tree-type ${issueTypeAccentClass(issue.issueType.name)}`}
+        >
           {issue.issueType.name}
         </span>
         <a
@@ -355,7 +364,10 @@ function IssueScopeTree({
   activityLog: ActivityLogEntry[];
   statusMapping: BoardReportConfiguration;
 }) {
-  const changedIds = useMemo(() => new Set(changes.map((event) => event.issueId)), [changes]);
+  const changedIds = useMemo(
+    () => new Set(changes.map((event) => event.issueId)),
+    [changes],
+  );
   const entriesByIssueKey = useMemo(() => {
     const map = new Map<string, ActivityLogEntry[]>();
     for (const entry of activityLog) {
@@ -415,7 +427,9 @@ function DailyWeeklyOutput({
   const summary = snapshot.result.executiveSummary;
   const activityLog = buildActivityLog(snapshot.result.activity);
   const [expandedPeople, setExpandedPeople] = useState<Set<string>>(new Set());
-  const [showFinishedByPerson, setShowFinishedByPerson] = useState<Set<string>>(new Set());
+  const [showFinishedByPerson, setShowFinishedByPerson] = useState<Set<string>>(
+    new Set(),
+  );
   const scope = snapshot.request.scope;
   const scopedIssues =
     scope.kind === "assignee"
@@ -656,7 +670,9 @@ function DailyWeeklyOutput({
                         />
                         <span>
                           Show finished
-                          {!showFinished && finishedCount > 0 ? ` (${finishedCount})` : ""}
+                          {!showFinished && finishedCount > 0
+                            ? ` (${finishedCount})`
+                            : ""}
                         </span>
                       </label>
                       <span>Click an issue to open it in Jira</span>
@@ -1013,9 +1029,9 @@ export function ReportsView({
           </p>
         ) : null}
         <p className="field-help">
-          Changelog and worklog history is cached per issue. Shift-click Generate report to
-          re-read it from Jira — needed only when history was edited outside Jira&apos;s
-          normal flow.
+          Changelog and worklog history is cached per issue. Shift-click Generate report
+          to re-read it from Jira — needed only when history was edited outside
+          Jira&apos;s normal flow.
         </p>
         <div className="setup-save-row">
           <button
@@ -1028,11 +1044,7 @@ export function ReportsView({
             {loading ? loadingMessage || "Generating…" : "Generate report"}
           </button>
           {loading ? (
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={cancelGeneration}
-            >
+            <button className="secondary-button" type="button" onClick={cancelGeneration}>
               Cancel
             </button>
           ) : null}
@@ -1058,7 +1070,9 @@ export function ReportsView({
           {snapshot.request.type === "sprint" ? (
             <div className="reporting-output-header">
               <div>
-                <p className="report-eyebrow">GENERATED {formatDate(snapshot.generatedAt)}</p>
+                <p className="report-eyebrow">
+                  GENERATED {formatDate(snapshot.generatedAt)}
+                </p>
                 <h3>
                   {snapshot.board.name} · {snapshot.request.type.toUpperCase()}
                 </h3>
@@ -1177,8 +1191,10 @@ export function ReportsView({
                 </strong>
                 <span>
                   {formatDate(item.periodStart)} – {formatDate(item.periodEnd)} ·{" "}
-                  {item.scope.kind === "assignee" ? (item.assigneeName ?? "Assignee") : "Team"} ·{" "}
-                  {item.complete ? "Complete" : "Partial"}
+                  {item.scope.kind === "assignee"
+                    ? (item.assigneeName ?? "Assignee")
+                    : "Team"}{" "}
+                  · {item.complete ? "Complete" : "Partial"}
                 </span>
                 <span>Generated {formatDate(item.generatedAt)}</span>
               </button>

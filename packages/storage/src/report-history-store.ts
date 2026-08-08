@@ -1,4 +1,8 @@
-import type { GeneratedReportSnapshot, ReportScope, ReportType } from "@power-view/domain";
+import type {
+  GeneratedReportSnapshot,
+  ReportScope,
+  ReportType,
+} from "@power-view/domain";
 
 export interface ReportHistoryFilter {
   jiraBaseUrl?: string;

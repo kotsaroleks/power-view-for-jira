@@ -23,8 +23,18 @@ const projects = {
 };
 
 const fields = [
-  { id: "customfield_10010", name: "Planned Start", custom: true, schema: { type: "date" } },
-  { id: "duedate", name: "Due date", custom: false, schema: { type: "date", system: "duedate" } },
+  {
+    id: "customfield_10010",
+    name: "Planned Start",
+    custom: true,
+    schema: { type: "date" },
+  },
+  {
+    id: "duedate",
+    name: "Due date",
+    custom: false,
+    schema: { type: "date", system: "duedate" },
+  },
   {
     id: "customfield_10014",
     name: "Epic Link",
@@ -91,7 +101,9 @@ const projectStatuses = [
 const jiraStatuses = projectStatuses[0]!.statuses;
 
 const boardPage = {
-  values: [{ id: 1296, name: "8.1 Aria", type: "scrum", location: { projectKey: "LBR" } }],
+  values: [
+    { id: 1296, name: "8.1 Aria", type: "scrum", location: { projectKey: "LBR" } },
+  ],
   startAt: 0,
   maxResults: 50,
   total: 1,

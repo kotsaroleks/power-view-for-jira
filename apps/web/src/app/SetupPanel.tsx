@@ -990,233 +990,233 @@ export function SetupPanel({
             <summary>Advanced: query, completed statuses, and date fields</summary>
 
             <div className="accordion-body">
-            <label>
-              <span>JQL query</span>
-              <textarea
-                value={jql}
-                rows={4}
-                maxLength={10_000}
-                placeholder='project = "POWER" ORDER BY Rank ASC'
-                onChange={(event) => {
-                  setJql(event.target.value);
-                  setSaveStatus("idle");
-                  invalidateIssuePreview();
-                }}
-              />
-            </label>
-
-            {recentJql.length > 0 ? (
               <label>
-                <span>Recent JQL</span>
-                <select
-                  aria-label="Recent JQL"
-                  value=""
+                <span>JQL query</span>
+                <textarea
+                  value={jql}
+                  rows={4}
+                  maxLength={10_000}
+                  placeholder='project = "POWER" ORDER BY Rank ASC'
                   onChange={(event) => {
-                    if (event.target.value) {
-                      setJql(event.target.value);
-                      setSaveStatus("idle");
-                      invalidateIssuePreview();
-                    }
+                    setJql(event.target.value);
+                    setSaveStatus("idle");
+                    invalidateIssuePreview();
                   }}
-                >
-                  <option value="">Choose a recent query…</option>
-                  {recentJql.map((query) => (
-                    <option key={query} value={query}>
-                      {query}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
-            ) : null}
 
-            <fieldset>
-              <legend>Completed statuses</legend>
-              <p className="field-help">
-                This board-level mapping is inherited by Board Health and every report.
-              </p>
-              {statusResolutionWarning ? (
-                <p className="field-warning" role="status">
-                  {statusResolutionWarning}
-                </p>
-              ) : null}
-              <div className="reporting-status-list">
-                {statusOptions.map((status) => (
-                  <label key={status.id}>
-                    <input
-                      type="checkbox"
-                      checked={completedStatusIds.includes(status.id)}
-                      onChange={() => {
-                        setCompletedStatusIds((current) =>
-                          current.includes(status.id)
-                            ? current.filter((id) => id !== status.id)
-                            : [...current, status.id],
-                        );
+              {recentJql.length > 0 ? (
+                <label>
+                  <span>Recent JQL</span>
+                  <select
+                    aria-label="Recent JQL"
+                    value=""
+                    onChange={(event) => {
+                      if (event.target.value) {
+                        setJql(event.target.value);
                         setSaveStatus("idle");
-                      }}
-                    />
-                    <span>{status.name}</span>
-                  </label>
-                ))}
-                {selectedBoard &&
-                boardLoadState === "ready" &&
-                statusOptions.length === 0 ? (
-                  <span>No statuses were returned for this board.</span>
+                        invalidateIssuePreview();
+                      }
+                    }}
+                  >
+                    <option value="">Choose a recent query…</option>
+                    {recentJql.map((query) => (
+                      <option key={query} value={query}>
+                        {query}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+
+              <fieldset>
+                <legend>Completed statuses</legend>
+                <p className="field-help">
+                  This board-level mapping is inherited by Board Health and every report.
+                </p>
+                {statusResolutionWarning ? (
+                  <p className="field-warning" role="status">
+                    {statusResolutionWarning}
+                  </p>
                 ) : null}
-              </div>
-            </fieldset>
-
-            <fieldset>
-              <legend>Date field mapping</legend>
-              <p className="field-help">
-                Candidates are ranked, but Power View never selects an uncertain custom
-                field automatically.
-              </p>
-              <div className="candidate-row">
-                <span>Start suggestions</span>
-                <strong>
-                  {startCandidates
-                    .slice(0, 2)
-                    .map((candidate) => candidate.name)
-                    .join(", ") || "No date candidates"}
-                </strong>
-              </div>
-              <label>
-                <span>Start date field</span>
-                <select
-                  aria-label="Start date field"
-                  value={fieldMapping.startDateFieldId ?? ""}
-                  onChange={(event) =>
-                    updateMapping("startDateFieldId", event.target.value)
-                  }
-                >
-                  <option value="">Use Jira fallback rules</option>
-                  {dateFields.map((field) => (
-                    <option key={field.id} value={field.id}>
-                      {fieldOptionLabel(field)}
-                    </option>
+                <div className="reporting-status-list">
+                  {statusOptions.map((status) => (
+                    <label key={status.id}>
+                      <input
+                        type="checkbox"
+                        checked={completedStatusIds.includes(status.id)}
+                        onChange={() => {
+                          setCompletedStatusIds((current) =>
+                            current.includes(status.id)
+                              ? current.filter((id) => id !== status.id)
+                              : [...current, status.id],
+                          );
+                          setSaveStatus("idle");
+                        }}
+                      />
+                      <span>{status.name}</span>
+                    </label>
                   ))}
-                </select>
-              </label>
+                  {selectedBoard &&
+                  boardLoadState === "ready" &&
+                  statusOptions.length === 0 ? (
+                    <span>No statuses were returned for this board.</span>
+                  ) : null}
+                </div>
+              </fieldset>
 
-              <div className="candidate-row">
-                <span>End suggestions</span>
-                <strong>
-                  {endCandidates
-                    .slice(0, 2)
-                    .map((candidate) => candidate.name)
-                    .join(", ") || "No date candidates"}
-                </strong>
-              </div>
-              <label>
-                <span>End date field</span>
-                <select
-                  aria-label="End date field"
-                  value={fieldMapping.endDateFieldId ?? ""}
-                  onChange={(event) =>
-                    updateMapping("endDateFieldId", event.target.value)
-                  }
-                >
-                  <option value="">Use due date and fallback rules</option>
-                  {dateFields.map((field) => (
-                    <option key={field.id} value={field.id}>
-                      {fieldOptionLabel(field)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </fieldset>
+              <fieldset>
+                <legend>Date field mapping</legend>
+                <p className="field-help">
+                  Candidates are ranked, but Power View never selects an uncertain custom
+                  field automatically.
+                </p>
+                <div className="candidate-row">
+                  <span>Start suggestions</span>
+                  <strong>
+                    {startCandidates
+                      .slice(0, 2)
+                      .map((candidate) => candidate.name)
+                      .join(", ") || "No date candidates"}
+                  </strong>
+                </div>
+                <label>
+                  <span>Start date field</span>
+                  <select
+                    aria-label="Start date field"
+                    value={fieldMapping.startDateFieldId ?? ""}
+                    onChange={(event) =>
+                      updateMapping("startDateFieldId", event.target.value)
+                    }
+                  >
+                    <option value="">Use Jira fallback rules</option>
+                    {dateFields.map((field) => (
+                      <option key={field.id} value={field.id}>
+                        {fieldOptionLabel(field)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="candidate-row">
+                  <span>End suggestions</span>
+                  <strong>
+                    {endCandidates
+                      .slice(0, 2)
+                      .map((candidate) => candidate.name)
+                      .join(", ") || "No date candidates"}
+                  </strong>
+                </div>
+                <label>
+                  <span>End date field</span>
+                  <select
+                    aria-label="End date field"
+                    value={fieldMapping.endDateFieldId ?? ""}
+                    onChange={(event) =>
+                      updateMapping("endDateFieldId", event.target.value)
+                    }
+                  >
+                    <option value="">Use due date and fallback rules</option>
+                    {dateFields.map((field) => (
+                      <option key={field.id} value={field.id}>
+                        {fieldOptionLabel(field)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </fieldset>
             </div>
           </details>
 
           <details className="optional-fields">
             <summary>Optional reporting, hierarchy, and story-point fields</summary>
             <div className="accordion-body">
-            <p className="field-help">
-              Map Sprint to enable planning coverage and the current-sprint report.
-              Missing report data is shown as unavailable, never as zero.
-            </p>
-            <label>
-              <span>Sprint field</span>
-              <select
-                aria-label="Sprint field"
-                value={fieldMapping.sprintFieldId ?? ""}
-                onChange={(event) => updateMapping("sprintFieldId", event.target.value)}
-              >
-                <option value="">Not configured</option>
-                {allFields.map((field) => (
-                  <option key={field.id} value={field.id}>
-                    {fieldOptionLabel(field)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Hierarchy field</span>
-              <select
-                aria-label="Hierarchy field"
-                value={fieldMapping.hierarchyFieldId ?? ""}
-                onChange={(event) =>
-                  updateMapping("hierarchyFieldId", event.target.value)
-                }
-              >
-                <option value="">Use Jira parent relationships</option>
-                {allFields.map((field) => (
-                  <option key={field.id} value={field.id}>
-                    {fieldOptionLabel(field)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Story points field</span>
-              <select
-                aria-label="Story points field"
-                value={fieldMapping.storyPointsFieldId ?? ""}
-                onChange={(event) =>
-                  updateMapping("storyPointsFieldId", event.target.value)
-                }
-              >
-                <option value="">Not configured</option>
-                {allFields.map((field) => (
-                  <option key={field.id} value={field.id}>
-                    {fieldOptionLabel(field)}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <p className="field-help">
+                Map Sprint to enable planning coverage and the current-sprint report.
+                Missing report data is shown as unavailable, never as zero.
+              </p>
+              <label>
+                <span>Sprint field</span>
+                <select
+                  aria-label="Sprint field"
+                  value={fieldMapping.sprintFieldId ?? ""}
+                  onChange={(event) => updateMapping("sprintFieldId", event.target.value)}
+                >
+                  <option value="">Not configured</option>
+                  {allFields.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {fieldOptionLabel(field)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Hierarchy field</span>
+                <select
+                  aria-label="Hierarchy field"
+                  value={fieldMapping.hierarchyFieldId ?? ""}
+                  onChange={(event) =>
+                    updateMapping("hierarchyFieldId", event.target.value)
+                  }
+                >
+                  <option value="">Use Jira parent relationships</option>
+                  {allFields.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {fieldOptionLabel(field)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Story points field</span>
+                <select
+                  aria-label="Story points field"
+                  value={fieldMapping.storyPointsFieldId ?? ""}
+                  onChange={(event) =>
+                    updateMapping("storyPointsFieldId", event.target.value)
+                  }
+                >
+                  <option value="">Not configured</option>
+                  {allFields.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {fieldOptionLabel(field)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           </details>
 
           <details className="optional-fields duration-settings">
             <summary>Default durations for inferred end dates</summary>
             <div className="accordion-body">
-            <p className="field-help">
-              Values are calendar days and are saved with this project setup.
-            </p>
-            <div className="duration-grid">
-              {(
-                [
-                  ["subtask", "Subtask"],
-                  ["task", "Task"],
-                  ["bug", "Bug"],
-                  ["story", "Story"],
-                  ["epic", "Epic"],
-                  ["unknown", "Other"],
-                ] as const
-              ).map(([key, label]) => (
-                <label key={key}>
-                  <span>{label}</span>
-                  <input
-                    aria-label={`${label} default duration`}
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={defaultDurations[key]}
-                    onChange={(event) => updateDuration(key, event.target.value)}
-                  />
-                </label>
-              ))}
-            </div>
+              <p className="field-help">
+                Values are calendar days and are saved with this project setup.
+              </p>
+              <div className="duration-grid">
+                {(
+                  [
+                    ["subtask", "Subtask"],
+                    ["task", "Task"],
+                    ["bug", "Bug"],
+                    ["story", "Story"],
+                    ["epic", "Epic"],
+                    ["unknown", "Other"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key}>
+                    <span>{label}</span>
+                    <input
+                      aria-label={`${label} default duration`}
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={defaultDurations[key]}
+                      onChange={(event) => updateDuration(key, event.target.value)}
+                    />
+                  </label>
+                ))}
+              </div>
             </div>
           </details>
 

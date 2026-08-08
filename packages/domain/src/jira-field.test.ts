@@ -107,9 +107,9 @@ describe("date field discovery", () => {
   });
 
   it("accepts a real sprint field mapped as sprint", () => {
-    expect(
-      validateFieldMapping({ sprintFieldId: "customfield_10021" }, fields),
-    ).toEqual([]);
+    expect(validateFieldMapping({ sprintFieldId: "customfield_10021" }, fields)).toEqual(
+      [],
+    );
   });
 
   it("allows a flexible, non-date field mapped as hierarchy", () => {

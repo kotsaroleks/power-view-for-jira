@@ -295,7 +295,9 @@ function makeSnapshot(
       },
     },
     board: { id: boardId, name: boardName, type: "scrum", projectKeys: ["AL"] },
-    ...(sprintName ? { sprint: { id: sprintId ?? "77", name: sprintName, state: "active" } } : {}),
+    ...(sprintName
+      ? { sprint: { id: sprintId ?? "77", name: sprintName, state: "active" } }
+      : {}),
     statusMapping: {
       schemaVersion: 1,
       jiraBaseUrl: baseUrl,
@@ -443,7 +445,12 @@ describe.each(stores)("%s", (_name, create) => {
   it("includes sprintName for a sprint report", async () => {
     const store = create();
     await store.save(
-      makeSnapshot({ id: "sprint-report", type: "sprint", sprintId: "77", sprintName: "Sprint 42" }),
+      makeSnapshot({
+        id: "sprint-report",
+        type: "sprint",
+        sprintId: "77",
+        sprintName: "Sprint 42",
+      }),
     );
 
     const [item] = await store.list();
