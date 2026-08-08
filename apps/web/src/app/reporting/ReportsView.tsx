@@ -99,8 +99,10 @@ function printableReport(
       .replaceAll('"', "&quot;");
   const printWindow = window.open("", "power-view-report-print", "width=900,height=700");
   if (!printWindow) return;
+  const reportFontFamily =
+    'Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   printWindow.document.write(
-    `<!doctype html><html lang="${escapeHtml(language)}"><head><title>${escapeHtml(snapshot.board.name)} report</title><style>body{font-family:Arial,sans-serif;padding:32px;color:#172b4d}pre{white-space:pre-wrap;font:14px/1.6 Arial,sans-serif}h1{font-size:24px}</style></head><body><h1>${escapeHtml(snapshot.board.name)} · ${escapeHtml(snapshot.request.type.toUpperCase())}</h1><pre>${escapeHtml(text)}</pre></body></html>`,
+    `<!doctype html><html lang="${escapeHtml(language)}"><head><title>${escapeHtml(snapshot.board.name)} report</title><style>body{font-family:${reportFontFamily};padding:32px;color:#172b4d}pre{white-space:pre-wrap;font:14px/1.6 ${reportFontFamily}}h1{font-size:24px}</style></head><body><h1>${escapeHtml(snapshot.board.name)} · ${escapeHtml(snapshot.request.type.toUpperCase())}</h1><pre>${escapeHtml(text)}</pre></body></html>`,
   );
   printWindow.document.close();
   printWindow.focus();
