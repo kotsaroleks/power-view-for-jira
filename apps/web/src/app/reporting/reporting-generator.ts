@@ -70,6 +70,7 @@ async function loadAllIssues(
   boardId: string,
   sprintId: string | undefined,
   storyPointsFieldId: string | undefined,
+  onLoaded?: (loaded: number) => void,
 ): Promise<{ issues: ReportingIssueSnapshot[]; truncated: boolean }> {
   const issues: ReportingIssueSnapshot[] = [];
   const seen = new Set<string>();
@@ -98,7 +99,7 @@ async function loadAllIssues(
         issues.push(issue);
       }
     }
-    options.onProgress?.({ stage: "issues", loaded: issues.length });
+    onLoaded?.(issues.length);
     cursor = page.nextCursor;
     if (page.truncated) truncated = true;
     hasMore = !page.isLast && cursor !== undefined && issues.length < MAX_REPORT_ISSUES;
@@ -209,11 +210,37 @@ export async function generateReport(
   const generatedAt = new Date().toISOString();
   const period = buildReportPeriod(request.type, request.localDate, generatedAt, sprint);
   // Both loads need storyPointsFieldId from the board configuration above, but not from
-  // each other.
+  // each other. They run concurrently, so each keeps its own counter and the progress
+  // emitted is the sum — otherwise the two interleaved streams make the count jump around.
+  let currentIssuesLoaded = 0;
+  let boardIssuesLoaded = 0;
+  const emitIssuesProgress = () =>
+    options.onProgress?.({
+      stage: "issues",
+      loaded: currentIssuesLoaded + boardIssuesLoaded,
+    });
   const [currentPage, boardPage] = await Promise.all([
-    loadAllIssues(options, request.boardId, request.sprintId, storyPointsFieldId),
+    loadAllIssues(
+      options,
+      request.boardId,
+      request.sprintId,
+      storyPointsFieldId,
+      (loaded) => {
+        currentIssuesLoaded = loaded;
+        emitIssuesProgress();
+      },
+    ),
     request.type === "sprint"
-      ? loadAllIssues(options, request.boardId, undefined, storyPointsFieldId)
+      ? loadAllIssues(
+          options,
+          request.boardId,
+          undefined,
+          storyPointsFieldId,
+          (loaded) => {
+            boardIssuesLoaded = loaded;
+            emitIssuesProgress();
+          },
+        )
       : undefined,
   ]);
   const currentIssues = currentPage.issues;
@@ -239,6 +266,31 @@ export async function generateReport(
   };
   // The cache wraps the two fetches rather than the client: the client stays
   // transport-only and unit-testable without IndexedDB.
+  //
+  // `onCacheHits`'s `total` is the full candidate set for that stage (it runs before the
+  // cache/miss split), which is what the UI should show as the denominator. The client's
+  // own `onProgress` `total` is `misses.length` — never use it, or a mostly-cached run
+  // renders nonsense like 1200/300.
+  let changesCached = 0;
+  let changesTotal = 0;
+  let changesCompleted = 0;
+  const emitChangesProgress = () =>
+    options.onProgress?.({
+      stage: "changes",
+      loaded: changesCached + changesCompleted,
+      cached: changesCached,
+      total: changesTotal,
+    });
+  let worklogsCached = 0;
+  let worklogsTotal = 0;
+  let worklogsCompleted = 0;
+  const emitWorklogsProgress = () =>
+    options.onProgress?.({
+      stage: "worklogs",
+      loaded: worklogsCached + worklogsCompleted,
+      cached: worklogsCached,
+      total: worklogsTotal,
+    });
   const [changelogOutcome, worklogOutcome] = await Promise.allSettled([
     fetchWithHistoryCache<ReportChangeEvent>({
       ...(options.historyCache ? { cache: options.historyCache } : {}),
@@ -248,13 +300,21 @@ export async function generateReport(
       fingerprint: changelogFingerprint(changelogRequest),
       ...(options.forceRefresh ? { forceRefresh: true } : {}),
       issueIdOf: (event) => event.issueId,
-      onCacheHits: (cached, total) =>
-        options.onProgress?.({ stage: "changes", cached, total }),
-      fetch: (issues) =>
+      onCacheHits: (cached, total) => {
+        changesCached = cached;
+        changesTotal = total;
+        emitChangesProgress();
+      },
+      onFetchProgress: (completed) => {
+        changesCompleted = completed;
+        emitChangesProgress();
+      },
+      fetch: (issues, onProgress) =>
         client.getIssueChangelogs({
           issues,
           ...changelogRequest,
           ...(options.signal ? { signal: options.signal } : {}),
+          ...(onProgress ? { onProgress } : {}),
         }),
     }),
     fetchWithHistoryCache<ReportWorklog>({
@@ -265,14 +325,22 @@ export async function generateReport(
       fingerprint: worklogFingerprint(period.start, period.dataCutoff),
       ...(options.forceRefresh ? { forceRefresh: true } : {}),
       issueIdOf: (worklog) => worklog.issueId,
-      onCacheHits: (cached, total) =>
-        options.onProgress?.({ stage: "worklogs", cached, total }),
-      fetch: (issues) =>
+      onCacheHits: (cached, total) => {
+        worklogsCached = cached;
+        worklogsTotal = total;
+        emitWorklogsProgress();
+      },
+      onFetchProgress: (completed) => {
+        worklogsCompleted = completed;
+        emitWorklogsProgress();
+      },
+      fetch: (issues, onProgress) =>
         client.getIssueWorklogs({
           issues,
           periodStart: period.start,
           periodEnd: period.dataCutoff,
           ...(options.signal ? { signal: options.signal } : {}),
+          ...(onProgress ? { onProgress } : {}),
         }),
     }),
   ]);
@@ -294,7 +362,6 @@ export async function generateReport(
     ...addCreatedEvents(candidateIssues, period.start, period.dataCutoff),
   ]);
 
-  options.onProgress?.({ stage: "worklogs" });
   let worklogs: ReportWorklog[] = [];
   let worklogUnavailable = false;
   let worklogErrorDetail: string | undefined;

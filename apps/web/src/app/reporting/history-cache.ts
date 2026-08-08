@@ -51,9 +51,14 @@ export interface CachedHistoryFetch<TEntry> {
   issues: readonly HistoryIssueRef[];
   fingerprint: string;
   forceRefresh?: boolean;
-  fetch: (issues: Array<{ id: string; key: string }>) => Promise<TEntry[]>;
+  fetch: (
+    issues: Array<{ id: string; key: string }>,
+    onProgress?: (completed: number) => void,
+  ) => Promise<TEntry[]>;
   issueIdOf: (entry: TEntry) => string;
   onCacheHits?: (cached: number, total: number) => void;
+  /** Fired as `fetch` reports issues completed, so the caller can add it to the cache count. */
+  onFetchProgress?: (completed: number) => void;
 }
 
 /**
@@ -93,6 +98,7 @@ export async function fetchWithHistoryCache<TEntry>(
   const misses = issues.filter((issue) => !hits.has(issue.id));
   const fetched = await options.fetch(
     misses.map((issue) => ({ id: issue.id, key: issue.key })),
+    options.onFetchProgress,
   );
 
   // Results come back flattened across issues, so re-attribute them by issue id. An issue

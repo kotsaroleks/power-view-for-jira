@@ -439,8 +439,30 @@ change counts, so this is low priority — but it is the last one in that functi
 
 ### Acceptance
 
-The Diagnostics page still shows the last request and the correct counters after a report
-run. A permission revocation is still noticed within the memo window.
+The Diagnostics page still shows the last request, the last error, and
+`lastSuccessfulConnectionAt` after a report run. (`DiagnosticsState` has no counters —
+`lastRequest`/`lastErrorCode`/`cacheStatus`/`loadedIssueCount` are the whole schema; this
+task never adds any.) A revoked host permission is refused on the next request, not up to
+2s later.
+
+### Status: done
+
+Landed as specified. The context/permission gate is memoized 2s, success-path only, cleared
+on both `contextStore.save()` sites and on `chrome.permissions.onRemoved`/`onAdded` —
+the permission listeners are load-bearing, not redundant with the TTL: without them a
+revoked host stays reachable for up to 2s. The post-`refreshContext` re-read passes
+`{ fresh: true }` explicitly rather than relying solely on the save-triggered invalidation.
+
+Diagnostics writes coalesce on a trailing 500ms debounce but still enqueue onto the
+existing `this.writes` chain — only the scheduling changed, not the serialization, so a
+debounced `recordRequest` flush cannot race a concurrent `recordIssueLoad()`. A
+`connectionSucceeded` or `errorCode` record flushes immediately, uncoalesced — those are
+real state and the reason the Diagnostics page exists. `getState()` forces a pending flush
+before reading. The debounced path returns an already-resolved promise, so `recordRequest`
+callers do not gain a 500ms wait on every request.
+
+`pnpm format:check` flags 8 pre-existing files, not 7 — `packages/domain/src/jira-field.test.ts`
+was already unformatted before this branch; the task file's earlier count was off by one.
 
 ---
 
@@ -461,6 +483,32 @@ run. A permission revocation is still noticed within the memo window.
   `JIRA_REQUEST_CANCEL` → `jira-request-handler.ts:326`);
   `BoardHealthReport.tsx:306,365` and `SetupPanel.tsx:557-563` show the established
   pattern to copy.
+
+### Status: done
+
+Landed. The generator now emits real counts: `loaded: cached + completed` against
+`total: issues.length` — the client's own `onProgress` total is `misses.length` and is
+discarded, since forwarding it would render nonsense like `1200 / 300` on a mostly-cached
+run. Cache hits alone now emit `loaded: cached` too, so a fully-cached re-run (zero misses,
+zero client progress events) still shows a count instead of going silent. The two
+concurrent `loadAllIssues` calls on a sprint report each keep their own counter and emit
+the sum, fixing the non-monotonic `issues` count noted in T1's status.
+
+`createProgressThrottle` (moved to its own module, `progress-throttle.ts`, to keep
+`react-refresh` happy about `ReportsView.tsx` only exporting components) coalesces to one
+state update per ~100ms, with an unthrottled flush on stage change and a trailing timer so
+the final count in a burst is never dropped — without it, a 5,000-issue board would drive
+5,000 renders during the exact phase this task exists to make feel fast.
+
+Cancellation: the `AbortController` moved into a ref, a Cancel button calls `abort()`, and
+`useEffect(() => () => controllerRef.current?.abort(), [])` (empty deps, so it fires only
+on unmount, not on every dependency change) aborts an in-flight run when the view goes
+away. An aborted run surfaces as a status message, not the red error state.
+
+One pre-existing test, `history-cache.test.ts`'s "reports cache hits through the progress
+callback", asserted the old cache-hit event shape with no `loaded` field — exactly what
+this task adds. Updated to expect `loaded`, not edited to dodge a break: the old assertion
+predated the requirement this task implements.
 
 ---
 

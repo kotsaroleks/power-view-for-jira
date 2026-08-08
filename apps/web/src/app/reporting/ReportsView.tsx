@@ -23,7 +23,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChevronIcon } from "../ChevronIcon";
-import { generateReport } from "./reporting-generator";
+import { createProgressThrottle, type ProgressThrottleHandle } from "./progress-throttle";
+import { generateReport, type ReportGenerationProgress } from "./reporting-generator";
 import { renderStandupText } from "./standup";
 
 export interface ReportsViewProps {
@@ -58,6 +59,31 @@ function formatDate(value: string): string {
 
 function percentage(value: number | null): string {
   return value === null ? "N/A" : `${value.toFixed(1)}%`;
+}
+
+const progressNumberFormat = new Intl.NumberFormat("uk-UA");
+
+const PROGRESS_STAGE_LABELS: Record<ReportGenerationProgress["stage"], string> = {
+  board: "Loading board",
+  sprint: "Loading sprint",
+  issues: "Loading issues",
+  changes: "Loading changes",
+  worklogs: "Loading worklogs",
+  calculating: "Calculating",
+  saving: "Saving",
+};
+
+function formatProgressMessage(progress: ReportGenerationProgress): string {
+  const label = PROGRESS_STAGE_LABELS[progress.stage];
+  if (progress.loaded === undefined) return `${label}…`;
+  const total =
+    progress.total !== undefined
+      ? ` / ${progressNumberFormat.format(progress.total)}`
+      : "";
+  const cached = progress.cached
+    ? ` (${progressNumberFormat.format(progress.cached)} cached)`
+    : "";
+  return `${label}… ${progressNumberFormat.format(progress.loaded)}${total}${cached}`;
 }
 
 function printableReport(
@@ -706,6 +732,16 @@ export function ReportsView({
   const [snapshot, setSnapshot] = useState<GeneratedReportSnapshot>();
   const [history, setHistory] = useState<ReportHistoryItem[]>([]);
   const outputRef = useRef<HTMLDivElement>(null);
+  const controllerRef = useRef<AbortController | null>(null);
+  const progressThrottleRef = useRef<ProgressThrottleHandle | null>(null);
+
+  useEffect(
+    () => () => {
+      controllerRef.current?.abort();
+      progressThrottleRef.current?.cancel();
+    },
+    [],
+  );
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -773,6 +809,11 @@ export function ReportsView({
       return;
     }
     const controller = new AbortController();
+    controllerRef.current = controller;
+    const throttle = createProgressThrottle((progress) =>
+      setLoadingMessage(formatProgressMessage(progress)),
+    );
+    progressThrottleRef.current = throttle;
     setLoading(true);
     setError(undefined);
     setStatusMessage(undefined);
@@ -792,12 +833,7 @@ export function ReportsView({
           ...(type === "sprint" ? { progressMode } : {}),
           statusMapping,
         },
-        onProgress: (progress) =>
-          setLoadingMessage(
-            progress.cached
-              ? `${progress.stage} (${progress.cached}/${progress.total ?? 0} cached)`
-              : progress.stage,
-          ),
+        onProgress: throttle.onProgress,
         signal: controller.signal,
         ...(historyCache ? { historyCache } : {}),
         ...(forceRefresh ? { forceRefresh: true } : {}),
@@ -807,11 +843,22 @@ export function ReportsView({
       setStatusMessage("Report generated and saved to local history.");
       await refreshHistory();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Report generation failed.");
+      if (controller.signal.aborted) {
+        setStatusMessage("Report generation cancelled.");
+      } else {
+        setError(cause instanceof Error ? cause.message : "Report generation failed.");
+      }
     } finally {
+      throttle.cancel();
+      if (progressThrottleRef.current === throttle) progressThrottleRef.current = null;
+      if (controllerRef.current === controller) controllerRef.current = null;
       setLoading(false);
       setLoadingMessage("");
     }
+  };
+
+  const cancelGeneration = () => {
+    controllerRef.current?.abort();
   };
 
   const openHistory = async (id: string) => {
@@ -978,15 +1025,24 @@ export function ReportsView({
             title="Shift-click to bypass the cached Jira history."
             onClick={(event) => void generate(event.shiftKey)}
           >
-            {loading ? `Generating… ${loadingMessage}` : "Generate report"}
+            {loading ? loadingMessage || "Generating…" : "Generate report"}
           </button>
+          {loading ? (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={cancelGeneration}
+            >
+              Cancel
+            </button>
+          ) : null}
         </div>
       </div>
 
       {loading ? (
         <div className="reporting-loading" role="status" aria-live="polite">
           <span className="reporting-spinner" aria-hidden="true" />
-          <span>Generating… {loadingMessage}</span>
+          <span>{loadingMessage || "Generating…"}</span>
         </div>
       ) : null}
 

@@ -296,7 +296,12 @@ describe("generateReport history cache", () => {
     const issues = [issue("1"), issue("2")];
     await run(clientFixture(issues), { cache });
 
-    const progress: Array<{ stage: string; cached?: number; total?: number }> = [];
+    const progress: Array<{
+      stage: string;
+      loaded?: number;
+      cached?: number;
+      total?: number;
+    }> = [];
     await generateReport({
       client: clientFixture(issues) as unknown as JiraClient,
       baseUrl,
@@ -314,8 +319,20 @@ describe("generateReport history cache", () => {
       onProgress: (update) => progress.push(update),
     });
 
-    expect(progress).toContainEqual({ stage: "changes", cached: 2, total: 2 });
-    expect(progress).toContainEqual({ stage: "worklogs", cached: 2, total: 2 });
+    // A fully-cached run still reports `loaded` at the cache-hit point — `fetch` never
+    // fires for zero misses, so this is the only progress event the UI would ever see.
+    expect(progress).toContainEqual({
+      stage: "changes",
+      loaded: 2,
+      cached: 2,
+      total: 2,
+    });
+    expect(progress).toContainEqual({
+      stage: "worklogs",
+      loaded: 2,
+      cached: 2,
+      total: 2,
+    });
   });
 
   it("still produces the report when every cache operation throws", async () => {
