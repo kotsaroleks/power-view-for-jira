@@ -4,6 +4,8 @@ import type {
   PersonReportBlock,
 } from "@power-view/domain";
 
+import { buildActivityLog } from "./activity-log";
+
 function dateTime(value: string, language: ReportLanguage): string {
   return new Intl.DateTimeFormat(language === "uk" ? "uk-UA" : "en-GB", {
     timeZone: "Europe/Kyiv",
@@ -18,16 +20,28 @@ function hours(seconds: number, language: ReportLanguage): string {
 }
 
 function personBlock(block: PersonReportBlock, language: ReportLanguage): string[] {
-  const heading = language === "uk" ? block.user.displayName : block.user.displayName;
-  const done = language === "uk" ? "Виконано" : "Done";
-  const active = language === "uk" ? "Поточні задачі" : "Current tasks";
-  const logged = language === "uk" ? "Залоговано" : "Logged";
-  return [
+  const uk = language === "uk";
+  const heading = block.user.displayName;
+  const done = uk ? "Виконано" : "Done";
+  const active = uk ? "Поточні задачі" : "Current tasks";
+  const logged = uk ? "Залоговано" : "Logged";
+  const changedHeading = uk ? "Змінені задачі" : "Changed issues";
+  const lines = [
     heading,
     `- ${done}: ${block.completedIssues.length}`,
     `- ${active}: ${block.assignedIssues.length}`,
     `- ${logged}: ${hours(block.worklogSeconds, language)}`,
   ];
+  const activityLog = buildActivityLog(block.changes);
+  if (activityLog.length > 0) {
+    lines.push(`- ${changedHeading}:`);
+    for (const entry of activityLog) {
+      lines.push(
+        `  - ${entry.issueKey}: ${entry.change} (${dateTime(entry.occurredAt, language)})`,
+      );
+    }
+  }
+  return lines;
 }
 
 export function renderStandupText(
