@@ -259,6 +259,12 @@ async function openPowerView(
       });
     }
     await chrome.windows.update(updatedTab.windowId, { focused: true });
+    // Reusing the tab only refocuses it — the page itself keeps running whatever
+    // build was loaded when it was first opened, and its in-memory app state
+    // (detected board, ready schedule) stays pinned to that first open too.
+    // Reload so it re-detects context on the current Jira page and picks up
+    // any extension rebuild since it was last opened.
+    await chrome.tabs.reload(existingTab.id);
     return existingTab.id;
   }
 

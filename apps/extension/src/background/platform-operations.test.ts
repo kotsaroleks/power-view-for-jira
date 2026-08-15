@@ -75,22 +75,40 @@ class MemoryStorageArea implements StorageArea {
 const sessionStorage = new MemoryStorageArea();
 const tabsSendMessage = vi.fn();
 const tabsGet = vi.fn();
+const tabsQuery = vi.fn();
+const tabsUpdate = vi.fn();
+const tabsCreate = vi.fn();
+const tabsReload = vi.fn();
+const windowsUpdate = vi.fn();
 const scriptingExecuteScript = vi.fn();
 const permissionsContains = vi.fn();
 
 vi.stubGlobal("chrome", {
-  runtime: { id: EXTENSION_ID, getManifest: () => ({ version: "0.1.0" }) },
+  runtime: {
+    id: EXTENSION_ID,
+    getManifest: () => ({ version: "0.1.0" }),
+    getURL: (path: string) => `chrome-extension://${EXTENSION_ID}/${path}`,
+  },
   storage: { session: sessionStorage },
-  tabs: { sendMessage: tabsSendMessage, get: tabsGet },
+  tabs: {
+    sendMessage: tabsSendMessage,
+    get: tabsGet,
+    query: tabsQuery,
+    update: tabsUpdate,
+    create: tabsCreate,
+    reload: tabsReload,
+  },
+  windows: { update: windowsUpdate },
   permissions: { contains: permissionsContains },
   scripting: { executeScript: scriptingExecuteScript },
 });
 
 let executeJiraRequest: MessageHandlerDependencies["executeJiraRequest"];
+let openPowerView: MessageHandlerDependencies["openPowerView"];
 
 beforeAll(async () => {
   ({
-    platformOperations: { executeJiraRequest },
+    platformOperations: { executeJiraRequest, openPowerView },
   } = await import("./platform-operations"));
   await new ContextStore(sessionStorage).save(TAB_ID, context);
 });
@@ -98,6 +116,11 @@ beforeAll(async () => {
 beforeEach(() => {
   tabsSendMessage.mockReset();
   tabsGet.mockReset().mockResolvedValue({ id: TAB_ID, url: context.pageUrl });
+  tabsQuery.mockReset();
+  tabsUpdate.mockReset();
+  tabsCreate.mockReset();
+  tabsReload.mockReset();
+  windowsUpdate.mockReset();
   scriptingExecuteScript.mockReset();
   permissionsContains.mockReset().mockResolvedValue(true);
 });
@@ -166,3 +189,35 @@ describe.each(Object.entries(mutationRequests))(
     });
   },
 );
+
+describe("openPowerView", () => {
+  const extensionSender = {
+    tabId: TAB_ID,
+    url: `chrome-extension://${EXTENSION_ID}/app/index.html`,
+  };
+
+  it("reloads an already-open Power View tab instead of only refocusing it", async () => {
+    const existingTabId = 99;
+    tabsQuery.mockResolvedValue([{ id: existingTabId }]);
+    tabsUpdate.mockResolvedValue({ id: existingTabId, windowId: 1 });
+    windowsUpdate.mockResolvedValue(undefined);
+    tabsReload.mockResolvedValue(undefined);
+
+    const resultTabId = await openPowerView(context, extensionSender);
+
+    expect(resultTabId).toBe(existingTabId);
+    expect(tabsUpdate).toHaveBeenCalledWith(existingTabId, { active: true });
+    expect(tabsReload).toHaveBeenCalledWith(existingTabId);
+    expect(tabsCreate).not.toHaveBeenCalled();
+  });
+
+  it("creates a fresh tab (no reload needed) when none is open yet", async () => {
+    tabsQuery.mockResolvedValue([]);
+    tabsCreate.mockResolvedValue({ id: 42 });
+
+    const resultTabId = await openPowerView(context, extensionSender);
+
+    expect(resultTabId).toBe(42);
+    expect(tabsReload).not.toHaveBeenCalled();
+  });
+});
