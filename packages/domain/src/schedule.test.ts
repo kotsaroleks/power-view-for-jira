@@ -6,10 +6,20 @@ import type {
   NormalizedIssueLink,
 } from "./jira-issue";
 import {
+  applyGanttDrag,
   buildGanttScheduleModel,
   buildIssueHierarchy,
   normalizeDefaultDurations,
 } from "./schedule";
+import type { GanttTask } from "./schedule";
+
+const ganttTask = (overrides: Partial<GanttTask> = {}): GanttTask => ({
+  id: "1", issueKey: "POWER-1", browseUrl: "", name: "Task",
+  start: "2026-08-01", end: "2026-08-05", progress: 0, progressSource: "none",
+  depth: 0, expanded: false, statusName: "To Do", statusCategory: "to-do",
+  issueTypeName: "Task", isSyntheticDate: false, startSource: "jira", endSource: "jira",
+  dependencies: [], ...overrides,
+});
 
 interface IssueOptions {
   parentKey?: string;
@@ -484,5 +494,52 @@ describe("progress and dependencies", () => {
     expect(buildGanttScheduleModel(issues, options)).toEqual(
       buildGanttScheduleModel(issues, options),
     );
+  });
+});
+
+describe("Gantt drag gestures", () => {
+  it("moves both writable dates while preserving the duration", () => {
+    expect(applyGanttDrag(ganttTask(), "move", 3)).toEqual({
+      allowed: true, startDate: "2026-08-04", dueDate: "2026-08-08",
+    });
+  });
+
+  it("resizes only the writable side", () => {
+    expect(applyGanttDrag(ganttTask({ endSource: "children" }), "resize-start", 2)).toEqual({
+      allowed: true, startDate: "2026-08-03",
+    });
+    expect(applyGanttDrag(ganttTask({ startSource: "children" }), "resize-end", 2)).toEqual({
+      allowed: true, dueDate: "2026-08-07",
+    });
+  });
+
+  it("rejects gestures when their Jira field is not writable", () => {
+    for (const [gesture, task] of [
+      ["move", ganttTask({ endSource: "children" })],
+      ["resize-start", ganttTask({ startSource: "children" })],
+      ["resize-end", ganttTask({ endSource: "children" })],
+    ] as const) {
+      const result = applyGanttDrag(task, gesture, 1);
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBeTypeOf("string");
+      expect(result).not.toHaveProperty("startDate");
+      expect(result).not.toHaveProperty("dueDate");
+    }
+  });
+
+  it("rejects date inversion without partial mutations", () => {
+    const startResult = applyGanttDrag(ganttTask(), "resize-start", 10);
+    const endResult = applyGanttDrag(ganttTask(), "resize-end", -10);
+    for (const result of [startResult, endResult]) {
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBeTypeOf("string");
+      expect(result).not.toHaveProperty("startDate");
+      expect(result).not.toHaveProperty("dueDate");
+    }
+  });
+
+  it("returns an empty allowed result for a zero delta", () => {
+    expect(applyGanttDrag(ganttTask({ startSource: "children", endSource: "children" }), "move", 0))
+      .toEqual({ allowed: true });
   });
 });

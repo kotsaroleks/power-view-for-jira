@@ -93,6 +93,56 @@ export interface GanttTask {
   dependencyLinks?: GanttDependency[];
 }
 
+export type GanttDragGesture = "move" | "resize-start" | "resize-end";
+
+export interface GanttDragResult {
+  allowed: boolean;
+  startDate?: string;
+  dueDate?: string;
+  reason?: string;
+}
+
+export function applyGanttDrag(
+  task: GanttTask,
+  gesture: GanttDragGesture,
+  deltaDays: number,
+): GanttDragResult {
+  if (deltaDays === 0) {
+    return { allowed: true };
+  }
+
+  if (gesture === "move") {
+    if (task.startSource !== "jira" || task.endSource !== "jira") {
+      return { allowed: false, reason: "Move requires both start and end dates to be Jira fields." };
+    }
+    return {
+      allowed: true,
+      startDate: addDays(task.start, deltaDays),
+      dueDate: addDays(task.end, deltaDays),
+    };
+  }
+
+  if (gesture === "resize-start") {
+    if (task.startSource !== "jira") {
+      return { allowed: false, reason: "Resizing the start requires the start date to be a Jira field." };
+    }
+    const startDate = addDays(task.start, deltaDays);
+    if (startDate > task.end) {
+      return { allowed: false, reason: "The new start date cannot be after the end date." };
+    }
+    return { allowed: true, startDate };
+  }
+
+  if (task.endSource !== "jira") {
+    return { allowed: false, reason: "Resizing the end requires the end date to be a Jira field." };
+  }
+  const dueDate = addDays(task.end, deltaDays);
+  if (dueDate < task.start) {
+    return { allowed: false, reason: "The new end date cannot be before the start date." };
+  }
+  return { allowed: true, dueDate };
+}
+
 export interface GanttScheduleModel {
   roots: IssueTreeNode[];
   tasks: GanttTask[];

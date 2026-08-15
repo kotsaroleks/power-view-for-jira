@@ -1,7 +1,7 @@
 import type { GanttTask } from "@power-view/domain";
 import { describe, expect, it } from "vitest";
 
-import { nativeGanttRenderer } from "./GanttRenderer";
+import { dateAtOffset, nativeGanttRenderer } from "./GanttRenderer";
 
 const task = {
   id: "1",
@@ -43,6 +43,22 @@ describe("nativeGanttRenderer", () => {
       left: 5 * viewport.dayWidth,
       width: 5 * viewport.dayWidth,
     });
+  });
+
+  it.each(["day", "week", "month"] as const)("round-trips task start offsets at %s zoom", (zoom) => {
+    const viewport = nativeGanttRenderer.createViewport([task], zoom, "2026-07-22");
+    expect(viewport.dayWidth).toBeGreaterThan(0);
+    expect(dateAtOffset(viewport, nativeGanttRenderer.taskBar(task, viewport).left)).toBe(
+      task.start,
+    );
+  });
+
+  it("rounds boundary and mid-day offsets, including negative offsets", () => {
+    const viewport = nativeGanttRenderer.createViewport([task], "day", "2026-07-22");
+    expect(dateAtOffset(viewport, 2 * viewport.dayWidth)).toBe("2026-07-17");
+    expect(dateAtOffset(viewport, 2.49 * viewport.dayWidth)).toBe("2026-07-17");
+    expect(dateAtOffset(viewport, 2.5 * viewport.dayWidth)).toBe("2026-07-18");
+    expect(dateAtOffset(viewport, -0.5 * viewport.dayWidth)).toBe(viewport.start);
   });
 
   it("omits the today marker when the current date is outside the range", () => {

@@ -30,6 +30,10 @@ export interface GanttRenderer {
   scrollToToday(container: HTMLElement, viewport: GanttViewport): void;
 }
 
+export function dateAtOffset(viewport: GanttViewport, offsetPx: number): string {
+  return addDays(viewport.start, Math.round(offsetPx / viewport.dayWidth));
+}
+
 const DAY_MS = 86_400_000;
 const MIN_TIMELINE_WIDTH = 720;
 

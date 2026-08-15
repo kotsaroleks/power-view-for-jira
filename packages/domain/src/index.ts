@@ -56,6 +56,7 @@ export {
 export {
   buildGanttScheduleModel,
   buildIssueHierarchy,
+  applyGanttDrag,
   DEFAULT_DURATION_DAYS,
   normalizeDefaultDurations,
   type CalculatedProgressSource,
@@ -65,6 +66,8 @@ export {
   type GanttDependency,
   type GanttScheduleModel,
   type GanttTask,
+  type GanttDragGesture,
+  type GanttDragResult,
   type IssueTreeNode,
   type ScheduleModelOptions,
   type ScheduleWarning,
