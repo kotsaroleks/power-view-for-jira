@@ -35,7 +35,7 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function reportDateRange(snapshot: GeneratedReportSnapshot): string {
+export function reportDateRange(snapshot: GeneratedReportSnapshot): string {
   return `${formatDate(snapshot.request.period.start)} — ${formatDate(snapshot.request.period.end)}`;
 }
 

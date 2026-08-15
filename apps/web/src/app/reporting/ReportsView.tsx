@@ -33,7 +33,7 @@ import {
 } from "./activity-log";
 import { ChevronIcon } from "../ChevronIcon";
 import { createProgressThrottle, type ProgressThrottleHandle } from "./progress-throttle";
-import { buildPrintableReportHtml } from "./report-html";
+import { buildPrintableReportHtml, reportDateRange } from "./report-html";
 import { generateReport, type ReportGenerationProgress } from "./reporting-generator";
 import { renderStandupText } from "./standup";
 
