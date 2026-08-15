@@ -7,6 +7,7 @@ import {
   ganttDateQuality,
   NO_LABEL_FILTER_VALUE,
   NO_PRIORITY_FILTER_VALUE,
+  sortGanttTasks,
   type GanttFilters,
   UNASSIGNED_FILTER_VALUE,
 } from "./filters";
@@ -37,6 +38,31 @@ function task(overrides: Partial<GanttTask> = {}): GanttTask {
 }
 
 describe("Gantt filters", () => {
+  it("sorts each sibling group while preserving pre-order nesting", () => {
+    const tasks = [
+      task({ id: "a", name: "Zulu", depth: 0 }),
+      task({ id: "a1", parentId: "a", name: "Beta", depth: 1 }),
+      task({ id: "a2", parentId: "a", name: "Alpha", depth: 1 }),
+      task({ id: "b", name: "Alpha", depth: 0 }),
+      task({ id: "b1", parentId: "b", name: "Child", depth: 1 }),
+    ];
+    expect(sortGanttTasks(tasks, "name").map((item) => item.id)).toEqual([
+      "b", "b1", "a", "a2", "a1",
+    ]);
+  });
+
+  it("supports all sort keys, missing values, and stable ties", () => {
+    const tasks = [
+      task({ id: "1", name: "same", start: "2026-02-01", end: "2026-03-01", statusName: "Beta" }),
+      task({ id: "2", name: "Same", start: "2026-01-01", end: "2026-02-01", statusName: "alpha" }),
+      task({ id: "3", name: "", start: "", end: "", statusName: "" }),
+    ];
+    expect(sortGanttTasks(tasks, "startDate").map((item) => item.id)).toEqual(["2", "1", "3"]);
+    expect(sortGanttTasks(tasks, "endDate").map((item) => item.id)).toEqual(["2", "1", "3"]);
+    expect(sortGanttTasks(tasks, "name").map((item) => item.id)).toEqual(["1", "2", "3"]);
+    expect(sortGanttTasks(tasks, "status").map((item) => item.id)).toEqual(["2", "1", "3"]);
+    expect(sortGanttTasks(tasks, "default")).toBe(tasks);
+  });
   it("searches issue key and summary case-insensitively", () => {
     const tasks = [
       task({ id: "1", name: "Publish Roadmap" }),

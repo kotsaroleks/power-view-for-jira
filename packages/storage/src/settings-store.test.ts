@@ -144,10 +144,27 @@ describe("SettingsStore", () => {
 
     await expect(
       store.getGanttViewPreferences("https://example.atlassian.net/", "POWER"),
-    ).resolves.toEqual({ zoom: "month" });
+    ).resolves.toEqual({ zoom: "month", sortBy: "default" });
     await expect(
       store.getGanttViewPreferences("https://example.atlassian.net", "OTHER"),
     ).resolves.toBeUndefined();
+  });
+
+  it("round-trips sortBy and defaults it for old preferences", async () => {
+    const storage = new MemoryStorage();
+    const store = new SettingsStore(storage);
+    await store.saveGanttViewPreferences("https://example.atlassian.net", "POWER", {
+      zoom: "week", sortBy: "status",
+    });
+    await expect(store.getGanttViewPreferences("https://example.atlassian.net", "POWER"))
+      .resolves.toEqual({ zoom: "week", sortBy: "status" });
+    await storage.set({ "settings:v2": {
+      schemaVersion: 2, setups: {}, recentJql: {}, ganttViewPreferences: {
+        "https%3A%2F%2Fexample.atlassian.net:OLD": { zoom: "day" },
+      },
+    }});
+    await expect(store.getGanttViewPreferences("https://example.atlassian.net", "OLD"))
+      .resolves.toEqual({ zoom: "day", sortBy: "default" });
   });
 
   it("migrates legacy single-value Gantt filters without losing settings", async () => {

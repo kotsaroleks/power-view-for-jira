@@ -1,6 +1,7 @@
 import {
   DEFAULT_GANTT_FILTERS,
   type GanttFilters,
+  type GanttSortOption,
   type SetupConfiguration,
 } from "@power-view/domain";
 import { z } from "zod";
@@ -13,6 +14,7 @@ const MAX_RECENT_JQL = 10;
 
 export interface GanttViewPreferences {
   zoom: "day" | "week" | "month";
+  sortBy?: GanttSortOption;
 }
 
 const jiraProjectSchema = z
@@ -249,6 +251,7 @@ const legacySettingsStateSchema = z
 const ganttViewPreferencesSchema = z
   .object({
     zoom: z.enum(["day", "week", "month"]),
+    sortBy: z.enum(["default", "startDate", "endDate", "name", "status"]).optional().default("default"),
   })
   .strict();
 

@@ -11,6 +11,49 @@ export type GanttRiskFilter = "blocked" | "unresolved";
 
 export type GanttDateQuality = "explicit" | "partial" | "inferred" | "corrected";
 export type GanttFilterLogic = "and" | "or";
+export type GanttSortOption = "default" | "startDate" | "endDate" | "name" | "status";
+
+export function sortGanttTasks(tasks: GanttTask[], sortBy: GanttSortOption): GanttTask[] {
+  if (sortBy === "default") return tasks;
+
+  const order = new Map(tasks.map((task, index) => [task.id, index]));
+  const children = new Map<string | undefined, GanttTask[]>();
+  for (const task of tasks) {
+    const key = task.parentId && order.has(task.parentId) ? task.parentId : undefined;
+    children.set(key, [...(children.get(key) ?? []), task]);
+  }
+  const value = (task: GanttTask): string => {
+    switch (sortBy) {
+      case "startDate": return task.start;
+      case "endDate": return task.end;
+      case "name": return task.name;
+      case "status": return task.statusName;
+    }
+  };
+  const compare = (left: GanttTask, right: GanttTask): number => {
+    const leftValue = value(left).trim();
+    const rightValue = value(right).trim();
+    if (!leftValue && !rightValue) return (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+    if (!leftValue) return 1;
+    if (!rightValue) return -1;
+    return leftValue.localeCompare(rightValue, undefined, {
+      sensitivity: sortBy === "name" || sortBy === "status" ? "base" : "variant",
+    }) || (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+  };
+  for (const group of children.values()) group.sort(compare);
+
+  const result: GanttTask[] = [];
+  const visited = new Set<string>();
+  const visit = (task: GanttTask) => {
+    if (visited.has(task.id)) return;
+    visited.add(task.id);
+    result.push(task);
+    for (const child of children.get(task.id) ?? []) visit(child);
+  };
+  for (const root of children.get(undefined) ?? []) visit(root);
+  for (const task of tasks) visit(task);
+  return result;
+}
 
 export interface GanttFilters {
   search: string;

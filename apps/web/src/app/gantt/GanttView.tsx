@@ -1,10 +1,12 @@
 import {
   DEFAULT_GANTT_FILTERS,
   filterGanttTasks,
+  sortGanttTasks,
   isGanttFilterActive,
   type GanttFilters,
   type GanttScheduleModel,
   type GanttTask,
+  type GanttSortOption,
 } from "@power-view/domain";
 import { type CSSProperties, useDeferredValue, useMemo, useRef, useState } from "react";
 
@@ -70,7 +72,7 @@ export function GanttView({
   filterPersistence,
   editing,
 }: GanttViewProps) {
-  const { zoom, setZoom } = usePersistedGanttZoom(filterPersistence);
+  const { zoom, setZoom, sortBy, setSortBy } = usePersistedGanttZoom(filterPersistence);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() =>
     initialExpandedTasks(model.tasks),
   );
@@ -84,9 +86,13 @@ export function GanttView({
     () => ({ ...filters, search: deferredSearch }),
     [deferredSearch, filters],
   );
-  const filterResult = useMemo(
+  const filteredResult = useMemo(
     () => filterGanttTasks(model.tasks, appliedFilters, today),
     [appliedFilters, model.tasks, today],
+  );
+  const filterResult = useMemo(
+    () => ({ ...filteredResult, tasks: sortGanttTasks(filteredResult.tasks, sortBy) }),
+    [filteredResult, sortBy],
   );
   const filterOptions = useMemo(
     () => ({
@@ -286,6 +292,8 @@ export function GanttView({
         }
         onChange={updateFilters}
         onReset={() => updateFilters({ ...DEFAULT_GANTT_FILTERS })}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
       />
 
       {allVisibleTasks.length > MAX_VISIBLE_ROWS ? (

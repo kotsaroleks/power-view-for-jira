@@ -88,6 +88,8 @@ export {
   type GanttDateFilter,
   type GanttDateQuality,
   type GanttFilterLogic,
+  type GanttSortOption,
+  sortGanttTasks,
   type GanttFilterResult,
   type GanttFilters,
   type GanttRiskFilter,

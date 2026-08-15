@@ -5,6 +5,7 @@ import {
   type GanttDateFilter,
   type GanttFilters,
   type GanttRiskFilter,
+  type GanttSortOption,
   type JiraStatusCategory,
 } from "@power-view/domain";
 
@@ -34,6 +35,8 @@ export interface GanttFiltersToolbarProps {
   resetEnabled: boolean;
   onChange: (filters: GanttFilters) => void;
   onReset: () => void;
+  sortBy: GanttSortOption;
+  onSortByChange: (sortBy: GanttSortOption) => void;
 }
 
 interface FilterOption<Value extends string> {
@@ -155,6 +158,8 @@ export function GanttFiltersToolbar({
   resetEnabled,
   onChange,
   onReset,
+  sortBy,
+  onSortByChange,
 }: GanttFiltersToolbarProps) {
   const update = <Key extends keyof GanttFilters>(key: Key, value: GanttFilters[Key]) =>
     onChange({ ...filters, [key]: value });
@@ -174,6 +179,16 @@ export function GanttFiltersToolbar({
           placeholder="Issue key or summary"
           onChange={(event) => update("search", event.target.value)}
         />
+      </label>
+      <label className="gantt-filter-field">
+        <span className="gantt-filter-label">Sort by</span>
+        <select value={sortBy} onChange={(event) => onSortByChange(event.target.value as GanttSortOption)}>
+          <option value="default">Default</option>
+          <option value="startDate">Start date</option>
+          <option value="endDate">End date</option>
+          <option value="name">Name</option>
+          <option value="status">Status</option>
+        </select>
       </label>
 
       <MultiSelectFilter
