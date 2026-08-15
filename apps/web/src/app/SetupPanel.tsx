@@ -389,8 +389,8 @@ export function SetupPanel({
     setBoardLoadState("loading");
     setBoardLoadError(undefined);
     void Promise.all([
-      settingsStore.getSetup(context.baseUrl, selectedProjectKey),
-      settingsStore.getRecentJql(context.baseUrl, selectedProjectKey),
+      settingsStore.getSetup(context.baseUrl, selectedProjectKey, context.boardId),
+      settingsStore.getRecentJql(context.baseUrl, selectedProjectKey, context.boardId),
       loadProjectBoards(client, selectedProjectKey, context.boardId, controller.signal),
     ])
       .then(([loadedSetup, storedRecentJql, loadedBoards]) => {
@@ -400,8 +400,8 @@ export function SetupPanel({
         setStoredSetup(loadedSetup);
         setBoards(loadedBoards);
         const preferredBoard =
-          loadedBoards.find((board) => board.id === loadedSetup?.board?.id) ??
           loadedBoards.find((board) => board.id === context.boardId) ??
+          loadedBoards.find((board) => board.id === loadedSetup?.board?.id) ??
           (loadedBoards.length === 1 ? loadedBoards[0] : undefined);
         setSelectedBoardId(preferredBoard?.id ?? "");
         setRecentJql(storedRecentJql);
@@ -621,7 +621,7 @@ export function SetupPanel({
         updatedAt: new Date().toISOString(),
       });
       setRecentJql(
-        await settingsStore.getRecentJql(context.baseUrl, selectedProject.key),
+        await settingsStore.getRecentJql(context.baseUrl, selectedProject.key, selectedBoard.id),
       );
       setSaveStatus("saved");
       return true;

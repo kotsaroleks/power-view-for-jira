@@ -57,7 +57,7 @@ describe("SettingsStore", () => {
     await store.saveSetup(configuration('project = "POWER"'));
 
     await expect(
-      store.getSetup("https://example.atlassian.net/", "POWER"),
+      store.getSetup("https://example.atlassian.net/", "POWER", "7"),
     ).resolves.toMatchObject({
       project: { key: "POWER" },
       board: { id: "7", name: "Power Delivery Board", type: "scrum" },
@@ -69,7 +69,7 @@ describe("SettingsStore", () => {
       defaultDurations: DEFAULT_DURATION_DAYS,
     });
     await expect(
-      store.getSetup("https://other.atlassian.net", "POWER"),
+      store.getSetup("https://other.atlassian.net", "POWER", "7"),
     ).resolves.toBeUndefined();
   });
 
@@ -80,8 +80,35 @@ describe("SettingsStore", () => {
     await store.saveSetup(configuration('project = "POWER"'));
 
     await expect(
-      store.getRecentJql("https://example.atlassian.net", "POWER"),
+      store.getRecentJql("https://example.atlassian.net", "POWER", "7"),
     ).resolves.toEqual(['project = "POWER"', 'project = "POWER" AND status != Done']);
+  });
+
+  it("isolates setup and recent JQL per board", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    await store.saveSetup(configuration('project = "POWER"'));
+    await store.saveSetup({
+      ...configuration('project = "POWER" AND status = Done'),
+      board: {
+        id: "8",
+        name: "Power Delivery Board",
+        type: "scrum",
+        projectKeys: ["POWER"],
+      },
+    });
+
+    await expect(
+      store.getSetup("https://example.atlassian.net", "POWER", "7"),
+    ).resolves.toMatchObject({ jql: 'project = "POWER"' });
+    await expect(
+      store.getSetup("https://example.atlassian.net", "POWER", "8"),
+    ).resolves.toMatchObject({ jql: 'project = "POWER" AND status = Done' });
+    await expect(
+      store.getRecentJql("https://example.atlassian.net", "POWER", "7"),
+    ).resolves.toEqual(['project = "POWER"']);
+    await expect(
+      store.getRecentJql("https://example.atlassian.net", "POWER", "8"),
+    ).resolves.toEqual(['project = "POWER" AND status = Done']);
   });
 
   it("persists Gantt filters per Jira instance and project", async () => {

@@ -275,7 +275,7 @@ describe("SetupPanel", () => {
       await screen.findByText("Setup saved. Preparing your workspace…"),
     ).toBeInTheDocument();
     await expect(
-      store.getSetup("https://example.atlassian.net", "POWER"),
+      store.getSetup("https://example.atlassian.net", "POWER", "7"),
     ).resolves.toMatchObject({
       project: { key: "POWER" },
       board: { id: "7", name: "Power Delivery Board", type: "scrum" },
@@ -328,7 +328,7 @@ describe("SetupPanel", () => {
       await screen.findByText("Start and end dates must use different fields."),
     ).toBeInTheDocument();
     await expect(
-      store.getSetup("https://example.atlassian.net", "POWER"),
+      store.getSetup("https://example.atlassian.net", "POWER", "7"),
     ).resolves.toBeUndefined();
   });
 

@@ -270,8 +270,15 @@ function normalizedBaseUrl(baseUrl: string): string {
   return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
 }
 
-function configurationKey(baseUrl: string, projectKey: string): string {
-  return `${encodeURIComponent(normalizedBaseUrl(baseUrl))}:${projectKey}`;
+function configurationKey(
+  baseUrl: string,
+  projectKey: string,
+  boardId?: string,
+): string {
+  const key = `${encodeURIComponent(normalizedBaseUrl(baseUrl))}:${projectKey}`;
+  return typeof boardId === "string" && boardId.length > 0
+    ? `${key}:${boardId}`
+    : key;
 }
 
 function preferenceKey(baseUrl: string, workspaceKey: string): string {
@@ -286,16 +293,21 @@ export class SettingsStore {
   async getSetup(
     baseUrl: string,
     projectKey: string,
+    boardId?: string,
   ): Promise<SetupConfiguration | undefined> {
     await this.writes;
     const state = await this.read();
-    return state.setups[configurationKey(baseUrl, projectKey)];
+    return state.setups[configurationKey(baseUrl, projectKey, boardId)];
   }
 
   saveSetup(configuration: SetupConfiguration): Promise<void> {
     const write = this.writes.then(async () => {
       const state = await this.read();
-      const key = configurationKey(configuration.jiraBaseUrl, configuration.project.key);
+      const key = configurationKey(
+        configuration.jiraBaseUrl,
+        configuration.project.key,
+        configuration.board?.id,
+      );
       const jql = configuration.jql.trim();
       const recent = state.recentJql[key] ?? [];
       const value = settingsStateSchema.parse({
@@ -321,10 +333,14 @@ export class SettingsStore {
     return write;
   }
 
-  async getRecentJql(baseUrl: string, projectKey: string): Promise<string[]> {
+  async getRecentJql(
+    baseUrl: string,
+    projectKey: string,
+    boardId?: string,
+  ): Promise<string[]> {
     await this.writes;
     const state = await this.read();
-    return [...(state.recentJql[configurationKey(baseUrl, projectKey)] ?? [])];
+    return [...(state.recentJql[configurationKey(baseUrl, projectKey, boardId)] ?? [])];
   }
 
   async getGanttFilters(

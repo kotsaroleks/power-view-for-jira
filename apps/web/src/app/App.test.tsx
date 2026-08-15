@@ -308,7 +308,7 @@ describe("App", () => {
     expect(
       screen.queryByRole("button", { name: "Save mapping" }),
     ).not.toBeInTheDocument();
-    await expect(store.getSetup(context.baseUrl, "POWER")).resolves.toMatchObject({
+    await expect(store.getSetup(context.baseUrl, "POWER", "7")).resolves.toMatchObject({
       board: { id: "7", name: "Power Delivery Board" },
       reporting: { completedStatusIds: ["3"], completedStatusNames: ["Done"] },
       jql: "filter = 9001 ORDER BY Rank ASC",
