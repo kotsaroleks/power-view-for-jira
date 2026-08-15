@@ -40,6 +40,7 @@ export {
 } from "./report";
 export {
   rankDateFieldCandidates,
+  inferDefaultDateFieldMapping,
   validateFieldMapping,
   type DateFieldPurpose,
   type FieldCandidate,

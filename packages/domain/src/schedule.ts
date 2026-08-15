@@ -45,9 +45,9 @@ export interface ScheduleWarning {
   message: string;
 }
 
-export type StartDateSource = "jira" | "children" | "created" | "today";
+export type StartDateSource = "jira" | "children" | "sprint" | "created" | "today";
 export type EndDateSource =
-  "jira" | "children" | "resolution" | "default-duration" | "corrected";
+  "jira" | "children" | "sprint" | "resolution" | "default-duration" | "corrected";
 export type CalculatedProgressSource =
   "jira-progress" | "subtasks" | "children" | "status" | "none";
 
@@ -565,6 +565,17 @@ export function buildGanttScheduleModel(
 
   const scheduleWarnings = [...hierarchy.warnings];
   const resolvedByKey = new Map<string, ResolvedNode>();
+  const selectSprint = (issue: NormalizedIssue) => {
+    const active = issue.sprints?.find((sprint) => sprint.state === "active");
+    if (active) return active;
+    const future = issue.sprints
+      ?.filter((sprint) => sprint.state === "future")
+      .sort((left, right) => (left.startDate ?? "9999-99-99").localeCompare(right.startDate ?? "9999-99-99"))[0];
+    if (future) return future;
+    return issue.sprints
+      ?.filter((sprint) => sprint.state === "closed")
+      .sort((left, right) => (right.endDate ?? "").localeCompare(left.endDate ?? ""))[0];
+  };
   const resolveNode = (node: IssueTreeNode): ResolvedNode => {
     const resolvedChildren = node.children.map(resolveNode);
     const rawStart = node.issue.startDate;
@@ -580,11 +591,15 @@ export function buildGanttScheduleModel(
     const childStarts = resolvedChildren.map((child) => child.dates.start).sort();
     const rollupStart = hasChildren ? childStarts[0] : undefined;
     const created = dateOnly(node.issue.createdAt);
-    const start = rollupStart ?? explicitStart ?? created ?? today;
+    const sprint = selectSprint(node.issue);
+    const sprintStart = sprint ? dateOnly(sprint.startDate) : undefined;
+    const start = rollupStart ?? explicitStart ?? sprintStart ?? created ?? today;
     const startSource: StartDateSource = rollupStart
       ? "children"
       : explicitStart
         ? "jira"
+        : sprintStart
+          ? "sprint"
         : created
           ? "created"
           : "today";
@@ -601,12 +616,15 @@ export function buildGanttScheduleModel(
     const childEnds = resolvedChildren.map((child) => child.dates.end).sort();
     const rollupEnd = hasChildren ? childEnds.at(-1) : undefined;
     const resolution = dateOnly(node.issue.resolvedAt);
+    const sprintEnd = sprint ? dateOnly(sprint.endDate) : undefined;
     const fallbackEnd = addDays(start, defaultDurationFor(node.issue, durations));
-    let end = rollupEnd ?? explicitEnd ?? resolution ?? fallbackEnd;
+    let end = rollupEnd ?? explicitEnd ?? sprintEnd ?? resolution ?? fallbackEnd;
     let endSource: EndDateSource = rollupEnd
       ? "children"
       : explicitEnd
         ? "jira"
+        : sprintEnd
+          ? "sprint"
         : resolution
           ? "resolution"
           : "default-duration";

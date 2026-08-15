@@ -122,6 +122,24 @@ export function rankDateFieldCandidates(
     );
 }
 
+export function inferDefaultDateFieldMapping(fields: JiraField[]): FieldMapping {
+  const preferredStart = fields.find((field) => field.id === "customfield_10015");
+  const preferredEnd = fields.find((field) => field.id === "duedate");
+  const rankedStart = rankDateFieldCandidates(fields, "start")[0];
+  const rankedEnd = rankDateFieldCandidates(fields, "end")[0];
+
+  const result: FieldMapping = {};
+  const startId = preferredStart?.id ?? rankedStart?.id;
+  const endId = preferredEnd?.id ?? rankedEnd?.id;
+  if (startId) {
+    result.startDateFieldId = startId;
+  }
+  if (endId) {
+    result.endDateFieldId = endId;
+  }
+  return result;
+}
+
 export function validateFieldMapping(
   mapping: FieldMapping,
   fields: JiraField[],

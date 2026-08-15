@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type {
+  JiraIssueSprint,
   JiraStatusCategory,
   NormalizedIssue,
   NormalizedIssueLink,
@@ -36,6 +37,7 @@ interface IssueOptions {
   priority?: string;
   labels?: string[];
   statusName?: string;
+  sprints?: JiraIssueSprint[];
 }
 
 function issue(key: string, options: IssueOptions = {}): NormalizedIssue {
@@ -61,6 +63,7 @@ function issue(key: string, options: IssueOptions = {}): NormalizedIssue {
     ...(options.dueDate ? { dueDate: options.dueDate } : {}),
     ...(options.createdAt ? { createdAt: options.createdAt } : {}),
     ...(options.resolvedAt ? { resolvedAt: options.resolvedAt } : {}),
+    ...(options.sprints ? { sprints: options.sprints } : {}),
     ...(options.progress ? { progress: options.progress } : {}),
     labels: options.labels ?? [],
     components: [],
@@ -120,6 +123,36 @@ describe("issue hierarchy", () => {
 });
 
 describe("schedule resolution", () => {
+  it("uses an active sprint for missing Jira dates", () => {
+    const model = buildGanttScheduleModel([issue("POWER-1", {
+      createdAt: "2026-01-01",
+      sprints: [{ id: "1", name: "Sprint 1", state: "active", startDate: "2026-03-01", endDate: "2026-03-14" }],
+    })], { today: "2026-01-01" });
+    expect(model.tasks[0]).toMatchObject({ start: "2026-03-01", end: "2026-03-14", startSource: "sprint", endSource: "sprint", isSyntheticDate: true });
+  });
+
+  it("selects active, earliest future, then latest closed sprint", () => {
+    const sprints: JiraIssueSprint[] = [
+      { id: "closed-old", name: "old", state: "closed", startDate: "2026-01-01", endDate: "2026-01-10" },
+      { id: "future-late", name: "late", state: "future", startDate: "2026-05-01", endDate: "2026-05-10" },
+      { id: "future-early", name: "early", state: "future", startDate: "2026-04-01", endDate: "2026-04-10" },
+    ];
+    expect(buildGanttScheduleModel([issue("POWER-1", { sprints })]).tasks[0]).toMatchObject({ start: "2026-04-01", end: "2026-04-10" });
+    expect(buildGanttScheduleModel([issue("POWER-1", { sprints: [{ id: "closed", name: "closed", state: "closed", endDate: "2026-03-10", startDate: "2026-03-01" }, { id: "new", name: "new", state: "closed", endDate: "2026-04-10", startDate: "2026-04-01" }] })]).tasks[0]).toMatchObject({ start: "2026-04-01", end: "2026-04-10" });
+    expect(buildGanttScheduleModel([issue("POWER-1", { sprints: [...sprints, { id: "active", name: "active", state: "active", startDate: "2026-06-01", endDate: "2026-06-10" }] })]).tasks[0]).toMatchObject({ start: "2026-06-01", end: "2026-06-10" });
+  });
+
+  it("falls back independently when the selected sprint lacks one date", () => {
+    const task = buildGanttScheduleModel([issue("POWER-1", { createdAt: "2026-01-02", resolvedAt: "2026-02-10", sprints: [{ id: "1", name: "Sprint", state: "active", endDate: "2026-03-10" }] })], { today: "2026-01-01" }).tasks[0];
+    expect(task).toMatchObject({ start: "2026-01-02", startSource: "created", end: "2026-03-10", endSource: "sprint" });
+  });
+
+  it("keeps explicit Jira dates and child rollups ahead of sprint dates", () => {
+    const sprint = [{ id: "1", name: "Sprint", state: "active" as const, startDate: "2026-05-01", endDate: "2026-05-10" }];
+    expect(buildGanttScheduleModel([issue("POWER-1", { startDate: "2026-02-01", dueDate: "2026-02-05", sprints: sprint })]).tasks[0]).toMatchObject({ start: "2026-02-01", end: "2026-02-05", startSource: "jira", endSource: "jira" });
+    expect(buildGanttScheduleModel([issue("POWER-1", { sprints: sprint }), issue("POWER-2", { parentKey: "POWER-1", startDate: "2026-03-01", dueDate: "2026-03-04" })]).tasks[0]).toMatchObject({ start: "2026-03-01", end: "2026-03-04", startSource: "children", endSource: "children" });
+  });
+
   it("uses explicit Jira dates without marking them synthetic", () => {
     const model = buildGanttScheduleModel(
       [issue("POWER-1", { startDate: "2026-03-01", dueDate: "2026-03-04" })],

@@ -5,6 +5,7 @@ import {
   DEFAULT_DURATION_DAYS,
   MAX_CONFIGURABLE_ISSUES,
   rankDateFieldCandidates,
+  inferDefaultDateFieldMapping,
   validateFieldMapping,
   validateJqlInput,
   type FieldMapping,
@@ -165,6 +166,7 @@ function inferredReportFieldMapping(fields: JiraField[]): FieldMapping {
     ["story points", "story point estimate"].includes(normalizedName(field)),
   );
   return {
+    ...inferDefaultDateFieldMapping(fields),
     ...(sprint ? { sprintFieldId: sprint.id } : {}),
     ...(storyPoints ? { storyPointsFieldId: storyPoints.id } : {}),
   };

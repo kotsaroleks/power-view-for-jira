@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   rankDateFieldCandidates,
+  inferDefaultDateFieldMapping,
   validateFieldMapping,
   type JiraField,
 } from "./jira-field";
@@ -59,6 +60,17 @@ const fields: JiraField[] = [
 ];
 
 describe("date field discovery", () => {
+  it("defaults to the organization's start date and Jira due date, then ranked candidates", () => {
+    expect(inferDefaultDateFieldMapping([
+      ...fields,
+      { id: "customfield_10015", name: "Custom start", custom: true, schema: { type: "date" }, clauseNames: [] },
+    ])).toEqual({ startDateFieldId: "customfield_10015", endDateFieldId: "duedate" });
+    expect(inferDefaultDateFieldMapping(fields)).toEqual({
+      startDateFieldId: "customfield_10010",
+      endDateFieldId: "duedate",
+    });
+  });
+
   it("ranks date candidates without silently selecting string lookalikes", () => {
     expect(rankDateFieldCandidates(fields, "start")).toEqual([
       expect.objectContaining({ id: "customfield_10010", confidence: 0.96 }),
