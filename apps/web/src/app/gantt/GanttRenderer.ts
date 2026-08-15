@@ -50,7 +50,7 @@ function timestamp(date: string): number {
   return Date.parse(`${date}T00:00:00.000Z`);
 }
 
-function daysBetween(start: string, end: string): number {
+export function daysBetween(start: string, end: string): number {
   return Math.round((timestamp(end) - timestamp(start)) / DAY_MS);
 }
 

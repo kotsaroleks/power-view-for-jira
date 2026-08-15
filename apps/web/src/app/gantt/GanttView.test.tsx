@@ -1,7 +1,7 @@
 import type { GanttScheduleModel, GanttTask } from "@power-view/domain";
 import { DEFAULT_GANTT_FILTERS } from "@power-view/domain";
 import { SettingsStore, type StorageArea } from "@power-view/storage";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { JiraClient } from "@power-view/jira-client";
 
@@ -100,6 +100,43 @@ const model: GanttScheduleModel = {
   dependencyCount: 1,
 };
 
+function dragModel(taskOverrides: Partial<GanttTask> = {}): GanttScheduleModel {
+  const dragged = task(taskOverrides);
+  return { roots: [], tasks: [dragged], warnings: [], syntheticDateCount: 0, dependencyCount: 0 };
+}
+
+function editingContext(updateIssueDates = vi.fn().mockResolvedValue(undefined)) {
+  const refresh = vi.fn().mockResolvedValue(undefined);
+  const client = {
+    getIssueEditMetadata: vi.fn().mockResolvedValue({
+      fields: {
+        startdate: { id: "startdate", name: "Start date", required: false, operations: ["set"], schema: { type: "date" } },
+        duedate: { id: "duedate", name: "Due date", required: false, operations: ["set"], schema: { type: "date" } },
+      },
+    }),
+    getIssueLinkTypes: vi.fn().mockResolvedValue([]),
+    updateIssueDates,
+  } as unknown as JiraClient;
+  return { editing: { client, fieldMapping: {}, refresh }, updateIssueDates, refresh };
+}
+
+async function beginMove() {
+  const bar = document.querySelector<HTMLButtonElement>(".gantt-task-bar");
+  if (!bar) throw new Error("Gantt bar not found");
+  bar.setPointerCapture = vi.fn();
+  vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, top: 0, bottom: 20, width: 300, height: 20, x: 0, y: 0, toJSON: () => ({}) });
+  await act(async () => {
+    fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
+  });
+  await act(async () => {
+    fireEvent.pointerMove(window, { clientX: 140, pointerId: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  await act(async () => {
+    fireEvent.pointerUp(window, { clientX: 140, pointerId: 1 });
+  });
+}
+
 describe("visibleGanttTasks", () => {
   it("preserves roots while hiding descendants of collapsed ancestors", () => {
     expect(
@@ -112,6 +149,78 @@ describe("visibleGanttTasks", () => {
 });
 
 describe("GanttView", () => {
+  it("keeps a click separate from a small drag", async () => {
+    const context = editingContext();
+    render(<GanttView model={dragModel()} editing={context.editing} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
+    const bar = document.querySelector<HTMLButtonElement>(".gantt-task-bar");
+    if (!bar) throw new Error("Gantt bar not found");
+    bar.setPointerCapture = vi.fn();
+    vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, top: 0, bottom: 20, width: 300, height: 20, x: 0, y: 0, toJSON: () => ({}) });
+    await act(async () => {
+      fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
+    });
+    fireEvent.pointerMove(window, { clientX: 102, pointerId: 1 });
+    fireEvent.pointerUp(window, { clientX: 102, pointerId: 1 });
+    fireEvent.click(bar);
+    expect(screen.getByRole("heading", { name: /POWER-1 · Plan release/ })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(context.updateIssueDates).not.toHaveBeenCalled();
+  });
+
+  it("opens confirmation with both moved Jira dates", async () => {
+    render(<GanttView model={dragModel()} editing={editingContext().editing} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
+    await beginMove();
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Save start 2026-07-22 and due 2026-07-30 in Jira?");
+  });
+
+  it("saves only the changed dates and refreshes", async () => {
+    const context = editingContext();
+    render(<GanttView model={dragModel()} editing={context.editing} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
+    await beginMove();
+    fireEvent.click(await screen.findByRole("button", { name: "Save" }));
+    await waitFor(() => expect(context.updateIssueDates).toHaveBeenCalledWith("POWER-1", { fieldMapping: {}, startDate: "2026-07-22", dueDate: "2026-07-30" }));
+    expect(context.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("cancels without writing", async () => {
+    const context = editingContext();
+    render(<GanttView model={dragModel()} editing={context.editing} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
+    await beginMove();
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(context.updateIssueDates).not.toHaveBeenCalled();
+  });
+
+  it("does not drag a task whose Jira date is inferred", () => {
+    render(<GanttView model={dragModel({ startSource: "created" })} editing={editingContext().editing} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
+    const bar = document.querySelector<HTMLButtonElement>(".gantt-task-bar");
+    if (!bar) throw new Error("Gantt bar not found");
+    bar.setPointerCapture = vi.fn();
+    // Mock the bar's rect so the pointerdown at clientX 100 lands away from the
+    // 8px edge zones and resolves to a "move" gesture (center of a 300px-wide
+    // bar) rather than being misclassified as a resize against a default
+    // zero-width rect, which only requires the touched side to be Jira-backed.
+    vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, top: 0, bottom: 20, width: 300, height: 20, x: 0, y: 0, toJSON: () => ({}) });
+    fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 140, pointerId: 1 });
+    fireEvent.pointerUp(window, { clientX: 140, pointerId: 1 });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("freezes the confirmation preview after pointerup", async () => {
+    render(<GanttView model={dragModel()} editing={editingContext().editing} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
+    await beginMove();
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.pointerMove(window, { clientX: 900, pointerId: 1 });
+    expect(await screen.findByRole("dialog")).toHaveTextContent(dialog.textContent ?? "");
+    expect(await screen.findByRole("dialog")).toHaveTextContent("2026-07-22");
+  });
   it("keeps the issue tree synchronized with the timeline and persists expansion", () => {
     const view = render(<GanttView model={model} today="2026-07-23" />);
 

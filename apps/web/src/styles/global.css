@@ -3092,6 +3092,35 @@ h1 {
   cursor: pointer;
 }
 
+.gantt-task-bar[style*="grab"] {
+  cursor: grab;
+}
+
+.gantt-task-bar[style*="grab"]:active {
+  cursor: grabbing;
+}
+
+.gantt-drag-confirm {
+  position: absolute;
+  z-index: 5;
+  top: 42px;
+  left: 0;
+  min-width: 220px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  background: var(--surface);
+  box-shadow: 0 5px 16px rgb(9 30 66 / 20%);
+}
+
+.gantt-drag-confirm p {
+  margin: 0 0 8px;
+}
+
+.gantt-drag-confirm button + button {
+  margin-left: 6px;
+}
+
 .gantt-task-bar.status-to-do {
   --task-bar: var(--text-subtle);
   --task-progress: var(--text-muted);

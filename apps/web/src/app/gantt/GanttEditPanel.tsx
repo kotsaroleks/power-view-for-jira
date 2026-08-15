@@ -29,13 +29,13 @@ function userIdentifier(user: JiraUser): string {
   return user.accountId ?? user.username ?? user.displayName;
 }
 
-function editableField(field: JiraIssueEditField | undefined): boolean {
+export function editableField(field: JiraIssueEditField | undefined): boolean {
   return Boolean(
     field && (field.operations.length === 0 || field.operations.includes("set")),
   );
 }
 
-function jiraDateValue(value: string, field: JiraIssueEditField | undefined) {
+export function jiraDateValue(value: string, field: JiraIssueEditField | undefined) {
   if (!value) {
     return null;
   }
@@ -53,7 +53,7 @@ function jiraDateValue(value: string, field: JiraIssueEditField | undefined) {
   return `${value}T12:00:00.000${sign}${hours}${minutes}`;
 }
 
-function mutationErrorMessage(error: unknown): string {
+export function mutationErrorMessage(error: unknown): string {
   return isJiraClientError(error)
     ? (error.appError.details ?? error.appError.message)
     : "Jira could not apply this change. Reload the issue and retry.";

@@ -7,13 +7,22 @@ import {
   type GanttScheduleModel,
   type GanttTask,
   type GanttSortOption,
+  applyGanttDrag,
+  type GanttDragGesture,
 } from "@power-view/domain";
-import { type CSSProperties, useDeferredValue, useMemo, useRef, useState } from "react";
+import { type JiraIssueEditMetadata } from "@power-view/jira-client";
+import { type CSSProperties, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
-import { GanttEditPanel, type GanttEditingContext } from "./GanttEditPanel";
+import {
+  editableField,
+  GanttEditPanel,
+  jiraDateValue,
+  mutationErrorMessage,
+  type GanttEditingContext,
+} from "./GanttEditPanel";
 import { GanttDependencyLayer } from "./GanttDependencyLayer";
 import { GanttFiltersToolbar } from "./GanttFiltersToolbar";
-import { type GanttRenderer, nativeGanttRenderer } from "./GanttRenderer";
+import { dateAtOffset, daysBetween, type GanttRenderer, nativeGanttRenderer } from "./GanttRenderer";
 import { visibleGanttTasks } from "./ganttVisibility";
 import { ganttVirtualWindow } from "./ganttVirtualization";
 import {
@@ -78,6 +87,14 @@ export function GanttView({
   );
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
   const [editMode, setEditMode] = useState(false);
+  const [drag, setDrag] = useState<{
+    taskId: string; gesture: GanttDragGesture; startX: number; pixelDelta: number; dragging: boolean;
+  }>();
+  const [dragConfirm, setDragConfirm] = useState<{
+    taskId: string; result: { startDate?: string; dueDate?: string }; error: string | undefined; saving?: boolean;
+  }>();
+  const suppressClick = useRef(false);
+  const pointerActive = useRef(false);
   const [scrollTop, setScrollTop] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { filters, setFilters, hydrated } = usePersistedGanttFilters(filterPersistence);
@@ -202,6 +219,78 @@ export function GanttView({
     }
     setScrollTop(0);
     setFilters(nextFilters);
+  };
+
+  const finishDrag = (event: PointerEvent) => {
+    if (!drag || dragConfirm) return;
+    const deltaPx = event.clientX - drag.startX;
+    const wasDrag = Math.abs(deltaPx) >= 4;
+    if (!wasDrag) {
+      setDrag(undefined);
+      return;
+    }
+    suppressClick.current = true;
+    const task = taskById.get(drag.taskId);
+    if (!task) return;
+    const geometry = renderer.taskBar(task, viewport);
+    const startOffset = geometry.left + (drag.gesture === "resize-end" ? 0 : deltaPx);
+    const endOffset = geometry.left + geometry.width + (drag.gesture === "resize-start" ? 0 : deltaPx);
+    const startDate = dateAtOffset(viewport, startOffset);
+    const endDate = dateAtOffset(viewport, endOffset);
+    const baseDate = drag.gesture === "resize-end" ? task.end : task.start;
+    const movedDate = drag.gesture === "resize-end" ? endDate : startDate;
+    const result = applyGanttDrag(task, drag.gesture, daysBetween(baseDate, movedDate));
+    if (!result.allowed) {
+      setDrag(undefined);
+      setDragConfirm({ taskId: task.id, result: {}, error: result.reason, saving: false });
+      window.setTimeout(() => setDragConfirm((current) => current?.taskId === task.id && current.error === result.reason ? undefined : current), 3000);
+    } else if (result.startDate !== undefined || result.dueDate !== undefined) {
+      setDrag({ ...drag, pixelDelta: deltaPx, dragging: true });
+      setDragConfirm({ taskId: task.id, result, error: undefined, saving: false });
+    } else {
+      setDrag(undefined);
+    }
+  };
+
+  useEffect(() => {
+    if (!drag) return;
+    const move = (event: PointerEvent) => {
+      if (!pointerActive.current) return;
+      setDrag((current) => current ? { ...current, pixelDelta: event.clientX - current.startX, dragging: Math.abs(event.clientX - current.startX) >= 4 } : current);
+    };
+    const up = (event: PointerEvent) => {
+      pointerActive.current = false;
+      finishDrag(event);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up); };
+  }, [drag, dragConfirm, renderer, taskById, viewport]);
+
+  const saveDrag = async () => {
+    if (!dragConfirm || !editing) return;
+    const task = taskById.get(dragConfirm.taskId);
+    if (!task) return;
+    setDragConfirm((current) => current ? { ...current, saving: true, error: undefined } : current);
+    try {
+      const metadata: JiraIssueEditMetadata = await editing.client.getIssueEditMetadata(task.issueKey);
+      const startField = metadata.fields[editing.fieldMapping.startDateFieldId ?? "startdate"];
+      const dueField = metadata.fields[editing.fieldMapping.endDateFieldId ?? "duedate"];
+      if ((dragConfirm.result.startDate !== undefined && !editableField(startField)) || (dragConfirm.result.dueDate !== undefined && !editableField(dueField))) {
+        throw new Error("The selected Jira date field is not editable.");
+      }
+      await editing.client.updateIssueDates(task.issueKey, {
+        fieldMapping: editing.fieldMapping,
+        ...(dragConfirm.result.startDate !== undefined ? { startDate: jiraDateValue(dragConfirm.result.startDate, startField) } : {}),
+        ...(dragConfirm.result.dueDate !== undefined ? { dueDate: jiraDateValue(dragConfirm.result.dueDate, dueField) } : {}),
+      });
+      await editing.refresh();
+      setDrag(undefined);
+      setDragConfirm(undefined);
+    } catch (error) {
+      setDragConfirm((current) => current ? { ...current, saving: false, error: error instanceof Error && error.message.startsWith("The selected") ? error.message : mutationErrorMessage(error) } : current);
+    }
   };
 
   if (model.tasks.length === 0) {
@@ -368,6 +457,17 @@ export function GanttView({
             const isSelected = selectedTaskId === task.id;
             const isContextAncestor = filterResult.contextAncestorIds.has(task.id);
             const geometry = renderer.taskBar(task, viewport);
+            const activeDrag = drag?.taskId === task.id && drag.dragging ? drag : undefined;
+            const previewGeometry = activeDrag
+              ? activeDrag.gesture === "move"
+                ? { left: geometry.left + activeDrag.pixelDelta, width: geometry.width }
+                : activeDrag.gesture === "resize-start"
+                  ? { left: geometry.left + activeDrag.pixelDelta, width: geometry.width - activeDrag.pixelDelta }
+                  : { left: geometry.left, width: geometry.width + activeDrag.pixelDelta }
+              : geometry;
+            const dragEnabled = Boolean(editing && editMode);
+            const startEnabled = task.startSource === "jira";
+            const endEnabled = task.endSource === "jira";
             const warnings = [...new Set(warningsByKey.get(task.issueKey) ?? [])];
             const riskMessages = [
               ...(task.isBlocked
@@ -459,10 +559,23 @@ export function GanttView({
                   <button
                     className={`gantt-task-bar ${statusClass(task)}${task.isBlocked ? " is-blocked" : ""}${task.hasDateMisalignment ? " date-misaligned" : ""}`}
                     type="button"
-                    style={{ left: geometry.left, width: geometry.width }}
+                    style={{ left: previewGeometry.left, width: Math.max(8, previewGeometry.width), cursor: dragEnabled ? (startEnabled && endEnabled ? "grab" : "not-allowed") : undefined }}
                     aria-label={`Select ${task.issueKey}, ${task.start} to ${task.end}, ${task.progress}% complete${task.isBlocked ? ", blocked" : ""}${task.hasDateMisalignment ? ", date mismatch with rollup" : ""}`}
                     aria-pressed={isSelected}
-                    onClick={() => setSelectedTaskId(task.id)}
+                    onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } setSelectedTaskId(task.id); }}
+                    onPointerDown={(event) => {
+                      if (!dragEnabled) return;
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      const edge = 8;
+                      const fromLeft = event.clientX - rect.left;
+                      const fromRight = rect.right - event.clientX;
+                      const gesture = fromLeft <= edge ? "resize-start" : fromRight <= edge ? "resize-end" : "move";
+                      if ((gesture === "move" && (!startEnabled || !endEnabled)) || (gesture === "resize-start" && !startEnabled) || (gesture === "resize-end" && !endEnabled)) return;
+                      pointerActive.current = true;
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      setDrag({ taskId: task.id, gesture, startX: event.clientX, pixelDelta: 0, dragging: false });
+                    }}
+                    title={dragEnabled && (!startEnabled || !endEnabled) ? "Set explicit start/end dates in Jira to enable dragging" : undefined}
                   >
                     <span
                       className="gantt-task-progress"
@@ -471,6 +584,13 @@ export function GanttView({
                     />
                     <span className="gantt-task-label">{task.issueKey}</span>
                   </button>
+                  {dragConfirm?.taskId === task.id ? (
+                    <div className="gantt-drag-confirm" role="dialog" aria-label={`Confirm date change for ${task.issueKey}`}>
+                      {dragConfirm.error ? <p role="alert">{dragConfirm.error}</p> : <p>Save {dragConfirm.result.startDate ? `start ${dragConfirm.result.startDate}` : ""}{dragConfirm.result.startDate && dragConfirm.result.dueDate ? " and " : ""}{dragConfirm.result.dueDate ? `due ${dragConfirm.result.dueDate}` : ""} in Jira?</p>}
+                      {!dragConfirm.error ? <button type="button" onClick={() => void saveDrag()} disabled={dragConfirm.saving}>Save</button> : <button type="button" onClick={() => void saveDrag()} disabled={dragConfirm.saving}>Retry</button>}
+                      <button type="button" onClick={() => { setDrag(undefined); setDragConfirm(undefined); }} disabled={dragConfirm.saving}>Cancel</button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             );
