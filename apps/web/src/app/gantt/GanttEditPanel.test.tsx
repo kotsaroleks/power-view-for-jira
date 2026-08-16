@@ -129,6 +129,27 @@ describe("GanttEditPanel dependency candidates", () => {
     expect(await dependsOnOptionLabels()).toEqual(["POWER-2 · Task 2"]);
   });
 
+  it("offers parentless Tasks/Bugs to each other but not to a task with a parent", async () => {
+    const orphanTask = task({ id: "1", issueKey: "POWER-1", issueTypeName: "Task" });
+    const otherOrphanBug = task({ id: "2", issueKey: "POWER-2", issueTypeName: "Bug" });
+    const parentedTask = task({
+      id: "3",
+      issueKey: "POWER-3",
+      issueTypeName: "Task",
+      parentId: "story-1",
+    });
+
+    render(
+      <GanttEditPanel
+        task={orphanTask}
+        tasks={[orphanTask, otherOrphanBug, parentedTask]}
+        editing={editingContext()}
+      />,
+    );
+
+    expect(await dependsOnOptionLabels()).toEqual(["POWER-2 · Task 2"]);
+  });
+
   it("excludes cross-type candidates entirely", async () => {
     const epic = task({ id: "1", issueKey: "POWER-1", issueTypeName: "Epic" });
     const story = task({

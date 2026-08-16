@@ -1,6 +1,9 @@
 import type { GanttScheduleModel, GanttTask } from "@power-view/domain";
+import type { JiraClient } from "@power-view/jira-client";
+import { useState } from "react";
 
 import { GanttView } from "./GanttView";
+import type { GanttEditingContext } from "./GanttEditPanel";
 
 const browseUrl = (key: string) => `https://example.atlassian.net/browse/${key}`;
 
@@ -166,12 +169,77 @@ const largeModel: GanttScheduleModel = {
   dependencyCount: 51,
 };
 
+function useMockEditingContext(
+  initialTasks: GanttTask[],
+): { model: GanttScheduleModel; editing: GanttEditingContext } {
+  const [taskList, setTaskList] = useState(initialTasks);
+  const pending = { current: undefined as { issueKey: string; startDate?: string; dueDate?: string } | undefined };
+
+  const client = {
+    getIssueEditMetadata: async () => ({
+      fields: {
+        startdate: {
+          id: "startdate",
+          name: "Start date",
+          required: false,
+          operations: ["set"],
+          schema: { type: "date" },
+        },
+        duedate: {
+          id: "duedate",
+          name: "Due date",
+          required: false,
+          operations: ["set"],
+          schema: { type: "date" },
+        },
+      },
+    }),
+    updateIssueDates: async (
+      issueKey: string,
+      request: { startDate?: string; dueDate?: string },
+    ) => {
+      console.log("[dev-preview] updateIssueDates", issueKey, request);
+      pending.current = {
+        issueKey,
+        ...(request.startDate !== undefined ? { startDate: request.startDate } : {}),
+        ...(request.dueDate !== undefined ? { dueDate: request.dueDate } : {}),
+      };
+    },
+  } as unknown as JiraClient;
+
+  const refresh = async () => {
+    const change = pending.current;
+    if (!change) return;
+    setTaskList((current) =>
+      current.map((existingTask) =>
+        existingTask.issueKey === change.issueKey
+          ? {
+              ...existingTask,
+              start: change.startDate ?? existingTask.start,
+              end: change.dueDate ?? existingTask.end,
+            }
+          : existingTask,
+      ),
+    );
+  };
+
+  return {
+    model: { roots: [], tasks: taskList, warnings: [], syntheticDateCount: 1, dependencyCount: 3 },
+    editing: { client, fieldMapping: {}, refresh },
+  };
+}
+
 export function DevGanttPreview() {
   const useLargeModel =
     new URLSearchParams(globalThis.location.search).get("gantt-preview") === "large";
+  const { model: liveModel, editing } = useMockEditingContext(tasks);
   return (
     <main className="dev-gantt-preview">
-      <GanttView model={useLargeModel ? largeModel : model} today="2026-07-23" />
+      <GanttView
+        model={useLargeModel ? largeModel : liveModel}
+        today="2026-07-23"
+        editing={editing}
+      />
     </main>
   );
 }

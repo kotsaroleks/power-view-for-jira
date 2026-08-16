@@ -98,10 +98,14 @@ function canLinkAsDependency(a: GanttTask, b: GanttTask): boolean {
     return true;
   }
   if (isStory(a) && isStory(b)) {
-    return a.parentId !== undefined && a.parentId === b.parentId;
+    // Same parent Epic links freely; both being parentless (orphan stories,
+    // no Epic) is also allowed rather than blocked.
+    return a.parentId === b.parentId;
   }
   if (isTaskOrBug(a) && isTaskOrBug(b)) {
-    return a.parentId !== undefined && a.parentId === b.parentId;
+    // Same parent Story links freely; both being parentless (orphan
+    // tasks/bugs, no Story) is also allowed rather than blocked.
+    return a.parentId === b.parentId;
   }
   return false;
 }
@@ -493,8 +497,9 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
           <small>No loaded prerequisite links.</small>
         )}
         <p className="gantt-edit-note">
-          You can only link Epics to Epics, Stories within the same Epic, or Tasks/Bugs
-          within the same Story.
+          You can only link Epics to Epics, Stories within the same Epic (or parentless
+          Stories to each other), or Tasks/Bugs within the same Story (or parentless
+          Tasks/Bugs to each other).
         </p>
         <div className="gantt-edit-row">
           <label className="gantt-edit-grow">
