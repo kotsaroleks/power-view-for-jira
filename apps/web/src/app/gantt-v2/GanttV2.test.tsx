@@ -127,7 +127,74 @@ describe("GanttV2", () => {
     expect(screen.getByRole("button", { name: "Move POWER-1" })).toBeInTheDocument();
   });
 
-  it("shows an embedded epic group expanded and keeps the structural row read-only", () => {
+  it("shows Epic, Story, Bug, and Subtask icons immediately before the task text", () => {
+    render(
+      <GanttV2
+        model={model([
+          task({ id: "epic", issueKey: "POWER-EPIC", issueTypeName: "Epic" }),
+          task({ id: "story", issueKey: "POWER-STORY", issueTypeName: "Story" }),
+          task({ id: "bug", issueKey: "POWER-BUG", issueTypeName: "Bug" }),
+          task({ id: "subtask", issueKey: "POWER-SUB", issueTypeName: "Sub-task" }),
+        ])}
+        today="2026-08-20"
+      />,
+    );
+
+    (
+      [
+        ["POWER-EPIC", "Epic issue type"],
+        ["POWER-STORY", "Story issue type"],
+        ["POWER-BUG", "Bug issue type"],
+        ["POWER-SUB", "Subtask issue type"],
+      ] as const
+    ).forEach(([issueKey, label]) => {
+      const row = screen.getByRole("row", { name: new RegExp(issueKey) });
+      const icon = row.querySelector(`[aria-label="${label}"]`);
+      const taskText = row.querySelector(".gantt-v2-task-text");
+      expect(icon).toBeInTheDocument();
+      expect(icon?.nextElementSibling).toBe(taskText);
+    });
+  });
+
+  it("marks root rows across the table and timeline without marking their children", () => {
+    const epic = task({
+      id: "epic",
+      issueKey: "POWER-EPIC",
+      issueTypeName: "Epic",
+    });
+    const child = task({
+      id: "child",
+      issueKey: "POWER-CHILD",
+      issueTypeName: "Story",
+      parentId: epic.id,
+      depth: 1,
+    });
+    const independentBug = task({
+      id: "independent-bug",
+      issueKey: "POWER-BUG",
+      issueTypeName: "Bug",
+    });
+
+    const { container } = render(
+      <GanttV2 model={model([epic, child, independentBug])} today="2026-08-20" />,
+    );
+
+    expect(screen.getByRole("row", { name: /POWER-EPIC/ })).toHaveClass("is-root");
+    expect(screen.getByRole("row", { name: /POWER-CHILD/ })).not.toHaveClass("is-root");
+    expect(screen.getByRole("row", { name: /POWER-BUG/ })).toHaveClass("is-root");
+    expect(
+      container.querySelector('.gantt-v2-timeline-row[data-task-id="epic"]'),
+    ).toHaveClass("is-root");
+    expect(
+      container.querySelector('.gantt-v2-timeline-row[data-task-id="child"]'),
+    ).not.toHaveClass("is-root");
+    expect(
+      container.querySelector('.gantt-v2-timeline-row[data-task-id="independent-bug"]'),
+    ).toHaveClass("is-root");
+  });
+
+  it("keeps an embedded epic rollup schedule read-only but allows status and assignee edits", () => {
+    const edit = editing();
     const epic = task({
       id: "epic-1",
       issueKey: "POWER-EPIC",
@@ -147,7 +214,9 @@ describe("GanttV2", () => {
       depth: 1,
     });
 
-    render(<GanttV2 model={model([epic, child])} today="2026-08-20" />);
+    render(
+      <GanttV2 model={model([epic, child])} today="2026-08-20" editing={edit.context} />,
+    );
 
     expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
       "POWER-EPIC",
@@ -161,11 +230,11 @@ describe("GanttV2", () => {
       screen.queryByRole("button", { name: /Dependency from start of POWER-EPIC/ }),
     ).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Edit assignee for POWER-EPIC" }),
-    ).toBeNull();
+      screen.getByRole("button", { name: "Edit assignee for POWER-EPIC" }),
+    ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Edit status for POWER-EPIC" }),
-    ).toBeNull();
+      screen.getByRole("button", { name: "Edit status for POWER-EPIC" }),
+    ).toBeInTheDocument();
   });
 
   it("reveals every child when the final visible parent is expanded", () => {
@@ -216,9 +285,7 @@ describe("GanttV2", () => {
     );
 
     expect(screen.queryByRole("link", { name: "POWER-DONE" })).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Expand POWER-PARENT" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Expand POWER-PARENT" })).toBeNull();
   });
 
   it("uses a dedicated review colour instead of the In Progress blue", () => {

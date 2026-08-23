@@ -131,6 +131,75 @@ function isReviewStatusName(statusName: string): boolean {
   return statusName.trim().toLocaleLowerCase().replace(/\s+/g, " ") === "in review";
 }
 
+function canEditIssueMetadata(task: GanttTask): boolean {
+  return (
+    !task.isHierarchyPlaceholder ||
+    task.issueTypeName.trim().toLocaleLowerCase() === "epic"
+  );
+}
+
+type IssueTypeIconKind = "epic" | "story" | "bug" | "subtask";
+
+function issueTypeIconKind(issueTypeName: string): IssueTypeIconKind | undefined {
+  const normalized = issueTypeName
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[\s_-]+/g, "");
+  if (normalized === "epic") return "epic";
+  if (normalized === "story") return "story";
+  if (normalized === "bug") return "bug";
+  if (normalized === "subtask") return "subtask";
+  return undefined;
+}
+
+function IssueTypeIcon({ issueTypeName }: { issueTypeName: string }) {
+  const kind = issueTypeIconKind(issueTypeName);
+  if (!kind) return null;
+  const label =
+    kind === "epic"
+      ? "Epic"
+      : kind === "story"
+        ? "Story"
+        : kind === "bug"
+          ? "Bug"
+          : "Subtask";
+
+  return (
+    <span
+      className={`gantt-v2-issue-type-icon is-${kind}`}
+      role="img"
+      aria-label={`${label} issue type`}
+      title={label}
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        {kind === "epic" ? (
+          <path d="M9.25 1.5 3.6 8.35h3.2l-1.05 6.15 6.65-7.9H9.05l.2-5.1Z" />
+        ) : kind === "story" ? (
+          <path d="M4 2.25h8v11.5L8 11.2l-4 2.55V2.25Z" />
+        ) : kind === "bug" ? (
+          <path
+            d="M6 4.75h4a1 1 0 0 1 1 1v4A3 3 0 0 1 8 12.75a3 3 0 0 1-3-3v-4a1 1 0 0 1 1-1ZM6.25 4.75 5.5 3.25M9.75 4.75l.75-1.5M2.75 6.5H5M11 6.5h2.25M2.75 9H5M11 9h2.25M8 4.75v8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ) : (
+          <path
+            d="M3.25 2.5v3.25A2.25 2.25 0 0 0 5.5 8h5.25M8.5 4.75 11.75 8 8.5 11.25M11.75 3.25h2v2h-2v-2ZM11.75 10.75h2v2h-2v-2Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+      </svg>
+    </span>
+  );
+}
+
 export function GanttV2({
   model,
   nonWorkingDays = [0, 6],
@@ -1016,7 +1085,7 @@ export function GanttV2({
           </div>
           {filteredTasks.map((task) => (
             <div
-              className={`gantt-v2-table-row${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
+              className={`gantt-v2-table-row${task.parentId ? "" : " is-root"}${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
               role="row"
               key={task.id}
             >
@@ -1044,7 +1113,8 @@ export function GanttV2({
                 ) : (
                   <span className="gantt-v2-disclosure-placeholder" />
                 )}
-                <span>
+                <IssueTypeIcon issueTypeName={task.issueTypeName} />
+                <span className="gantt-v2-task-text">
                   <a href={task.browseUrl} target="_blank" rel="noreferrer">
                     {task.issueKey}
                   </a>
@@ -1056,7 +1126,7 @@ export function GanttV2({
                 className={`gantt-v2-status is-${task.statusCategory}${isReviewStatusName(statusOverrides[task.id] ?? task.statusName) ? " is-review" : ""}`}
                 ref={statusEditorTaskId === task.id ? statusEditorRef : undefined}
               >
-                {editing && !task.isHierarchyPlaceholder ? (
+                {editing && canEditIssueMetadata(task) ? (
                   <button
                     type="button"
                     className="gantt-v2-status-button"
@@ -1124,7 +1194,7 @@ export function GanttV2({
                 className="gantt-v2-assignee"
                 ref={assigneeEditorTaskId === task.id ? assigneeEditorRef : undefined}
               >
-                {editing && !task.isHierarchyPlaceholder ? (
+                {editing && canEditIssueMetadata(task) ? (
                   <button
                     type="button"
                     className="gantt-v2-assignee-button"
@@ -1295,7 +1365,11 @@ export function GanttV2({
               const left = daysBetween(rangeStart, task.start) * dayWidth;
               const width = (daysBetween(task.start, task.end) + 1) * dayWidth;
               return (
-                <div className="gantt-v2-timeline-row" key={task.id}>
+                <div
+                  className={`gantt-v2-timeline-row${task.parentId ? "" : " is-root"}`}
+                  data-task-id={task.id}
+                  key={task.id}
+                >
                   {days.map((date) => {
                     const day = new Date(`${date}T00:00:00.000Z`).getUTCDay();
                     return (

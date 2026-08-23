@@ -170,7 +170,11 @@ package/module boundaries, typed public contracts and contract tests.
 
 ## Gantt behaviour and UX
 
-1. Show issue key, summary, status, assignee, schedule state and meaningful warnings.
+1. Show issue key, summary, status, assignee, schedule state and meaningful warnings. The
+   task table shows a compact issue-type icon immediately before the task text for Epic,
+   Story, Bug and Subtask rows without adding another Jira request. Every root task has a
+   subtle root-level marker and a synchronized table/timeline group boundary so a root
+   without children cannot look like another child of the preceding expanded parent.
 2. Support hierarchy/rollups without inheriting parent dates as child explicit dates.
    Rollups are display values only. Jira's native `parent` relation and legacy `Epic Link`
    field are detected automatically: loaded stories/tasks are grouped under their loaded
@@ -179,8 +183,12 @@ package/module boundaries, typed public contracts and contract tests.
    parent in a board item's own metadata but does not return that parent as a board item,
    Gantt materializes an expanded, structural-only parent row and groups the board items
    beneath it. This must not trigger a project-wide scan, add the structural row to
-   Reports, or make that synthetic row editable. The embedded parent summary/type/status
-   are used when Jira supplies them; the referenced issue key is the fallback label.
+   Reports, or make its rollup dates and dependencies editable. When the row represents a
+   referenced Jira epic with a real issue key, its status and assignee remain editable via
+   the same lazy transition and assignment calls as ordinary tasks. Enabling those two
+   controls must not add any request to the workspace-loading path. The embedded parent
+   summary/type/status are used when Jira supplies them; the referenced issue key is the
+   fallback label.
 3. Support filtering, including **Hide completed matching tasks**. The selected wording is
    exactly: `Hide completed matching tasks`. The filter remains authoritative for
    hierarchy rows: completed children stay hidden after their parent is expanded. When
