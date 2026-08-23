@@ -1016,7 +1016,7 @@ export function GanttV2({
           </div>
           {filteredTasks.map((task) => (
             <div
-              className={`gantt-v2-table-row${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
+              className={`gantt-v2-table-row${task.isExternalBoardEpic ? " is-external-board-epic" : ""}${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
               role="row"
               key={task.id}
             >
@@ -1350,7 +1350,7 @@ export function GanttV2({
                     </div>
                   ) : (
                     <div
-                      className={`gantt-v2-bar${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
+                      className={`gantt-v2-bar${task.isExternalBoardEpic ? " is-external-board-epic" : ""}${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
                       style={{ left, width, background: taskColor(task) }}
                       data-task-id={task.id}
                     >

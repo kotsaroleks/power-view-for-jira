@@ -8,6 +8,7 @@
   --gantt-v2-review: #7a61d1;
   --gantt-v2-todo: #8794a9;
   --gantt-v2-done: #39a06f;
+  --gantt-v2-external-epic: #d97706;
   overflow: visible;
   border: 1px solid var(--gantt-v2-border);
   border-radius: 12px;
@@ -188,6 +189,11 @@
 
 .gantt-v2-table-row:hover {
   background: #f8faff;
+}
+
+.gantt-v2-table-row.is-external-board-epic {
+  box-shadow: inset 4px 0 var(--gantt-v2-external-epic);
+  background: #fff8e6;
 }
 
 .gantt-v2-table-row.is-external-conflict {
@@ -588,6 +594,11 @@
   border-radius: 4px;
   cursor: default;
   opacity: 0.82;
+}
+
+.gantt-v2-bar.is-external-board-epic {
+  outline: 3px solid var(--gantt-v2-external-epic);
+  outline-offset: 2px;
 }
 
 .gantt-v2-bar.is-external-conflict {

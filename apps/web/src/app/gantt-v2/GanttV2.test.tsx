@@ -168,6 +168,38 @@ describe("GanttV2", () => {
     ).toBeNull();
   });
 
+  it("keeps a hydrated external-board epic editable and visually accented", () => {
+    const edit = editing();
+    render(
+      <GanttV2
+        model={model([
+          task({
+            id: "external-epic",
+            issueKey: "POWER-EPIC",
+            name: "External board epic",
+            issueTypeName: "Epic",
+            isExternalBoardEpic: true,
+          }),
+        ])}
+        today="2026-08-20"
+        editing={edit.context}
+      />,
+    );
+
+    expect(screen.getByRole("row", { name: /POWER-EPIC/ })).toHaveClass(
+      "is-external-board-epic",
+    );
+    expect(
+      screen.getByRole("button", { name: "Edit status for POWER-EPIC" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Edit assignee for POWER-EPIC" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Move POWER-EPIC" }).parentElement,
+    ).toHaveClass("is-external-board-epic");
+  });
+
   it("reveals every child when the final visible parent is expanded", () => {
     const parent = task({
       id: "parent",
@@ -216,9 +248,7 @@ describe("GanttV2", () => {
     );
 
     expect(screen.queryByRole("link", { name: "POWER-DONE" })).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Expand POWER-PARENT" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Expand POWER-PARENT" })).toBeNull();
   });
 
   it("uses a dedicated review colour instead of the In Progress blue", () => {

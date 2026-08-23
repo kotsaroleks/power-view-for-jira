@@ -218,6 +218,17 @@ describe("Jira request policy", () => {
       validatedJiraRequestUrl(
         {
           ...request,
+          path: "/rest/agile/1.0/board/7/epic",
+          query: { maxResults: 50, startAt: 0 },
+        },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...request,
           method: "POST",
           path: "/rest/api/3/changelog/bulkfetch",
           body: { issueIdsOrKeys: ["10001"], fieldIds: ["status"], maxResults: 1000 },

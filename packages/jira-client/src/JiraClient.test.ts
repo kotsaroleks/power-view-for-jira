@@ -23,6 +23,68 @@ function transportWith(data: unknown): {
 }
 
 describe("createJiraClient", () => {
+  it("loads and paginates only the epics associated with the selected board", async () => {
+    const requestMock = vi.fn(
+      <TResponse>(request: JiraTransportRequest, schema: z.ZodType<TResponse>) => {
+        const startAt = Number(request.query?.startAt ?? 0);
+        return Promise.resolve(
+          schema.parse({
+            values:
+              startAt === 0
+                ? [
+                    {
+                      id: 101,
+                      key: "POWER-101",
+                      name: "Current-board epic",
+                      done: false,
+                    },
+                  ]
+                : [
+                    {
+                      id: 102,
+                      key: "POWER-102",
+                      name: "Completed board epic",
+                      done: true,
+                    },
+                  ],
+            startAt,
+            maxResults: 1,
+            total: 2,
+            isLast: startAt === 1,
+          }),
+        );
+      },
+    );
+    const client = createJiraClient(
+      { request: requestMock as unknown as JiraTransport["request"] },
+      { baseUrl: "https://example.atlassian.net", deploymentType: "cloud" },
+    );
+
+    await expect(client.getBoardEpics("2487")).resolves.toEqual([
+      {
+        id: "101",
+        key: "POWER-101",
+        name: "Current-board epic",
+        done: false,
+      },
+      {
+        id: "102",
+        key: "POWER-102",
+        name: "Completed board epic",
+        done: true,
+      },
+    ]);
+    expect(requestMock).toHaveBeenCalledTimes(2);
+    expect(requestMock.mock.calls[0]?.[0]).toMatchObject({
+      method: "GET",
+      path: "/rest/agile/1.0/board/2487/epic",
+      query: { startAt: 0, maxResults: 50 },
+    });
+    expect(requestMock.mock.calls[1]?.[0]).toMatchObject({
+      query: { startAt: 1, maxResults: 50 },
+    });
+  });
+
   it("loads the global status catalog for board statuses outside the selected project", async () => {
     const { transport, requestMock } = transportWith([
       { id: "10013", name: "In Review" },

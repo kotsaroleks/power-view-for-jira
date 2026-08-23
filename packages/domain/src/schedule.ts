@@ -92,6 +92,7 @@ export interface GanttTask {
   assigneeName?: string;
   issueTypeName: string;
   isHierarchyPlaceholder?: boolean;
+  isExternalBoardEpic?: boolean;
   scheduleState?: GanttScheduleState;
   isSyntheticDate: boolean;
   startSource: StartDateSource;
@@ -868,6 +869,7 @@ export function buildGanttScheduleModel(
         : {}),
       issueTypeName: node.issue.issueType.name,
       ...(node.issue.hierarchyPlaceholder ? { isHierarchyPlaceholder: true } : {}),
+      ...(node.issue.isExternalBoardEpic ? { isExternalBoardEpic: true } : {}),
       scheduleState: resolved.dates.scheduleState,
       isSyntheticDate: resolved.dates.isSynthetic,
       startSource: resolved.dates.startSource,

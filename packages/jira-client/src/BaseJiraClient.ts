@@ -21,6 +21,7 @@ import {
 
 import type {
   CreateIssueLinkRequest,
+  JiraBoardEpic,
   JiraClient,
   JiraIssueEditMetadata,
   JiraIssueLinkType,
@@ -59,6 +60,7 @@ import {
   rawPartialJiraIssueSchema,
   rawJiraProjectStatusesSchema,
   rawJiraStatusesSchema,
+  rawJiraBoardEpicPageSchema,
 } from "./schemas";
 import {
   rawJiraBoardPageSchema as reportingBoardPageSchema,
@@ -483,6 +485,40 @@ export abstract class BaseJiraClient implements JiraClient {
       signal,
     );
     return mapJiraBoard(raw);
+  }
+
+  async getBoardEpics(boardId: string, signal?: AbortSignal): Promise<JiraBoardEpic[]> {
+    const epics: JiraBoardEpic[] = [];
+    let startAt = 0;
+
+    while (true) {
+      abortIfRequested(signal);
+      const page = await this.transport.request(
+        {
+          baseUrl: this.baseUrl,
+          method: "GET",
+          path: `/rest/agile/1.0/board/${encodeURIComponent(boardId)}/epic`,
+          query: { startAt, maxResults: 50 },
+          headers: { Accept: "application/json" },
+        },
+        rawJiraBoardEpicPageSchema,
+        signal,
+      );
+      epics.push(
+        ...page.values.map((epic) => ({
+          id: String(epic.id),
+          key: epic.key,
+          name: epic.name,
+          done: epic.done ?? false,
+        })),
+      );
+
+      const nextStart = page.startAt + page.values.length;
+      if (page.isLast || page.values.length === 0 || nextStart >= page.total) break;
+      startAt = nextStart;
+    }
+
+    return epics;
   }
 
   async getBoardConfiguration(
