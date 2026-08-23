@@ -58,25 +58,6 @@ export const rawJiraStatusSchema = z
 
 export const rawJiraStatusesSchema = z.array(rawJiraStatusSchema);
 
-export const rawJiraBoardEpicSchema = z
-  .object({
-    id: jiraIdSchema,
-    key: z.string().min(1).max(255),
-    name: z.string().min(1).max(10_000),
-    done: z.boolean().optional(),
-  })
-  .passthrough();
-
-export const rawJiraBoardEpicPageSchema = z
-  .object({
-    values: z.array(rawJiraBoardEpicSchema),
-    startAt: z.number().int().nonnegative(),
-    maxResults: z.number().int().nonnegative(),
-    total: z.number().int().nonnegative(),
-    isLast: z.boolean().optional(),
-  })
-  .passthrough();
-
 export const rawJiraProjectStatusesSchema = z.array(
   z
     .object({
@@ -269,7 +250,6 @@ export type RawJiraServerInfo = z.infer<typeof rawJiraServerInfoSchema>;
 export type RawJiraProject = z.infer<typeof rawJiraProjectSchema>;
 export type RawJiraProjectStatuses = z.infer<typeof rawJiraProjectStatusesSchema>;
 export type RawJiraStatus = z.infer<typeof rawJiraStatusSchema>;
-export type RawJiraBoardEpic = z.infer<typeof rawJiraBoardEpicSchema>;
 export type RawCloudProjectPage = z.infer<typeof rawCloudProjectPageSchema>;
 export type RawJiraField = z.infer<typeof rawJiraFieldSchema>;
 export type RawJiraIssueEditMetadata = z.infer<typeof rawJiraIssueEditMetadataSchema>;

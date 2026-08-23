@@ -75,7 +75,6 @@ export interface NormalizedIssue {
   parentReference?: NormalizedHierarchyReference;
   epicReference?: NormalizedHierarchyReference;
   hierarchyPlaceholder?: boolean;
-  isExternalBoardEpic?: boolean;
   createdAt?: string;
   updatedAt?: string;
   startDate?: string;

@@ -7,7 +7,6 @@ import type {
   JiraProject,
   JiraServerInfo,
   JiraUser,
-  PageProgress,
   PaginatedResult,
   ProjectSearchOptions,
   SearchIssuesRequest,
@@ -42,13 +41,6 @@ export interface JiraStatus {
   name: string;
 }
 
-export interface JiraBoardEpic {
-  id: string;
-  key: string;
-  name: string;
-  done: boolean;
-}
-
 export interface JiraPriority {
   id: string;
   name: string;
@@ -74,7 +66,7 @@ export interface SearchBoardIssuesRequest {
   maxIssues?: number;
   pageSize?: number;
   forceRefresh?: boolean;
-  onProgress?: (progress: PageProgress) => void;
+  onProgress?: (progress: import("@power-view/domain").PageProgress) => void;
 }
 
 export interface CreateIssueLinkRequest {
@@ -93,7 +85,6 @@ export interface JiraClient extends ReportingJiraClient {
   getFields(signal?: AbortSignal): Promise<JiraField[]>;
   getProjectStatuses(projectKeyOrId: string, signal?: AbortSignal): Promise<JiraStatus[]>;
   getStatuses(signal?: AbortSignal): Promise<JiraStatus[]>;
-  getBoardEpics(boardId: string, signal?: AbortSignal): Promise<JiraBoardEpic[]>;
   searchIssues(
     request: SearchIssuesRequest,
     signal?: AbortSignal,

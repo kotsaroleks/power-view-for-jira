@@ -37,7 +37,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { loadProjectBoards } from "./load-project-boards";
 import { BoardConfigurationTransfer } from "./workspace/BoardConfigurationTransfer";
-import { loadGanttIssues } from "./workspace/load-gantt-issues";
 import {
   createWorkspaceContext,
   type WorkspaceContext,
@@ -249,18 +248,17 @@ export function SetupPanel({
   const [issueLoadState, setIssueLoadState] = useState<IssueLoadState>("idle");
   const [issueProgress, setIssueProgress] = useState<PageProgress>();
   const [issueResult, setIssueResult] = useState<IssueSearchResult>();
-  const [ganttIssues, setGanttIssues] = useState<NormalizedIssue[]>();
   const [issueLoadedAt, setIssueLoadedAt] = useState<string>();
   const [issueLoadError, setIssueLoadError] = useState<string>();
   const scheduleModel = useMemo(
     () =>
-      ganttIssues
-        ? buildGanttScheduleModel(ganttIssues, {
+      issueResult
+        ? buildGanttScheduleModel(issueResult.values, {
             defaultDurations,
             nonWorkingDays,
           })
         : undefined,
-    [defaultDurations, ganttIssues, nonWorkingDays],
+    [defaultDurations, issueResult, nonWorkingDays],
   );
   const scheduleQueryKey = `${context.baseUrl}\n${selectedProjectKey}\n${jql.trim()}`;
 
@@ -391,7 +389,6 @@ export function SetupPanel({
     setIssueLoadState("idle");
     setIssueProgress(undefined);
     setIssueResult(undefined);
-    setGanttIssues(undefined);
     setIssueLoadedAt(undefined);
     setIssueLoadError(undefined);
   }, [client]);
@@ -423,7 +420,6 @@ export function SetupPanel({
       client.clearIssueCache();
       setIssueLoadState("idle");
       setIssueResult(undefined);
-      setGanttIssues(undefined);
       return;
     }
 
@@ -504,7 +500,6 @@ export function SetupPanel({
         client.clearIssueCache();
         setIssueLoadState("idle");
         setIssueResult(undefined);
-        setGanttIssues(undefined);
         setIssueLoadedAt(undefined);
       })
       .catch(() => {
@@ -756,7 +751,6 @@ export function SetupPanel({
     setIssueLoadState("loading");
     setIssueProgress({ loaded: 0, page: 0 });
     setIssueResult(undefined);
-    setGanttIssues(undefined);
     setIssueLoadError(undefined);
 
     try {
@@ -779,23 +773,12 @@ export function SetupPanel({
       if (controller.signal.aborted) {
         return;
       }
-      const loadedGanttIssues = await loadGanttIssues({
-        client,
-        boardId: selectedBoard!.id,
-        boardIssues: result.values,
-        fieldMapping,
-        signal: controller.signal,
-      });
-      if (controller.signal.aborted) {
-        return;
-      }
       const loadedAt = new Date().toISOString();
       setIssueResult(result);
-      setGanttIssues(loadedGanttIssues);
       setIssueLoadedAt(loadedAt);
       setIssueLoadState("ready");
       const readySchedule = createWorkspaceContext({
-        model: buildGanttScheduleModel(loadedGanttIssues, {
+        model: buildGanttScheduleModel(result.values, {
           defaultDurations,
           nonWorkingDays,
         }),
@@ -912,18 +895,7 @@ export function SetupPanel({
       if (controller.signal.aborted) {
         return;
       }
-      const loadedGanttIssues = await loadGanttIssues({
-        client,
-        boardId: selectedBoard.id,
-        boardIssues: result.values,
-        fieldMapping,
-        signal: controller.signal,
-      });
-      if (controller.signal.aborted) {
-        return;
-      }
       setIssueResult(result);
-      setGanttIssues(loadedGanttIssues);
       setIssueLoadedAt(new Date().toISOString());
       setIssueLoadState("ready");
       reportIssueLoad(result.values.length, "ready");

@@ -187,9 +187,6 @@ function allowedQueryParameters(
   if (/^\/rest\/agile\/1\.0\/board\/\d+$/.test(request.path)) return new Set();
   if (/^\/rest\/agile\/1\.0\/board\/\d+\/configuration$/.test(request.path))
     return new Set();
-  if (/^\/rest\/agile\/1\.0\/board\/\d+\/epic$/.test(request.path)) {
-    return new Set(["startAt", "maxResults", "done"]);
-  }
   if (/^\/rest\/(?:agile|software)\/1\.0\/board\/\d+\/issue$/.test(request.path)) {
     return new Set([
       "startAt",

@@ -181,16 +181,6 @@ package/module boundaries, typed public contracts and contract tests.
    beneath it. This must not trigger a project-wide scan, add the structural row to
    Reports, or make that synthetic row editable. The embedded parent summary/type/status
    are used when Jira supplies them; the referenced issue key is the fallback label.
-   Referenced epics are resolved against Jira's board-scoped epic endpoint and then
-   hydrated as full Jira issues by their exact keys. A successfully hydrated epic is a
-   normal editable Gantt task, not a structural placeholder: status and assignee use the
-   same Jira transition/assignment operations and permission checks as any other issue.
-   This enrichment must never broaden into a project-wide issue scan and must not add
-   supplemental epics to Reports' board-issue dataset. If a referenced epic is absent from
-   `GET /board/{currentBoardId}/epic`, it is marked as belonging outside the current board
-   and receives a dedicated visual accent in both the task table and timeline. The accent
-   is informational and does not change hierarchy, schedule, filtering or edit
-   permissions.
 3. Support filtering, including **Hide completed matching tasks**. The selected wording is
    exactly: `Hide completed matching tasks`. The filter remains authoritative for
    hierarchy rows: completed children stay hidden after their parent is expanded. When
