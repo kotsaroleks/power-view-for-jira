@@ -16,6 +16,7 @@ export interface SetupConfiguration {
     completedStatusNames: string[];
   };
   defaultDurations?: DefaultDurationDays;
+  nonWorkingDays?: number[];
   updatedAt: string;
 }
 

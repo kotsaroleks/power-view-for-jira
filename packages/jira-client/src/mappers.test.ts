@@ -99,8 +99,26 @@ describe("Jira response mappers", () => {
       ...fixture,
       fields: {
         ...fixture.fields,
-        parent: { id: "19999", key: "POWER-99" },
+        parent: {
+          id: "19999",
+          key: "POWER-99",
+          fields: {
+            summary: "Release epic",
+            issuetype: {
+              id: "10001",
+              name: "Epic",
+              subtask: false,
+              hierarchyLevel: 1,
+            },
+            status: {
+              id: "1",
+              name: "To Do",
+              statusCategory: { key: "new" },
+            },
+          },
+        },
         customfield_10014: "POWER-100",
+        timeoriginalestimate: 144_000,
         issuelinks: [
           {
             id: "30001",
@@ -128,7 +146,20 @@ describe("Jira response mappers", () => {
       dueDate: "2026-02-10",
       parentKey: "POWER-99",
       epicKey: "POWER-100",
+      parentReference: {
+        id: "19999",
+        key: "POWER-99",
+        summary: "Release epic",
+        issueType: {
+          id: "10001",
+          name: "Epic",
+          subtask: false,
+          hierarchyLevel: 1,
+        },
+        status: { id: "1", name: "To Do", category: "to-do" },
+      },
       progress: { percentage: 0, source: "status" },
+      originalEstimateSeconds: 144_000,
       issueLinks: [
         {
           direction: "outward",

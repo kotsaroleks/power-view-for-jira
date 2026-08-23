@@ -5,7 +5,6 @@ import {
   type GanttDateFilter,
   type GanttFilters,
   type GanttRiskFilter,
-  type GanttSortOption,
   type JiraStatusCategory,
 } from "@power-view/domain";
 
@@ -35,8 +34,6 @@ export interface GanttFiltersToolbarProps {
   resetEnabled: boolean;
   onChange: (filters: GanttFilters) => void;
   onReset: () => void;
-  sortBy: GanttSortOption;
-  onSortByChange: (sortBy: GanttSortOption) => void;
 }
 
 interface FilterOption<Value extends string> {
@@ -158,8 +155,6 @@ export function GanttFiltersToolbar({
   resetEnabled,
   onChange,
   onReset,
-  sortBy,
-  onSortByChange,
 }: GanttFiltersToolbarProps) {
   const update = <Key extends keyof GanttFilters>(key: Key, value: GanttFilters[Key]) =>
     onChange({ ...filters, [key]: value });
@@ -180,17 +175,6 @@ export function GanttFiltersToolbar({
           onChange={(event) => update("search", event.target.value)}
         />
       </label>
-      <label className="gantt-filter-field">
-        <span className="gantt-filter-label">Sort by</span>
-        <select value={sortBy} onChange={(event) => onSortByChange(event.target.value as GanttSortOption)}>
-          <option value="default">Default</option>
-          <option value="startDate">Start date</option>
-          <option value="endDate">End date</option>
-          <option value="name">Name</option>
-          <option value="status">Status</option>
-        </select>
-      </label>
-
       <MultiSelectFilter
         label="Status"
         allLabel="All statuses"
@@ -309,6 +293,14 @@ export function GanttFiltersToolbar({
             onChange={(event) => update("includeDescendants", event.target.checked)}
           />
           <span>Include descendants</span>
+        </label>
+        <label className="gantt-descendants-toggle">
+          <input
+            type="checkbox"
+            checked={filters.excludeDone}
+            onChange={(event) => update("excludeDone", event.target.checked)}
+          />
+          <span>Hide completed matching tasks</span>
         </label>
         <button type="button" disabled={!resetEnabled} onClick={onReset}>
           Reset filters

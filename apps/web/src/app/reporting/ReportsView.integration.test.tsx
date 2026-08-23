@@ -23,35 +23,54 @@ const statusMapping: BoardReportConfiguration = {
 };
 
 describe("ReportsView workspace inheritance", () => {
-  it("uses the configured board and status mapping without local selectors", async () => {
+  it("explains a missing status mapping without presenting an operation as busy", async () => {
+    render(
+      <ReportsView
+        client={{} as JiraClient}
+        baseUrl="https://example.atlassian.net"
+        deploymentType="cloud"
+        board={board}
+        issues={[]}
+        jql="filter = 9001 ORDER BY Rank ASC"
+        statusMapping={{
+          ...statusMapping,
+          completedStatusIds: [],
+          completedStatusNames: [],
+        }}
+        historyStore={new MemoryReportHistoryStore()}
+      />,
+    );
+
+    const button = await screen.findByRole("button", { name: "Generate report" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute(
+      "title",
+      "Configure at least one completed status in Workspace Settings.",
+    );
+    expect(button).toHaveAttribute("aria-busy", "false");
+    expect(button).not.toHaveClass("is-loading");
+  });
+
+  it("uses workspace issues without loading Jira when Reports opens", async () => {
     const getBoards = vi.fn();
+    const getBoardIssues = vi.fn().mockResolvedValue({
+      values: [],
+      startAt: 0,
+      maxResults: 100,
+      total: 0,
+      isLast: true,
+    });
+    const getBoardSprints = vi.fn().mockResolvedValue({
+      values: [],
+      startAt: 0,
+      maxResults: 50,
+      total: 0,
+      isLast: true,
+    });
     const client = {
       getBoards,
-      getBoardIssues: vi.fn().mockResolvedValue({
-        values: [
-          {
-            id: "100",
-            key: "POWER-1",
-            browseUrl: "https://example.atlassian.net/browse/POWER-1",
-            summary: "Release task",
-            issueType: { id: "1", name: "Task" },
-            status: { id: "2", name: "In Progress" },
-            assignee: { id: "alex", displayName: "Alex Rivera" },
-            sprintIds: ["101"],
-          },
-        ],
-        startAt: 0,
-        maxResults: 100,
-        total: 1,
-        isLast: true,
-      }),
-      getBoardSprints: vi.fn().mockResolvedValue({
-        values: [{ id: "101", name: "Sprint 101", state: "active" }],
-        startAt: 0,
-        maxResults: 50,
-        total: 1,
-        isLast: true,
-      }),
+      getBoardIssues,
+      getBoardSprints,
     } as unknown as JiraClient;
 
     render(
@@ -60,6 +79,29 @@ describe("ReportsView workspace inheritance", () => {
         baseUrl="https://example.atlassian.net"
         deploymentType="cloud"
         board={board}
+        issues={[
+          {
+            id: "100",
+            key: "POWER-1",
+            browseUrl: "https://example.atlassian.net/browse/POWER-1",
+            summary: "Release task",
+            issueType: { id: "1", name: "Task", subtask: false },
+            status: { id: "2", name: "In Progress" },
+            assignee: { accountId: "alex", displayName: "Alex Rivera" },
+            project: { id: "10000", key: "POWER", name: "Power View" },
+            sprints: [{ id: "101", name: "Sprint 101", state: "active" }],
+            labels: [],
+            components: [],
+            fixVersions: [],
+            issueLinks: [],
+            rawFieldPresence: {
+              hasStartDate: false,
+              hasDueDate: false,
+              hasParent: false,
+              hasEpic: false,
+            },
+          },
+        ]}
         jql="filter = 9001 ORDER BY Rank ASC"
         statusMapping={statusMapping}
         historyStore={new MemoryReportHistoryStore()}
@@ -75,5 +117,7 @@ describe("ReportsView workspace inheritance", () => {
       screen.queryByRole("button", { name: "Save mapping" }),
     ).not.toBeInTheDocument();
     expect(getBoards).not.toHaveBeenCalled();
+    expect(getBoardIssues).not.toHaveBeenCalled();
+    expect(getBoardSprints).not.toHaveBeenCalled();
   });
 });

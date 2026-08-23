@@ -9,6 +9,7 @@ import {
   type JiraSprintState,
   type JiraStatusCategory,
   type JiraUser,
+  type NormalizedHierarchyReference,
   type NormalizedIssue,
   type NormalizedIssueLink,
 } from "@power-view/domain";
@@ -240,14 +241,74 @@ function mapSprints(value: unknown): JiraIssueSprint[] {
   return [...new Map(sprints.map((sprint) => [sprint.id, sprint])).values()];
 }
 
-function referencedIssueKey(value: unknown): string | undefined {
+function objectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function referencedIssue(value: unknown): NormalizedHierarchyReference | undefined {
   if (typeof value === "string") {
-    return optionalString(value);
+    const key = optionalString(value);
+    return key ? { key } : undefined;
   }
-  if (value && typeof value === "object" && "key" in value) {
-    return optionalString(value.key);
+  const record = objectRecord(value);
+  const key = optionalString(record?.key);
+  if (!record || !key) {
+    return undefined;
   }
-  return undefined;
+  const rawId = record.id;
+  const id = typeof rawId === "number" ? String(rawId) : optionalString(rawId);
+  const fields = objectRecord(record.fields);
+  const summary = optionalString(fields?.summary);
+  const issueTypeValue = objectRecord(fields?.issuetype);
+  const issueTypeId =
+    typeof issueTypeValue?.id === "number"
+      ? String(issueTypeValue.id)
+      : optionalString(issueTypeValue?.id);
+  const issueTypeName = optionalString(issueTypeValue?.name);
+  const hierarchyLevelValue = issueTypeValue?.hierarchyLevel;
+  const hierarchyLevel =
+    typeof hierarchyLevelValue === "number" && Number.isInteger(hierarchyLevelValue)
+      ? hierarchyLevelValue
+      : undefined;
+  const issueTypeIconUrl = optionalString(issueTypeValue?.iconUrl);
+  const statusValue = objectRecord(fields?.status);
+  const statusId =
+    typeof statusValue?.id === "number"
+      ? String(statusValue.id)
+      : optionalString(statusValue?.id);
+  const statusName = optionalString(statusValue?.name);
+  const statusCategoryValue = objectRecord(statusValue?.statusCategory);
+
+  return {
+    ...(id ? { id } : {}),
+    key,
+    ...(summary ? { summary } : {}),
+    ...(issueTypeId && issueTypeName
+      ? {
+          issueType: {
+            id: issueTypeId,
+            name: issueTypeName,
+            subtask: issueTypeValue?.subtask === true,
+            ...(hierarchyLevel === undefined ? {} : { hierarchyLevel }),
+            ...(issueTypeIconUrl ? { iconUrl: issueTypeIconUrl } : {}),
+          },
+        }
+      : {}),
+    ...(statusName
+      ? {
+          status: {
+            ...(statusId ? { id: statusId } : {}),
+            name: statusName,
+            category: statusCategory(
+              optionalString(statusCategoryValue?.key),
+              optionalString(statusCategoryValue?.name),
+            ),
+          },
+        }
+      : {}),
+  };
 }
 
 function semanticLinkType(
@@ -343,13 +404,16 @@ export function mapJiraIssue(
   const storyPoints = context.fieldMapping?.storyPointsFieldId
     ? optionalNumber(fields[context.fieldMapping.storyPointsFieldId])
     : undefined;
+  const originalEstimateSeconds = optionalNumber(fields.timeoriginalestimate);
   const sprints = context.fieldMapping?.sprintFieldId
     ? mapSprints(fields[context.fieldMapping.sprintFieldId])
     : [];
   const startDate = optionalString(configuredStart) ?? optionalString(fields.startdate);
   const dueDate = optionalString(configuredEnd) ?? optionalString(fields.duedate);
-  const parentKey = fields.parent?.key;
-  const epicKey = referencedIssueKey(configuredHierarchy);
+  const parentReference = referencedIssue(fields.parent);
+  const epicReference = referencedIssue(configuredHierarchy);
+  const parentKey = parentReference?.key;
+  const epicKey = epicReference?.key;
   const baseUrl = context.baseUrl.replace(/\/+$/, "");
 
   return {
@@ -391,12 +455,15 @@ export function mapJiraIssue(
     },
     ...(parentKey ? { parentKey } : {}),
     ...(epicKey ? { epicKey } : {}),
+    ...(parentReference ? { parentReference } : {}),
+    ...(epicReference ? { epicReference } : {}),
     ...(fields.created ? { createdAt: fields.created } : {}),
     ...(fields.updated ? { updatedAt: fields.updated } : {}),
     ...(startDate ? { startDate } : {}),
     ...(dueDate ? { dueDate } : {}),
     ...(fields.resolutiondate ? { resolvedAt: fields.resolutiondate } : {}),
     ...(storyPoints === undefined ? {} : { storyPoints }),
+    ...(originalEstimateSeconds === undefined ? {} : { originalEstimateSeconds }),
     ...(sprints.length > 0 ? { sprints } : {}),
     progress: mapProgress(rawIssue, category),
     labels: [...(fields.labels ?? [])],

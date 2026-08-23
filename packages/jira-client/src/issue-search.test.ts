@@ -47,6 +47,45 @@ function cloudFixtureTransport(issueCount: number): {
 }
 
 describe("paginated issue search", () => {
+  it("loads a Gantt workspace through its board endpoint, never a project-wide search", async () => {
+    const fixtures = makeJiraIssueFixtures(20);
+    const requestMock = vi.fn(
+      <TResponse>(request: JiraTransportRequest, schema: z.ZodType<TResponse>) => {
+        const startAt = Number(request.query?.startAt ?? 0);
+        const maxResults = Number(request.query?.maxResults ?? 100);
+        return Promise.resolve(
+          schema.parse({
+            issues: fixtures.slice(startAt, startAt + maxResults),
+            startAt,
+            maxResults,
+            total: fixtures.length,
+          }),
+        );
+      },
+    );
+    const client = createJiraClient(
+      { request: requestMock as unknown as JiraTransport["request"] },
+      { baseUrl: "https://fixture.atlassian.net", deploymentType: "cloud" },
+    );
+
+    const result = await client.searchBoardIssues({
+      boardId: "2487",
+      fieldMapping: { startDateFieldId: "customfield_10010" },
+    });
+
+    expect(result.values).toHaveLength(20);
+    expect(requestMock).toHaveBeenCalledOnce();
+    expect(requestMock.mock.calls[0]?.[0]).toMatchObject({
+      path: "/rest/agile/1.0/board/2487/issue",
+      query: { startAt: 0, maxResults: 100 },
+    });
+    expect(
+      requestMock.mock.calls.some(([request]) =>
+        (request as JiraTransportRequest).path.includes("/search"),
+      ),
+    ).toBe(false);
+  });
+
   it("loads 1,000 fixtures without duplicates and reports progress", async () => {
     const { transport, requestMock } = cloudFixtureTransport(1_000);
     const client = createJiraClient(transport, {

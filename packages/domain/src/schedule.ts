@@ -22,6 +22,8 @@ export const DEFAULT_DURATION_DAYS: DefaultDurationDays = {
   epic: 10,
   unknown: 3,
 };
+export const DEFAULT_NON_WORKING_DAYS: number[] = [0, 6];
+export const WORKING_DAY_SECONDS = 8 * 60 * 60;
 
 export interface IssueTreeNode {
   issue: NormalizedIssue;
@@ -36,6 +38,7 @@ export type ScheduleWarningCode =
   | "MAXIMUM_DEPTH"
   | "INVALID_START_DATE"
   | "INVALID_END_DATE"
+  | "INFERRED_START_ON_NON_WORKING_DAY"
   | "END_BEFORE_START"
   | "PARENT_DATE_MISMATCH";
 
@@ -50,6 +53,10 @@ export type EndDateSource =
   "jira" | "children" | "sprint" | "resolution" | "default-duration" | "corrected";
 export type CalculatedProgressSource =
   "jira-progress" | "subtasks" | "children" | "status" | "none";
+
+/** Indicates whether Jira confirms the task dates or the bar is a forecast. */
+export type GanttScheduleState =
+  "confirmed" | "planned" | "forecast" | "milestone" | "rollup" | "unscheduled";
 
 export type DependencyRelationshipType = "finish-to-start" | "finish-to-finish";
 
@@ -84,11 +91,16 @@ export interface GanttTask {
   assignee?: JiraUser;
   assigneeName?: string;
   issueTypeName: string;
+  isHierarchyPlaceholder?: boolean;
+  scheduleState?: GanttScheduleState;
   isSyntheticDate: boolean;
   startSource: StartDateSource;
   endSource: EndDateSource;
   dateWarning?: string;
   hasDateMisalignment?: boolean;
+  originalEstimateDays?: number;
+  nonWorkingDays?: number;
+  calendarDaysEstimate?: number;
   dependencies: string[];
   dependencyLinks?: GanttDependency[];
 }
@@ -113,7 +125,10 @@ export function applyGanttDrag(
 
   if (gesture === "move") {
     if (task.startSource !== "jira" || task.endSource !== "jira") {
-      return { allowed: false, reason: "Move requires both start and end dates to be Jira fields." };
+      return {
+        allowed: false,
+        reason: "Move requires both start and end dates to be Jira fields.",
+      };
     }
     return {
       allowed: true,
@@ -124,21 +139,33 @@ export function applyGanttDrag(
 
   if (gesture === "resize-start") {
     if (task.startSource !== "jira") {
-      return { allowed: false, reason: "Resizing the start requires the start date to be a Jira field." };
+      return {
+        allowed: false,
+        reason: "Resizing the start requires the start date to be a Jira field.",
+      };
     }
     const startDate = addDays(task.start, deltaDays);
     if (startDate > task.end) {
-      return { allowed: false, reason: "The new start date cannot be after the end date." };
+      return {
+        allowed: false,
+        reason: "The new start date cannot be after the end date.",
+      };
     }
     return { allowed: true, startDate };
   }
 
   if (task.endSource !== "jira") {
-    return { allowed: false, reason: "Resizing the end requires the end date to be a Jira field." };
+    return {
+      allowed: false,
+      reason: "Resizing the end requires the end date to be a Jira field.",
+    };
   }
   const dueDate = addDays(task.end, deltaDays);
   if (dueDate < task.start) {
-    return { allowed: false, reason: "The new end date cannot be before the start date." };
+    return {
+      allowed: false,
+      reason: "The new end date cannot be before the start date.",
+    };
   }
   return { allowed: true, dueDate };
 }
@@ -156,11 +183,13 @@ export interface ScheduleModelOptions {
   maximumDepth?: number;
   defaultDurations?: Partial<DefaultDurationDays>;
   blockedStatusNames?: string[];
+  nonWorkingDays?: number[];
 }
 
 interface HierarchyResult {
   roots: IssueTreeNode[];
   parentByKey: Map<string, string>;
+  issueByKey: Map<string, NormalizedIssue>;
   warnings: ScheduleWarning[];
 }
 
@@ -171,6 +200,7 @@ interface ResolvedDates {
   endSource: EndDateSource;
   isSynthetic: boolean;
   hasDateMisalignment: boolean;
+  scheduleState: GanttScheduleState;
 }
 
 interface CalculatedProgress {
@@ -200,9 +230,67 @@ function resolveHierarchy(
   issues: NormalizedIssue[],
   maximumDepth: number,
 ): HierarchyResult {
+  const loadedKeys = new Set(issues.map((issue) => issue.key));
+  const referencedParents = new Map<
+    string,
+    { reference: NonNullable<NormalizedIssue["parentReference"]>; child: NormalizedIssue }
+  >();
+  for (const issue of issues) {
+    const parentKey = issue.parentKey ?? issue.epicKey;
+    const reference = issue.parentKey ? issue.parentReference : issue.epicReference;
+    if (!parentKey || loadedKeys.has(parentKey) || reference?.key !== parentKey) {
+      continue;
+    }
+    const current = referencedParents.get(parentKey);
+    if (!current || (!current.reference.summary && reference.summary)) {
+      referencedParents.set(parentKey, { reference, child: issue });
+    }
+  }
+  const structuralParents = [...referencedParents.values()].map(
+    ({ reference, child }): NormalizedIssue => {
+      const inferredEpic = Boolean(
+        child.epicKey === reference.key ||
+        (!child.issueType.subtask && child.issueType.hierarchyLevel === 0),
+      );
+      const browseMarker = `/browse/${encodeURIComponent(child.key)}`;
+      const markerIndex = child.browseUrl.indexOf(browseMarker);
+      const browseUrl =
+        markerIndex >= 0
+          ? `${child.browseUrl.slice(0, markerIndex)}/browse/${encodeURIComponent(reference.key)}`
+          : child.browseUrl;
+      return {
+        id: reference.id ?? `hierarchy:${reference.key}`,
+        key: reference.key,
+        browseUrl,
+        summary: reference.summary ?? reference.key,
+        issueType:
+          reference.issueType ??
+          ({
+            id: `hierarchy-type:${reference.key}`,
+            name: inferredEpic ? "Epic" : "Parent",
+            subtask: false,
+            ...(inferredEpic ? { hierarchyLevel: 1 } : {}),
+          } satisfies NormalizedIssue["issueType"]),
+        status: reference.status ?? { name: "Hierarchy", category: "unknown" },
+        project: child.project,
+        hierarchyPlaceholder: true,
+        labels: [],
+        components: [],
+        fixVersions: [],
+        issueLinks: [],
+        rawFieldPresence: {
+          hasStartDate: false,
+          hasDueDate: false,
+          hasParent: false,
+          hasEpic: false,
+        },
+      };
+    },
+  );
+
   const issueByKey = new Map<string, NormalizedIssue>();
   const orderedKeys: string[] = [];
-  for (const issue of issues) {
+  for (const issue of [...structuralParents, ...issues]) {
     if (!issueByKey.has(issue.key)) {
       issueByKey.set(issue.key, issue);
       orderedKeys.push(issue.key);
@@ -327,6 +415,7 @@ function resolveHierarchy(
   return {
     roots,
     parentByKey,
+    issueByKey,
     warnings: [...warningsByKey.values()].flat(),
   };
 }
@@ -370,6 +459,64 @@ function addDays(date: string, days: number): string {
   const timestamp = new Date(`${date}T00:00:00.000Z`);
   timestamp.setUTCDate(timestamp.getUTCDate() + days);
   return timestamp.toISOString().slice(0, 10);
+}
+
+export function isWorkingDay(date: string, nonWorkingDays: number[]): boolean {
+  const dayOfWeek = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+  return !nonWorkingDays.includes(dayOfWeek);
+}
+
+export function addWorkingDays(
+  date: string,
+  days: number,
+  nonWorkingDays: number[],
+): string {
+  if (days === 0) return date;
+  if (new Set(nonWorkingDays).size >= 7) {
+    throw new Error("At least one working day must be configured.");
+  }
+  const step = days > 0 ? 1 : -1;
+  let remaining = Math.abs(days);
+  let current = date;
+  while (remaining > 0) {
+    current = addDays(current, step);
+    if (isWorkingDay(current, nonWorkingDays)) remaining -= 1;
+  }
+  return current;
+}
+
+export function nextWorkingDay(date: string, nonWorkingDays: number[]): string {
+  if (new Set(nonWorkingDays).size >= 7) {
+    throw new Error("At least one working day must be configured.");
+  }
+  let current = date;
+  while (!isWorkingDay(current, nonWorkingDays)) {
+    current = addDays(current, 1);
+  }
+  return current;
+}
+
+export function countNonWorkingDays(
+  start: string,
+  end: string,
+  nonWorkingDays: number[],
+): number {
+  if (end < start) return 0;
+  let count = 0;
+  for (let current = start; current <= end; current = addDays(current, 1)) {
+    if (!isWorkingDay(current, nonWorkingDays)) count += 1;
+  }
+  return count;
+}
+
+function originalEstimateDays(
+  issue: NormalizedIssue,
+  fallbackEstimateDays: number | undefined,
+): number | undefined {
+  if (issue.originalEstimateSeconds !== undefined) {
+    return issue.originalEstimateSeconds / WORKING_DAY_SECONDS;
+  }
+  return fallbackEstimateDays;
 }
 
 function durationDays(start: string, end: string): number {
@@ -558,6 +705,7 @@ export function buildGanttScheduleModel(
   const maximumDepth = normalizedMaximumDepth(options.maximumDepth ?? 10);
   const hierarchy = resolveHierarchy(issues, maximumDepth);
   const durations = normalizeDefaultDurations(options.defaultDurations);
+  const nonWorkingDays = options.nonWorkingDays ?? DEFAULT_NON_WORKING_DAYS;
   const today = dateOnly(options.today ?? new Date().toISOString().slice(0, 10));
   if (!today) {
     throw new Error("Schedule today must be a valid date.");
@@ -565,17 +713,6 @@ export function buildGanttScheduleModel(
 
   const scheduleWarnings = [...hierarchy.warnings];
   const resolvedByKey = new Map<string, ResolvedNode>();
-  const selectSprint = (issue: NormalizedIssue) => {
-    const active = issue.sprints?.find((sprint) => sprint.state === "active");
-    if (active) return active;
-    const future = issue.sprints
-      ?.filter((sprint) => sprint.state === "future")
-      .sort((left, right) => (left.startDate ?? "9999-99-99").localeCompare(right.startDate ?? "9999-99-99"))[0];
-    if (future) return future;
-    return issue.sprints
-      ?.filter((sprint) => sprint.state === "closed")
-      .sort((left, right) => (right.endDate ?? "").localeCompare(left.endDate ?? ""))[0];
-  };
   const resolveNode = (node: IssueTreeNode): ResolvedNode => {
     const resolvedChildren = node.children.map(resolveNode);
     const rawStart = node.issue.startDate;
@@ -587,23 +724,6 @@ export function buildGanttScheduleModel(
         message: `Invalid start date “${rawStart}” was ignored.`,
       });
     }
-    const hasChildren = resolvedChildren.length > 0;
-    const childStarts = resolvedChildren.map((child) => child.dates.start).sort();
-    const rollupStart = hasChildren ? childStarts[0] : undefined;
-    const created = dateOnly(node.issue.createdAt);
-    const sprint = selectSprint(node.issue);
-    const sprintStart = sprint ? dateOnly(sprint.startDate) : undefined;
-    const start = rollupStart ?? explicitStart ?? sprintStart ?? created ?? today;
-    const startSource: StartDateSource = rollupStart
-      ? "children"
-      : explicitStart
-        ? "jira"
-        : sprintStart
-          ? "sprint"
-        : created
-          ? "created"
-          : "today";
-
     const rawEnd = node.issue.dueDate;
     const explicitEnd = dateOnly(rawEnd);
     if (rawEnd && !explicitEnd) {
@@ -613,21 +733,47 @@ export function buildGanttScheduleModel(
         message: `Invalid end date “${rawEnd}” was ignored.`,
       });
     }
-    const childEnds = resolvedChildren.map((child) => child.dates.end).sort();
+    const scheduledChildren = resolvedChildren.filter(
+      (child) => child.dates.scheduleState !== "unscheduled",
+    );
+    const hasChildren = scheduledChildren.length > 0;
+    const childStarts = scheduledChildren.map((child) => child.dates.start).sort();
+    const childEnds = scheduledChildren.map((child) => child.dates.end).sort();
+    const rollupStart = hasChildren ? childStarts[0] : undefined;
     const rollupEnd = hasChildren ? childEnds.at(-1) : undefined;
-    const resolution = dateOnly(node.issue.resolvedAt);
-    const sprintEnd = sprint ? dateOnly(sprint.endDate) : undefined;
-    const fallbackEnd = addDays(start, defaultDurationFor(node.issue, durations));
-    let end = rollupEnd ?? explicitEnd ?? sprintEnd ?? resolution ?? fallbackEnd;
+    const defaultEstimate = defaultDurationFor(node.issue, durations);
+    const estimateDays =
+      originalEstimateDays(node.issue, defaultEstimate) ?? defaultEstimate;
+    const scheduleDays = Math.max(1, Math.ceil(estimateDays));
+    let start = rollupStart ?? explicitStart ?? explicitEnd ?? today;
+    let end = rollupEnd ?? explicitEnd ?? explicitStart ?? today;
+    let startSource: StartDateSource = rollupStart
+      ? "children"
+      : explicitStart
+        ? "jira"
+        : "today";
     let endSource: EndDateSource = rollupEnd
       ? "children"
       : explicitEnd
         ? "jira"
-        : sprintEnd
-          ? "sprint"
-        : resolution
-          ? "resolution"
-          : "default-duration";
+        : "default-duration";
+    let scheduleState: GanttScheduleState = rollupStart
+      ? "rollup"
+      : explicitStart && explicitEnd
+        ? explicitStart === explicitEnd && estimateDays === 0
+          ? "milestone"
+          : "confirmed"
+        : explicitStart
+          ? "planned"
+          : explicitEnd
+            ? "forecast"
+            : "unscheduled";
+    if (scheduleState === "planned") {
+      end = addWorkingDays(start, scheduleDays - 1, nonWorkingDays);
+    } else if (scheduleState === "forecast") {
+      start = addWorkingDays(end, -(scheduleDays - 1), nonWorkingDays);
+      startSource = "today";
+    }
 
     let hasDateMisalignment = false;
     if (hasChildren) {
@@ -646,9 +792,10 @@ export function buildGanttScheduleModel(
       }
     }
 
-    if (end < start) {
-      end = fallbackEnd;
+    if (scheduleState !== "unscheduled" && end < start) {
+      end = addWorkingDays(start, scheduleDays - 1, nonWorkingDays);
       endSource = "corrected";
+      scheduleState = "planned";
       scheduleWarnings.push({
         issueKey: node.issue.key,
         code: "END_BEFORE_START",
@@ -662,8 +809,9 @@ export function buildGanttScheduleModel(
         end,
         startSource,
         endSource,
-        isSynthetic: startSource !== "jira" || endSource !== "jira",
+        isSynthetic: scheduleState !== "confirmed" && scheduleState !== "milestone",
         hasDateMisalignment,
+        scheduleState,
       },
       progress: calculateProgress(node, resolvedChildren),
     } satisfies ResolvedNode;
@@ -673,7 +821,6 @@ export function buildGanttScheduleModel(
   hierarchy.roots.forEach(resolveNode);
 
   const dependencies = dependencyMap(issues);
-  const issueByKey = new Map(issues.map((issue) => [issue.key, issue]));
   const blockedStatusNames = new Set(
     (options.blockedStatusNames ?? ["blocked", "impeded", "on hold"]).map((status) =>
       status.trim().toLocaleLowerCase(),
@@ -686,7 +833,18 @@ export function buildGanttScheduleModel(
       return;
     }
     const parentKey = hierarchy.parentByKey.get(node.issue.key);
-    const parentIssue = parentKey ? issueByKey.get(parentKey) : undefined;
+    const parentIssue = parentKey ? hierarchy.issueByKey.get(parentKey) : undefined;
+    const fallbackEstimateDays =
+      resolved.dates.endSource === "default-duration" ||
+      resolved.dates.endSource === "corrected"
+        ? defaultDurationFor(node.issue, durations)
+        : undefined;
+    const estimateDays = originalEstimateDays(node.issue, fallbackEstimateDays);
+    const nonWorkingDayCount = countNonWorkingDays(
+      resolved.dates.start,
+      resolved.dates.end,
+      nonWorkingDays,
+    );
     tasks.push({
       id: node.issue.id,
       issueKey: node.issue.key,
@@ -698,7 +856,7 @@ export function buildGanttScheduleModel(
       progressSource: resolved.progress.source,
       ...(parentIssue ? { parentId: parentIssue.id } : {}),
       depth: node.depth,
-      expanded: false,
+      expanded: Boolean(node.issue.hierarchyPlaceholder),
       statusName: node.issue.status.name,
       statusCategory: node.issue.status.category ?? "unknown",
       ...(node.issue.priority?.name ? { priorityName: node.issue.priority.name } : {}),
@@ -709,11 +867,18 @@ export function buildGanttScheduleModel(
         ? { assigneeName: node.issue.assignee.displayName }
         : {}),
       issueTypeName: node.issue.issueType.name,
+      ...(node.issue.hierarchyPlaceholder ? { isHierarchyPlaceholder: true } : {}),
+      scheduleState: resolved.dates.scheduleState,
       isSyntheticDate: resolved.dates.isSynthetic,
       startSource: resolved.dates.startSource,
       endSource: resolved.dates.endSource,
       ...(resolved.dates.isSynthetic ? { dateWarning: SYNTHETIC_DATE_WARNING } : {}),
       hasDateMisalignment: resolved.dates.hasDateMisalignment,
+      ...(estimateDays === undefined ? {} : { originalEstimateDays: estimateDays }),
+      nonWorkingDays: nonWorkingDayCount,
+      ...(estimateDays === undefined
+        ? {}
+        : { calendarDaysEstimate: estimateDays + nonWorkingDayCount }),
       dependencies: [...(dependencies.get(node.issue.key)?.keys() ?? [])],
       dependencyLinks: [...(dependencies.get(node.issue.key)?.values() ?? [])],
     });

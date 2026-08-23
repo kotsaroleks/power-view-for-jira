@@ -278,6 +278,7 @@ describe("JiraRequestHandler", () => {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          "X-Atlassian-Token": "no-check",
         },
         body: JSON.stringify({ accountId: "account-1" }),
       }),

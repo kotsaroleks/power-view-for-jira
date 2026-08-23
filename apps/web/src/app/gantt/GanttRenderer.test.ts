@@ -1,7 +1,7 @@
 import type { GanttTask } from "@power-view/domain";
 import { describe, expect, it } from "vitest";
 
-import { dateAtOffset, nativeGanttRenderer } from "./GanttRenderer";
+import { dateAtOffset, nativeGanttRenderer, nonWorkingDayRanges } from "./GanttRenderer";
 
 const task = {
   id: "1",
@@ -22,6 +22,14 @@ const task = {
   endSource: "jira",
   dependencies: [],
 } satisfies GanttTask;
+
+describe("non-working day ranges", () => {
+  const viewport = { start: "2026-08-20", end: "2026-08-26", dayWidth: 10, totalDays: 7, width: 70, ticks: [] };
+  it("merges adjacent weekends", () => {
+    expect(nonWorkingDayRanges(viewport, [0, 6])).toEqual([{ left: 20, width: 20 }]);
+  });
+  it("supports empty settings", () => expect(nonWorkingDayRanges(viewport, [])).toEqual([]));
+});
 
 describe("nativeGanttRenderer", () => {
   it("creates deterministic day, week, and month viewports", () => {

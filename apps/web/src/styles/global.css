@@ -284,6 +284,10 @@ h1 {
 .primary-button:disabled {
   border-color: var(--text-subtle);
   background: var(--text-subtle);
+  cursor: not-allowed;
+}
+
+.primary-button.is-loading:disabled {
   cursor: wait;
 }
 
@@ -583,6 +587,28 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
+}
+
+.non-working-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.gantt-non-working-days-layer {
+  position: absolute;
+  top: 0;
+  left: var(--gantt-table-width);
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gantt-non-working-day {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
 }
 
 .setup-errors {
@@ -1900,6 +1926,24 @@ h1 {
   text-transform: uppercase;
 }
 
+.gantt-sortable-header {
+  all: unset;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.gantt-sortable-header:hover,
+.gantt-sortable-header:focus-visible {
+  color: var(--text-primary);
+}
+
+.gantt-sortable-header[aria-sort="ascending"] {
+  color: var(--color-primary, var(--text-primary));
+}
+
 .gantt-timeline-header,
 .gantt-timeline-cell {
   position: relative;
@@ -2080,6 +2124,55 @@ h1 {
     rgb(201 55 44 / 12%) 4px,
     rgb(201 55 44 / 12%) 100%
   );
+}
+
+.board-configuration-transfer {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--border-subtle, #d7deea);
+  border-radius: 14px;
+  background: var(--surface-raised, #fff);
+}
+
+.board-configuration-transfer h3,
+.board-configuration-transfer p {
+  margin: 0;
+}
+
+.board-configuration-transfer-actions,
+.board-configuration-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.board-configuration-file-label {
+  position: relative;
+  cursor: pointer;
+}
+
+.board-configuration-file-label input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.board-configuration-preview {
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-muted, #f4f6fa);
+}
+
+.board-configuration-preview > div {
+  display: grid;
+  gap: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3051,15 +3144,65 @@ h1 {
 }
 
 .gantt-issue-selector .date-warning-icon {
-  display: grid;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-  border-radius: 50%;
+  display: inline-flex;
+  width: max-content;
+  min-height: 20px;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: var(--radius-3);
   background: var(--warning-bg);
   color: var(--warning-text-strong);
-  font-size: var(--font-size-2);
+  font-size: var(--font-size-1);
   font-weight: var(--fw-6);
+}
+
+.gantt-schedule-state {
+  display: inline-flex;
+  width: max-content;
+  min-height: 20px;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: var(--radius-3);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: var(--font-size-1);
+  font-weight: var(--fw-6);
+}
+
+.gantt-schedule-state.is-confirmed,
+.gantt-schedule-state.is-milestone {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+.gantt-schedule-state.is-planned {
+  background: var(--accent-tint);
+  color: var(--accent-strong);
+}
+.gantt-schedule-state.is-forecast {
+  background: var(--warning-bg);
+  color: var(--warning-text-strong);
+}
+.gantt-schedule-state.is-unscheduled {
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+.gantt-unscheduled-message {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-size-2);
+  text-align: left;
+}
+
+.gantt-unscheduled-message:not(:disabled) {
+  color: var(--accent-strong);
+  cursor: crosshair;
+  text-decoration: underline dashed;
 }
 
 .gantt-timeline-cell {
@@ -3216,7 +3359,7 @@ h1 {
 .gantt-details-grid {
   display: grid;
   margin: 18px 0 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
   gap: var(--space-3);
 }
 

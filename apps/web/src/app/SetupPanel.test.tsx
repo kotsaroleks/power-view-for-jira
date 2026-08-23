@@ -16,6 +16,12 @@ const context: JiraPageContext = {
   detectionSources: ["url"],
 };
 
+const detectedBoardContext: JiraPageContext = {
+  ...context,
+  pageUrl: "https://example.atlassian.net/jira/software/c/projects/POWER/boards/7",
+  boardId: "7",
+};
+
 const projects = {
   values: [{ id: "10000", key: "POWER", name: "Power View" }],
   startAt: 0,
@@ -145,7 +151,9 @@ const boardIssuePage = {
       },
     },
   ],
-  isLast: true,
+  startAt: 0,
+  maxResults: 100,
+  total: 3,
 };
 
 class MemoryStorage implements StorageArea {
@@ -170,7 +178,9 @@ class MemoryStorage implements StorageArea {
   }
 }
 
-function setupRuntime(options: { invalidJql?: boolean } = {}): ExtensionRuntime {
+function setupRuntime(
+  options: { invalidJql?: boolean; delayedBoardMetadata?: boolean } = {},
+): ExtensionRuntime {
   return {
     sendMessage: vi.fn().mockImplementation((message: unknown) => {
       const request = message as {
@@ -179,7 +189,17 @@ function setupRuntime(options: { invalidJql?: boolean } = {}): ExtensionRuntime 
         payload?: { path: string };
       };
       if (request.type === "JIRA_REQUEST" && request.payload) {
-        if (options.invalidJql && request.payload.path.endsWith("/search/jql")) {
+        if (
+          options.delayedBoardMetadata &&
+          request.payload.path.endsWith("/board/7/configuration")
+        ) {
+          return new Promise(() => undefined);
+        }
+        if (
+          options.invalidJql &&
+          (request.payload.path.endsWith("/search/jql") ||
+            request.payload.path.endsWith("/board/7/issue"))
+        ) {
           return Promise.resolve({
             type: "ERROR",
             requestId: request.requestId,
@@ -229,6 +249,60 @@ function setupRuntime(options: { invalidJql?: boolean } = {}): ExtensionRuntime 
 }
 
 describe("SetupPanel", () => {
+  it("infers completed statuses from board issues while optional metadata resolves", async () => {
+    let quickStartedWorkspace: ReadyGanttSchedule | undefined;
+    render(
+      <SetupPanel
+        context={detectedBoardContext}
+        runtime={setupRuntime({ delayedBoardMetadata: true })}
+        settingsStore={new SettingsStore(new MemoryStorage())}
+        onQuickStart={(workspace) => {
+          quickStartedWorkspace = workspace;
+        }}
+      />,
+    );
+
+    await waitFor(() => expect(quickStartedWorkspace).toBeDefined());
+    expect(quickStartedWorkspace?.reporting).toEqual({
+      completedStatusIds: ["3"],
+      completedStatusNames: ["Done"],
+    });
+  });
+
+  it("hides detected-board settings until manual editing is requested", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    render(
+      <SetupPanel
+        context={detectedBoardContext}
+        runtime={setupRuntime()}
+        settingsStore={store}
+        autoContinue={false}
+      />,
+    );
+
+    expect(await screen.findByText("Board detected")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Jira project" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Jira board" })).toBeNull();
+    expect(
+      screen.queryByText("Advanced: query, completed statuses, and date fields"),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Export settings" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Choose settings file")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit settings manually" }));
+
+    expect(
+      await screen.findByRole("combobox", { name: "Jira project" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Jira board" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Advanced: query, completed statuses, and date fields"),
+    ).toBeInTheDocument();
+    await expect(
+      store.getSetup("https://example.atlassian.net", "POWER", "7"),
+    ).resolves.toMatchObject({ board: { id: "7" } });
+  });
+
   it("loads metadata, ranks date fields, and persists a loadable setup", async () => {
     const store = new SettingsStore(new MemoryStorage());
     let readySchedule: ReadyGanttSchedule | undefined;
@@ -265,7 +339,7 @@ describe("SetupPanel", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "End date field" }), {
       target: { value: "duedate" },
     });
-    fireEvent.click(screen.getByText("Default durations for inferred end dates"));
+    fireEvent.click(screen.getByText("Default estimates for inferred end dates"));
     fireEvent.change(screen.getByRole("spinbutton", { name: "Story default duration" }), {
       target: { value: "8" },
     });
@@ -287,12 +361,13 @@ describe("SetupPanel", () => {
       fieldMapping: {
         startDateFieldId: "customfield_10010",
         endDateFieldId: "duedate",
+        hierarchyFieldId: "customfield_10014",
       },
       defaultDurations: { story: 8 },
     });
 
-    expect(await screen.findByText("2 normalized issues ready")).toBeInTheDocument();
-    expect(screen.getByText("2 deterministic Gantt tasks")).toBeInTheDocument();
+    expect(await screen.findByText("3 normalized issues ready")).toBeInTheDocument();
+    expect(screen.getByText("3 deterministic Gantt tasks")).toBeInTheDocument();
     await waitFor(() =>
       expect(readySchedule?.model.tasks.map((task) => task.issueKey)).toContain(
         "POWER-1",

@@ -3,28 +3,66 @@ import { describe, expect, it } from "vitest";
 import type {
   JiraIssueSprint,
   JiraStatusCategory,
+  NormalizedHierarchyReference,
   NormalizedIssue,
   NormalizedIssueLink,
 } from "./jira-issue";
 import {
   applyGanttDrag,
+  addWorkingDays,
   buildGanttScheduleModel,
   buildIssueHierarchy,
   normalizeDefaultDurations,
+  isWorkingDay,
+  nextWorkingDay,
+  WORKING_DAY_SECONDS,
 } from "./schedule";
 import type { GanttTask } from "./schedule";
 
 const ganttTask = (overrides: Partial<GanttTask> = {}): GanttTask => ({
-  id: "1", issueKey: "POWER-1", browseUrl: "", name: "Task",
-  start: "2026-08-01", end: "2026-08-05", progress: 0, progressSource: "none",
-  depth: 0, expanded: false, statusName: "To Do", statusCategory: "to-do",
-  issueTypeName: "Task", isSyntheticDate: false, startSource: "jira", endSource: "jira",
-  dependencies: [], ...overrides,
+  id: "1",
+  issueKey: "POWER-1",
+  browseUrl: "",
+  name: "Task",
+  start: "2026-08-01",
+  end: "2026-08-05",
+  progress: 0,
+  progressSource: "none",
+  depth: 0,
+  expanded: false,
+  statusName: "To Do",
+  statusCategory: "to-do",
+  issueTypeName: "Task",
+  isSyntheticDate: false,
+  startSource: "jira",
+  endSource: "jira",
+  dependencies: [],
+  ...overrides,
+});
+
+describe("working day math", () => {
+  it("identifies working days and adds symmetrically", () => {
+    expect(isWorkingDay("2026-08-22", [0, 6])).toBe(false);
+    expect(isWorkingDay("2026-08-21", [0, 6])).toBe(true);
+    expect(addWorkingDays("2026-08-19", 6, [0, 6])).toBe("2026-08-27");
+    expect(addWorkingDays("2026-08-19", 6, [])).toBe("2026-08-25");
+    expect(addWorkingDays("2026-08-24", -1, [0, 6])).toBe("2026-08-21");
+    expect(nextWorkingDay("2026-08-22", [0, 6])).toBe("2026-08-24");
+    expect(nextWorkingDay("2026-08-21", [0, 6])).toBe("2026-08-21");
+  });
+
+  it("rejects a calendar without working days", () => {
+    expect(() => addWorkingDays("2026-08-19", 1, [0, 1, 2, 3, 4, 5, 6])).toThrow(
+      "At least one working day must be configured.",
+    );
+  });
 });
 
 interface IssueOptions {
   parentKey?: string;
   epicKey?: string;
+  parentReference?: NormalizedHierarchyReference;
+  epicReference?: NormalizedHierarchyReference;
   startDate?: string;
   dueDate?: string;
   createdAt?: string;
@@ -38,6 +76,7 @@ interface IssueOptions {
   labels?: string[];
   statusName?: string;
   sprints?: JiraIssueSprint[];
+  originalEstimateSeconds?: number;
 }
 
 function issue(key: string, options: IssueOptions = {}): NormalizedIssue {
@@ -59,11 +98,16 @@ function issue(key: string, options: IssueOptions = {}): NormalizedIssue {
     project: { id: "10000", key: "POWER", name: "Power View" },
     ...(options.parentKey ? { parentKey: options.parentKey } : {}),
     ...(options.epicKey ? { epicKey: options.epicKey } : {}),
+    ...(options.parentReference ? { parentReference: options.parentReference } : {}),
+    ...(options.epicReference ? { epicReference: options.epicReference } : {}),
     ...(options.startDate ? { startDate: options.startDate } : {}),
     ...(options.dueDate ? { dueDate: options.dueDate } : {}),
     ...(options.createdAt ? { createdAt: options.createdAt } : {}),
     ...(options.resolvedAt ? { resolvedAt: options.resolvedAt } : {}),
     ...(options.sprints ? { sprints: options.sprints } : {}),
+    ...(options.originalEstimateSeconds === undefined
+      ? {}
+      : { originalEstimateSeconds: options.originalEstimateSeconds }),
     ...(options.progress ? { progress: options.progress } : {}),
     labels: options.labels ?? [],
     components: [],
@@ -79,6 +123,37 @@ function issue(key: string, options: IssueOptions = {}): NormalizedIssue {
 }
 
 describe("issue hierarchy", () => {
+  it("materializes an embedded epic reference as an expanded structural group", () => {
+    const model = buildGanttScheduleModel([
+      issue("POWER-2", {
+        parentKey: "POWER-1",
+        parentReference: {
+          id: "id-POWER-1",
+          key: "POWER-1",
+          summary: "Release epic",
+          issueType: { id: "10001", name: "Epic", subtask: false, hierarchyLevel: 1 },
+          status: { name: "To Do", category: "to-do" },
+        },
+        startDate: "2026-08-17",
+        dueDate: "2026-08-21",
+      }),
+    ]);
+
+    expect(model.tasks.map((task) => task.issueKey)).toEqual(["POWER-1", "POWER-2"]);
+    expect(model.tasks[0]).toMatchObject({
+      name: "Release epic",
+      issueTypeName: "Epic",
+      isHierarchyPlaceholder: true,
+      expanded: true,
+      scheduleState: "rollup",
+    });
+    expect(model.tasks[1]).toMatchObject({
+      parentId: "id-POWER-1",
+      depth: 1,
+    });
+    expect(model.warnings.map((warning) => warning.code)).not.toContain("MISSING_PARENT");
+  });
+
   it("prefers explicit parents, then epics, and keeps orphans visible", () => {
     const roots = buildIssueHierarchy([
       issue("POWER-1", { issueType: "Epic" }),
@@ -123,34 +198,185 @@ describe("issue hierarchy", () => {
 });
 
 describe("schedule resolution", () => {
-  it("uses an active sprint for missing Jira dates", () => {
-    const model = buildGanttScheduleModel([issue("POWER-1", {
-      createdAt: "2026-01-01",
-      sprints: [{ id: "1", name: "Sprint 1", state: "active", startDate: "2026-03-01", endDate: "2026-03-14" }],
-    })], { today: "2026-01-01" });
-    expect(model.tasks[0]).toMatchObject({ start: "2026-03-01", end: "2026-03-14", startSource: "sprint", endSource: "sprint", isSyntheticDate: true });
+  it("keeps Jira original estimate while recalculating non-working and calendar estimates", () => {
+    const task = buildGanttScheduleModel(
+      [
+        issue("POWER-1", {
+          startDate: "2026-08-19",
+          dueDate: "2026-08-25",
+          originalEstimateSeconds: 5 * WORKING_DAY_SECONDS,
+        }),
+      ],
+      { nonWorkingDays: [0, 6] },
+    ).tasks[0];
+
+    expect(task).toMatchObject({
+      originalEstimateDays: 5,
+      nonWorkingDays: 2,
+      calendarDaysEstimate: 7,
+    });
+  });
+
+  it("keeps a task without planning dates unscheduled", () => {
+    const task = buildGanttScheduleModel(
+      [issue("POWER-1", { createdAt: "2026-08-21" })],
+      { today: "2026-08-19", defaultDurations: { task: 2 }, nonWorkingDays: [0, 6] },
+    ).tasks[0];
+
+    expect(task).toMatchObject({
+      scheduleState: "unscheduled",
+      originalEstimateDays: 2,
+      nonWorkingDays: 0,
+      calendarDaysEstimate: 2,
+    });
+  });
+
+  it("does not turn sprint or created metadata into a plan", () => {
+    const model = buildGanttScheduleModel(
+      [
+        issue("POWER-1", {
+          createdAt: "2026-01-01",
+          sprints: [
+            {
+              id: "1",
+              name: "Sprint 1",
+              state: "active",
+              startDate: "2026-03-01",
+              endDate: "2026-03-14",
+            },
+          ],
+        }),
+      ],
+      { today: "2026-01-01" },
+    );
+    expect(model.tasks[0]).toMatchObject({
+      scheduleState: "unscheduled",
+      isSyntheticDate: true,
+    });
   });
 
   it("selects active, earliest future, then latest closed sprint", () => {
     const sprints: JiraIssueSprint[] = [
-      { id: "closed-old", name: "old", state: "closed", startDate: "2026-01-01", endDate: "2026-01-10" },
-      { id: "future-late", name: "late", state: "future", startDate: "2026-05-01", endDate: "2026-05-10" },
-      { id: "future-early", name: "early", state: "future", startDate: "2026-04-01", endDate: "2026-04-10" },
+      {
+        id: "closed-old",
+        name: "old",
+        state: "closed",
+        startDate: "2026-01-01",
+        endDate: "2026-01-10",
+      },
+      {
+        id: "future-late",
+        name: "late",
+        state: "future",
+        startDate: "2026-05-01",
+        endDate: "2026-05-10",
+      },
+      {
+        id: "future-early",
+        name: "early",
+        state: "future",
+        startDate: "2026-04-01",
+        endDate: "2026-04-10",
+      },
     ];
-    expect(buildGanttScheduleModel([issue("POWER-1", { sprints })]).tasks[0]).toMatchObject({ start: "2026-04-01", end: "2026-04-10" });
-    expect(buildGanttScheduleModel([issue("POWER-1", { sprints: [{ id: "closed", name: "closed", state: "closed", endDate: "2026-03-10", startDate: "2026-03-01" }, { id: "new", name: "new", state: "closed", endDate: "2026-04-10", startDate: "2026-04-01" }] })]).tasks[0]).toMatchObject({ start: "2026-04-01", end: "2026-04-10" });
-    expect(buildGanttScheduleModel([issue("POWER-1", { sprints: [...sprints, { id: "active", name: "active", state: "active", startDate: "2026-06-01", endDate: "2026-06-10" }] })]).tasks[0]).toMatchObject({ start: "2026-06-01", end: "2026-06-10" });
+    expect(
+      buildGanttScheduleModel([issue("POWER-1", { sprints })]).tasks[0],
+    ).toMatchObject({ scheduleState: "unscheduled" });
+    expect(
+      buildGanttScheduleModel([
+        issue("POWER-1", {
+          sprints: [
+            {
+              id: "closed",
+              name: "closed",
+              state: "closed",
+              endDate: "2026-03-10",
+              startDate: "2026-03-01",
+            },
+            {
+              id: "new",
+              name: "new",
+              state: "closed",
+              endDate: "2026-04-10",
+              startDate: "2026-04-01",
+            },
+          ],
+        }),
+      ]).tasks[0],
+    ).toMatchObject({ scheduleState: "unscheduled" });
+    expect(
+      buildGanttScheduleModel([
+        issue("POWER-1", {
+          sprints: [
+            ...sprints,
+            {
+              id: "active",
+              name: "active",
+              state: "active",
+              startDate: "2026-06-01",
+              endDate: "2026-06-10",
+            },
+          ],
+        }),
+      ]).tasks[0],
+    ).toMatchObject({ scheduleState: "unscheduled" });
   });
 
-  it("falls back independently when the selected sprint lacks one date", () => {
-    const task = buildGanttScheduleModel([issue("POWER-1", { createdAt: "2026-01-02", resolvedAt: "2026-02-10", sprints: [{ id: "1", name: "Sprint", state: "active", endDate: "2026-03-10" }] })], { today: "2026-01-01" }).tasks[0];
-    expect(task).toMatchObject({ start: "2026-01-02", startSource: "created", end: "2026-03-10", endSource: "sprint" });
+  it("keeps incomplete non-planning metadata unscheduled", () => {
+    const task = buildGanttScheduleModel(
+      [
+        issue("POWER-1", {
+          createdAt: "2026-01-02",
+          resolvedAt: "2026-02-10",
+          sprints: [{ id: "1", name: "Sprint", state: "active", endDate: "2026-03-10" }],
+        }),
+      ],
+      { today: "2026-01-01" },
+    ).tasks[0];
+    expect(task).toMatchObject({
+      scheduleState: "unscheduled",
+    });
   });
 
   it("keeps explicit Jira dates and child rollups ahead of sprint dates", () => {
-    const sprint = [{ id: "1", name: "Sprint", state: "active" as const, startDate: "2026-05-01", endDate: "2026-05-10" }];
-    expect(buildGanttScheduleModel([issue("POWER-1", { startDate: "2026-02-01", dueDate: "2026-02-05", sprints: sprint })]).tasks[0]).toMatchObject({ start: "2026-02-01", end: "2026-02-05", startSource: "jira", endSource: "jira" });
-    expect(buildGanttScheduleModel([issue("POWER-1", { sprints: sprint }), issue("POWER-2", { parentKey: "POWER-1", startDate: "2026-03-01", dueDate: "2026-03-04" })]).tasks[0]).toMatchObject({ start: "2026-03-01", end: "2026-03-04", startSource: "children", endSource: "children" });
+    const sprint = [
+      {
+        id: "1",
+        name: "Sprint",
+        state: "active" as const,
+        startDate: "2026-05-01",
+        endDate: "2026-05-10",
+      },
+    ];
+    expect(
+      buildGanttScheduleModel([
+        issue("POWER-1", {
+          startDate: "2026-02-01",
+          dueDate: "2026-02-05",
+          sprints: sprint,
+        }),
+      ]).tasks[0],
+    ).toMatchObject({
+      start: "2026-02-01",
+      end: "2026-02-05",
+      startSource: "jira",
+      endSource: "jira",
+    });
+    expect(
+      buildGanttScheduleModel([
+        issue("POWER-1", { sprints: sprint }),
+        issue("POWER-2", {
+          parentKey: "POWER-1",
+          startDate: "2026-03-01",
+          dueDate: "2026-03-04",
+        }),
+      ]).tasks[0],
+    ).toMatchObject({
+      start: "2026-03-01",
+      end: "2026-03-04",
+      startSource: "children",
+      endSource: "children",
+    });
   });
 
   it("uses explicit Jira dates without marking them synthetic", () => {
@@ -273,7 +499,7 @@ describe("schedule resolution", () => {
     });
   });
 
-  it("falls back through created, today, resolution, and configured duration", () => {
+  it("keeps dates absent until a user supplies a planning date", () => {
     const model = buildGanttScheduleModel(
       [
         issue("POWER-1", {
@@ -289,22 +515,11 @@ describe("schedule resolution", () => {
       },
     );
 
-    expect(model.tasks[0]).toMatchObject({
-      start: "2026-02-01",
-      end: "2026-02-08",
-      startSource: "created",
-      endSource: "resolution",
-    });
-    expect(model.tasks[1]).toMatchObject({
-      start: "2026-04-10",
-      end: "2026-04-18",
-      startSource: "today",
-      endSource: "default-duration",
-    });
-    expect(model.tasks[2]).toMatchObject({
-      start: "2026-04-10",
-      end: "2026-04-12",
-    });
+    expect(model.tasks.map((task) => task.scheduleState)).toEqual([
+      "unscheduled",
+      "unscheduled",
+      "unscheduled",
+    ]);
   });
 
   it("corrects invalid and end-before-start dates with warnings", () => {
@@ -320,16 +535,12 @@ describe("schedule resolution", () => {
     );
 
     expect(model.tasks[0]).toMatchObject({
-      start: "2026-01-10",
-      end: "2026-01-13",
-      startSource: "today",
-      endSource: "corrected",
+      start: "2025-11-27",
+      end: "2025-12-01",
+      scheduleState: "forecast",
       isSyntheticDate: true,
     });
-    expect(model.warnings.map((warning) => warning.code)).toEqual([
-      "INVALID_START_DATE",
-      "END_BEFORE_START",
-    ]);
+    expect(model.warnings.map((warning) => warning.code)).toEqual(["INVALID_START_DATE"]);
   });
 
   it("normalizes invalid duration configuration", () => {
@@ -531,18 +742,26 @@ describe("progress and dependencies", () => {
 });
 
 describe("Gantt drag gestures", () => {
-  it("moves both writable dates while preserving the duration", () => {
+  it("moves both writable dates by calendar days", () => {
     expect(applyGanttDrag(ganttTask(), "move", 3)).toEqual({
-      allowed: true, startDate: "2026-08-04", dueDate: "2026-08-08",
+      allowed: true,
+      startDate: "2026-08-04",
+      dueDate: "2026-08-08",
     });
   });
 
   it("resizes only the writable side", () => {
-    expect(applyGanttDrag(ganttTask({ endSource: "children" }), "resize-start", 2)).toEqual({
-      allowed: true, startDate: "2026-08-03",
+    expect(
+      applyGanttDrag(ganttTask({ endSource: "children" }), "resize-start", 2),
+    ).toEqual({
+      allowed: true,
+      startDate: "2026-08-03",
     });
-    expect(applyGanttDrag(ganttTask({ startSource: "children" }), "resize-end", 2)).toEqual({
-      allowed: true, dueDate: "2026-08-07",
+    expect(
+      applyGanttDrag(ganttTask({ startSource: "children" }), "resize-end", 2),
+    ).toEqual({
+      allowed: true,
+      dueDate: "2026-08-07",
     });
   });
 
@@ -572,7 +791,12 @@ describe("Gantt drag gestures", () => {
   });
 
   it("returns an empty allowed result for a zero delta", () => {
-    expect(applyGanttDrag(ganttTask({ startSource: "children", endSource: "children" }), "move", 0))
-      .toEqual({ allowed: true });
+    expect(
+      applyGanttDrag(
+        ganttTask({ startSource: "children", endSource: "children" }),
+        "move",
+        0,
+      ),
+    ).toEqual({ allowed: true });
   });
 });

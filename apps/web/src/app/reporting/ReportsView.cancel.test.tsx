@@ -60,6 +60,7 @@ describe("ReportsView cancellation", () => {
         baseUrl="https://example.atlassian.net"
         deploymentType="cloud"
         board={board}
+        issues={[]}
         jql="filter = 9001 ORDER BY Rank ASC"
         statusMapping={statusMapping}
         historyStore={new MemoryReportHistoryStore()}
@@ -86,6 +87,7 @@ describe("ReportsView cancellation", () => {
         baseUrl="https://example.atlassian.net"
         deploymentType="cloud"
         board={board}
+        issues={[]}
         jql="filter = 9001 ORDER BY Rank ASC"
         statusMapping={statusMapping}
         historyStore={new MemoryReportHistoryStore()}

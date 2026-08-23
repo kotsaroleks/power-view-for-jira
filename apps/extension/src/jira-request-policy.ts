@@ -84,6 +84,17 @@ function validAssigneeBody(value: unknown): boolean {
   );
 }
 
+function validTransitionBody(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(value, ["transition"]) &&
+    isRecord(value.transition) &&
+    hasOnlyKeys(value.transition, ["id"]) &&
+    typeof value.transition.id === "string" &&
+    /^\d{1,32}$/.test(value.transition.id)
+  );
+}
+
 function validIssueLinkBody(value: unknown): boolean {
   if (
     !isRecord(value) ||
@@ -157,6 +168,9 @@ function allowedQueryParameters(
     new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/editmeta$`).test(
       request.path,
     ) ||
+    new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/transitions$`).test(
+      request.path,
+    ) ||
     /^\/rest\/api\/[23]\/issueLinkType$/.test(request.path)
   ) {
     return new Set();
@@ -220,12 +234,18 @@ function allowedQueryParameters(
 function validMutationRequest(request: JiraTransportRequest): boolean {
   const issuePath = new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}$`);
   const assigneePath = new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/assignee$`);
+  const transitionsPath = new RegExp(
+    `^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/transitions$`,
+  );
 
   if (request.method === "PUT" && issuePath.test(request.path)) {
     return validDateUpdateBody(request.body);
   }
   if (request.method === "PUT" && assigneePath.test(request.path)) {
     return validAssigneeBody(request.body);
+  }
+  if (request.method === "POST" && transitionsPath.test(request.path)) {
+    return validTransitionBody(request.body);
   }
   if (request.method === "POST" && /^\/rest\/api\/[23]\/issueLink$/.test(request.path)) {
     return validIssueLinkBody(request.body);
@@ -298,6 +318,13 @@ export function sanitizedJiraRequestHeaders(
   )?.[1];
   return {
     Accept: acceptHeader ?? "application/json",
-    ...(request.method === "GET" ? {} : { "Content-Type": "application/json" }),
+    ...(request.method === "GET"
+      ? {}
+      : {
+          "Content-Type": "application/json",
+          // Jira Data Center and some hardened Cloud configurations reject
+          // browser-originated writes without this standard anti-CSRF marker.
+          "X-Atlassian-Token": "no-check",
+        }),
   };
 }

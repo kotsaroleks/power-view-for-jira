@@ -28,6 +28,9 @@ export function ganttDependencyGeometry(
   const geometries: GanttDependencyGeometry[] = [];
 
   tasks.forEach((dependent, dependentIndex) => {
+    if (dependent.scheduleState === "unscheduled") {
+      return;
+    }
     if (dependentIndex < renderStart || dependentIndex >= renderEnd) {
       return;
     }
@@ -41,6 +44,7 @@ export function ganttDependencyGeometry(
       const prerequisiteIndex = indexById.get(prerequisiteId);
       if (
         !prerequisite ||
+        prerequisite.scheduleState === "unscheduled" ||
         prerequisiteIndex === undefined ||
         prerequisiteIndex < renderStart ||
         prerequisiteIndex >= renderEnd

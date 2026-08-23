@@ -168,7 +168,7 @@ describe("App", () => {
     expect(copied).not.toMatch(/cookie|authorization|session/i);
   });
 
-  it("cascades the Setup board into Board Health and Reports without re-selection", async () => {
+  it("opens the workspace chooser after automatic board setup", async () => {
     const jiraRequest = vi.fn((path: string, requestId: string) => {
       const common = {
         type: "JIRA_RESPONSE" as const,
@@ -279,7 +279,10 @@ describe("App", () => {
         },
       };
       if (path.endsWith("/board/7/issue") || path.endsWith("/sprint/101/issue")) {
-        return { ...common, data: { issues: [rawIssue], isLast: true } };
+        return {
+          ...common,
+          data: { issues: [rawIssue], startAt: 0, maxResults: 100, total: 1 },
+        };
       }
       if (path.endsWith("/search/jql")) {
         return { ...common, data: { issues: [rawIssue], isLast: true } };
@@ -291,6 +294,19 @@ describe("App", () => {
 
     await screen.findByText("Connected as Alex");
     expect(
+      await screen.findByRole("heading", { name: "What do you want to open?" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Gantt" })).toBeNull();
+
+    fireEvent.click(
+      screen
+        .getByText("Explore schedule, dependencies, risks, and delivery dates.")
+        .closest("button")!,
+    );
+    expect(await screen.findByRole("heading", { name: "Gantt" })).toBeInTheDocument();
+    expect(await screen.findByRole("grid", { name: "Gantt tasks" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(
       await screen.findByRole("option", { name: "Power Delivery Board · scrum" }),
     ).toBeInTheDocument();
     expect(await screen.findByRole("checkbox", { name: "Done" })).toBeChecked();
@@ -301,13 +317,17 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Reports" }));
+    const reportsButton = await screen.findByRole("button", { name: "Reports" });
+    jiraRequest.mockClear();
+    fireEvent.click(reportsButton);
 
+    expect(await screen.findByRole("heading", { name: "Reports" })).toBeInTheDocument();
     expect(await screen.findAllByText("Power Delivery Board")).not.toHaveLength(0);
     expect(screen.queryByRole("combobox", { name: "Board" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Save mapping" }),
     ).not.toBeInTheDocument();
+    expect(jiraRequest).not.toHaveBeenCalled();
     await expect(store.getSetup(context.baseUrl, "POWER", "7")).resolves.toMatchObject({
       board: { id: "7", name: "Power Delivery Board" },
       reporting: { completedStatusIds: ["3"], completedStatusNames: ["Done"] },

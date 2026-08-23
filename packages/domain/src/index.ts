@@ -1,5 +1,5 @@
 export const PRODUCT_NAME = "Power View for Jira";
-export const PRODUCT_VERSION = "0.2.1";
+export const PRODUCT_VERSION = "0.3.0";
 
 export type { AppErrorCode, SerializableAppError } from "./errors";
 export type {
@@ -19,6 +19,7 @@ export {
   type JiraIssueSprint,
   type JiraSprintState,
   type JiraStatusCategory,
+  type NormalizedHierarchyReference,
   type NormalizedIssue,
   type NormalizedIssueLink,
   type PageProgress,
@@ -59,7 +60,13 @@ export {
   buildIssueHierarchy,
   applyGanttDrag,
   DEFAULT_DURATION_DAYS,
+  DEFAULT_NON_WORKING_DAYS,
+  WORKING_DAY_SECONDS,
+  addWorkingDays,
+  countNonWorkingDays,
+  nextWorkingDay,
   normalizeDefaultDurations,
+  isWorkingDay,
   type CalculatedProgressSource,
   type DefaultDurationDays,
   type DependencyRelationshipType,
@@ -93,6 +100,7 @@ export {
   type GanttDateQuality,
   type GanttFilterLogic,
   type GanttSortOption,
+  type GanttSortDirection,
   sortGanttTasks,
   type GanttFilterResult,
   type GanttFilters,

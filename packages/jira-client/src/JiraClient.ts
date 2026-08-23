@@ -41,10 +41,32 @@ export interface JiraStatus {
   name: string;
 }
 
+export interface JiraPriority {
+  id: string;
+  name: string;
+}
+
+export interface JiraIssueTransition {
+  id: string;
+  name: string;
+  toStatusName: string;
+}
+
 export interface UpdateIssueDatesRequest {
   fieldMapping?: FieldMapping;
   startDate?: string | null;
   dueDate?: string | null;
+}
+
+export interface SearchBoardIssuesRequest {
+  boardId: string;
+  /** Optional narrowing within the board; it can never widen board scope. */
+  jql?: string;
+  fieldMapping?: FieldMapping;
+  maxIssues?: number;
+  pageSize?: number;
+  forceRefresh?: boolean;
+  onProgress?: (progress: import("@power-view/domain").PageProgress) => void;
 }
 
 export interface CreateIssueLinkRequest {
@@ -67,6 +89,10 @@ export interface JiraClient extends ReportingJiraClient {
     request: SearchIssuesRequest,
     signal?: AbortSignal,
   ): Promise<IssueSearchResult>;
+  searchBoardIssues(
+    request: SearchBoardIssuesRequest,
+    signal?: AbortSignal,
+  ): Promise<IssueSearchResult>;
   getIssueEditMetadata(
     issueKey: string,
     signal?: AbortSignal,
@@ -84,6 +110,21 @@ export interface JiraClient extends ReportingJiraClient {
   updateIssueDates(
     issueKey: string,
     request: UpdateIssueDatesRequest,
+    signal?: AbortSignal,
+  ): Promise<void>;
+  updateIssueFields(
+    issueKey: string,
+    fields: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<void>;
+  getPriorities(signal?: AbortSignal): Promise<JiraPriority[]>;
+  getIssueTransitions(
+    issueKey: string,
+    signal?: AbortSignal,
+  ): Promise<JiraIssueTransition[]>;
+  transitionIssue(
+    issueKey: string,
+    transitionId: string,
     signal?: AbortSignal,
   ): Promise<void>;
   getIssueLinkTypes(signal?: AbortSignal): Promise<JiraIssueLinkType[]>;

@@ -61,6 +61,36 @@ describe("JiraPageRequestHandler", () => {
     });
   });
 
+  it("adds Jira's anti-CSRF marker to write requests", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    const handler = new JiraPageRequestHandler({
+      fetch: fetchMock,
+      allowLocalhost: false,
+    });
+
+    await handler.execute(
+      "bridge-write",
+      {
+        baseUrl: request.baseUrl,
+        method: "PUT",
+        path: "/rest/api/3/issue/POWER-42",
+        body: { fields: { duedate: "2026-08-21" } },
+      },
+      request.baseUrl,
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL("https://example.atlassian.net/rest/api/3/issue/POWER-42"),
+      expect.objectContaining({
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Atlassian-Token": "no-check",
+        },
+      }),
+    );
+  });
+
   it("rejects cross-instance requests before fetch", async () => {
     const fetchMock = vi.fn();
     const handler = new JiraPageRequestHandler({

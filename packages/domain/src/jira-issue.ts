@@ -41,6 +41,18 @@ export interface NormalizedIssueLink {
     | "unknown";
 }
 
+export interface NormalizedHierarchyReference {
+  id?: string;
+  key: string;
+  summary?: string;
+  issueType?: JiraIssueType;
+  status?: {
+    id?: string;
+    name: string;
+    category?: JiraStatusCategory;
+  };
+}
+
 export interface NormalizedIssue {
   id: string;
   key: string;
@@ -60,12 +72,16 @@ export interface NormalizedIssue {
   project: { id: string; key: string; name?: string };
   parentKey?: string;
   epicKey?: string;
+  parentReference?: NormalizedHierarchyReference;
+  epicReference?: NormalizedHierarchyReference;
+  hierarchyPlaceholder?: boolean;
   createdAt?: string;
   updatedAt?: string;
   startDate?: string;
   dueDate?: string;
   resolvedAt?: string;
   storyPoints?: number;
+  originalEstimateSeconds?: number;
   sprints?: JiraIssueSprint[];
   progress?: {
     completed: number;

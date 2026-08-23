@@ -1,6 +1,16 @@
 export { ContextStore, type StorageArea, type StoredJiraContext } from "./context-store";
 export { DiagnosticsStore, type DiagnosticsState } from "./diagnostics-store";
-export { SettingsStore, type GanttViewPreferences } from "./settings-store";
+export {
+  SettingsStore,
+  type BoardConfigurationBackup,
+  type BoardConfigurationScope,
+  type GanttBoardState,
+  type GanttViewPreferences,
+  type PortableBoardConfiguration,
+  type ReconciledIssueDates,
+  type StoredGanttDependency,
+  type StoredGanttDependencyType,
+} from "./settings-store";
 export {
   IndexedDbReportHistoryStore,
   MemoryReportHistoryStore,

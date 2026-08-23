@@ -102,7 +102,13 @@ const model: GanttScheduleModel = {
 
 function dragModel(taskOverrides: Partial<GanttTask> = {}): GanttScheduleModel {
   const dragged = task(taskOverrides);
-  return { roots: [], tasks: [dragged], warnings: [], syntheticDateCount: 0, dependencyCount: 0 };
+  return {
+    roots: [],
+    tasks: [dragged],
+    warnings: [],
+    syntheticDateCount: 0,
+    dependencyCount: 0,
+  };
 }
 
 function editingContext(updateIssueDates = vi.fn().mockResolvedValue(undefined)) {
@@ -110,8 +116,20 @@ function editingContext(updateIssueDates = vi.fn().mockResolvedValue(undefined))
   const client = {
     getIssueEditMetadata: vi.fn().mockResolvedValue({
       fields: {
-        startdate: { id: "startdate", name: "Start date", required: false, operations: ["set"], schema: { type: "date" } },
-        duedate: { id: "duedate", name: "Due date", required: false, operations: ["set"], schema: { type: "date" } },
+        startdate: {
+          id: "startdate",
+          name: "Start date",
+          required: false,
+          operations: ["set"],
+          schema: { type: "date" },
+        },
+        duedate: {
+          id: "duedate",
+          name: "Due date",
+          required: false,
+          operations: ["set"],
+          schema: { type: "date" },
+        },
       },
     }),
     getIssueLinkTypes: vi.fn().mockResolvedValue([]),
@@ -124,7 +142,17 @@ async function beginMove() {
   const bar = document.querySelector<HTMLButtonElement>(".gantt-task-bar");
   if (!bar) throw new Error("Gantt bar not found");
   bar.setPointerCapture = vi.fn();
-  vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, top: 0, bottom: 20, width: 300, height: 20, x: 0, y: 0, toJSON: () => ({}) });
+  vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({
+    left: 0,
+    right: 300,
+    top: 0,
+    bottom: 20,
+    width: 300,
+    height: 20,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
   await act(async () => {
     fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
   });
@@ -149,6 +177,56 @@ describe("visibleGanttTasks", () => {
 });
 
 describe("GanttView", () => {
+  it("cycles the Issue column header through ascending, descending, and off", () => {
+    render(<GanttView model={model} today="2026-07-23" />);
+    const issueKeyOrder = () =>
+      [...document.querySelectorAll(".gantt-issue-cell strong")].map(
+        (node) => node.textContent,
+      );
+    const header = screen.getByRole("button", {
+      name: "Sort Issue within each hierarchy level",
+    });
+    const columnHeader = screen.getByRole("columnheader", { name: "Issue" });
+
+    expect(issueKeyOrder()).toEqual(["POWER-1", "POWER-3"]);
+
+    fireEvent.click(header);
+    expect(columnHeader).toHaveAttribute("aria-sort", "ascending");
+    expect(issueKeyOrder()).toEqual(["POWER-1", "POWER-3"]);
+
+    fireEvent.click(header);
+    expect(columnHeader).toHaveAttribute("aria-sort", "descending");
+    expect(issueKeyOrder()).toEqual(["POWER-3", "POWER-1"]);
+
+    fireEvent.click(header);
+    expect(columnHeader).toHaveAttribute("aria-sort", "none");
+    expect(issueKeyOrder()).toEqual(["POWER-1", "POWER-3"]);
+  });
+
+  it("shows the original and derived estimates for the selected task", () => {
+    render(
+      <GanttView
+        model={{
+          ...model,
+          tasks: [
+            task({
+              originalEstimateDays: 5,
+              nonWorkingDays: 2,
+              calendarDaysEstimate: 7,
+            }),
+          ],
+        }}
+        today="2026-07-23"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Select POWER-1: Plan release" }));
+
+    expect(screen.getByText("Original estimate")).toBeInTheDocument();
+    expect(screen.getByText("5 working days")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("7 calendar days")).toBeInTheDocument();
+  });
+
   it("keeps a click separate from a small drag", async () => {
     const context = editingContext();
     render(<GanttView model={dragModel()} editing={context.editing} />);
@@ -156,14 +234,26 @@ describe("GanttView", () => {
     const bar = document.querySelector<HTMLButtonElement>(".gantt-task-bar");
     if (!bar) throw new Error("Gantt bar not found");
     bar.setPointerCapture = vi.fn();
-    vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, top: 0, bottom: 20, width: 300, height: 20, x: 0, y: 0, toJSON: () => ({}) });
+    vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({
+      left: 0,
+      right: 300,
+      top: 0,
+      bottom: 20,
+      width: 300,
+      height: 20,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
     await act(async () => {
       fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
     });
     fireEvent.pointerMove(window, { clientX: 102, pointerId: 1 });
     fireEvent.pointerUp(window, { clientX: 102, pointerId: 1 });
     fireEvent.click(bar);
-    expect(screen.getByRole("heading", { name: /POWER-1 · Plan release/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /POWER-1 · Plan release/ }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(context.updateIssueDates).not.toHaveBeenCalled();
   });
@@ -172,7 +262,9 @@ describe("GanttView", () => {
     render(<GanttView model={dragModel()} editing={editingContext().editing} />);
     fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
     await beginMove();
-    expect(await screen.findByRole("dialog")).toHaveTextContent("Save start 2026-07-22 and due 2026-07-30 in Jira?");
+    expect(await screen.findByRole("dialog")).toHaveTextContent(
+      "Save start 2026-07-22 and due 2026-07-30 in Jira?",
+    );
   });
 
   it("saves only the changed dates and refreshes", async () => {
@@ -181,7 +273,13 @@ describe("GanttView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
     await beginMove();
     fireEvent.click(await screen.findByRole("button", { name: "Save" }));
-    await waitFor(() => expect(context.updateIssueDates).toHaveBeenCalledWith("POWER-1", { fieldMapping: {}, startDate: "2026-07-22", dueDate: "2026-07-30" }));
+    await waitFor(() =>
+      expect(context.updateIssueDates).toHaveBeenCalledWith("POWER-1", {
+        fieldMapping: {},
+        startDate: "2026-07-22",
+        dueDate: "2026-07-30",
+      }),
+    );
     expect(context.refresh).toHaveBeenCalledOnce();
   });
 
@@ -196,7 +294,12 @@ describe("GanttView", () => {
   });
 
   it("does not drag a task whose Jira date is inferred", () => {
-    render(<GanttView model={dragModel({ startSource: "created" })} editing={editingContext().editing} />);
+    render(
+      <GanttView
+        model={dragModel({ startSource: "created" })}
+        editing={editingContext().editing}
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
     const bar = document.querySelector<HTMLButtonElement>(".gantt-task-bar");
     if (!bar) throw new Error("Gantt bar not found");
@@ -205,7 +308,17 @@ describe("GanttView", () => {
     // 8px edge zones and resolves to a "move" gesture (center of a 300px-wide
     // bar) rather than being misclassified as a resize against a default
     // zero-width rect, which only requires the touched side to be Jira-backed.
-    vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, top: 0, bottom: 20, width: 300, height: 20, x: 0, y: 0, toJSON: () => ({}) });
+    vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({
+      left: 0,
+      right: 300,
+      top: 0,
+      bottom: 20,
+      width: 300,
+      height: 20,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
     fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
     fireEvent.pointerMove(window, { clientX: 140, pointerId: 1 });
     fireEvent.pointerUp(window, { clientX: 140, pointerId: 1 });
@@ -578,6 +691,48 @@ describe("GanttView", () => {
       expect(
         store.getGanttFilters("https://example.atlassian.net", "POWER:7"),
       ).resolves.toMatchObject({ search: "Plan release" }),
+    );
+  });
+
+  it("resets view preferences when the next workspace has none", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    await store.saveGanttViewPreferences("https://example.atlassian.net", "POWER:7", {
+      zoom: "month",
+      sortBy: "issueKey",
+      sortDirection: "desc",
+    });
+    const view = render(
+      <GanttView
+        model={model}
+        today="2026-07-23"
+        filterPersistence={{
+          store,
+          jiraBaseUrl: "https://example.atlassian.net",
+          workspaceKey: "POWER:7",
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: /Sort Issue/ })).toHaveTextContent(
+      "Issue ▼",
+    );
+
+    view.rerender(
+      <GanttView
+        model={model}
+        today="2026-07-23"
+        filterPersistence={{
+          store,
+          jiraBaseUrl: "https://example.atlassian.net",
+          workspaceKey: "POWER:8",
+        }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Sort Issue/ })).toHaveTextContent(
+        "Issue",
+      ),
     );
   });
 });

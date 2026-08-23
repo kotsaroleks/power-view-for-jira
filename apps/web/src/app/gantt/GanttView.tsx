@@ -1,5 +1,7 @@
 import {
   DEFAULT_GANTT_FILTERS,
+  DEFAULT_NON_WORKING_DAYS,
+  countNonWorkingDays,
   filterGanttTasks,
   sortGanttTasks,
   isGanttFilterActive,
@@ -10,19 +12,30 @@ import {
   applyGanttDrag,
   type GanttDragGesture,
 } from "@power-view/domain";
-import { type JiraIssueEditMetadata } from "@power-view/jira-client";
-import { type CSSProperties, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
-  editableField,
-  GanttEditPanel,
   jiraDateValue,
+  GanttEditPanel,
   mutationErrorMessage,
   type GanttEditingContext,
 } from "./GanttEditPanel";
 import { GanttDependencyLayer } from "./GanttDependencyLayer";
+import { GanttNonWorkingDaysLayer } from "./GanttNonWorkingDaysLayer";
 import { GanttFiltersToolbar } from "./GanttFiltersToolbar";
-import { dateAtOffset, daysBetween, type GanttRenderer, nativeGanttRenderer } from "./GanttRenderer";
+import {
+  dateAtOffset,
+  daysBetween,
+  type GanttRenderer,
+  nativeGanttRenderer,
+} from "./GanttRenderer";
 import { visibleGanttTasks } from "./ganttVisibility";
 import { ganttVirtualWindow } from "./ganttVirtualization";
 import {
@@ -37,6 +50,7 @@ export interface GanttViewProps {
   renderer?: GanttRenderer;
   filterPersistence?: GanttFilterPersistence;
   editing?: GanttEditingContext;
+  nonWorkingDays?: number[];
 }
 
 const MAX_VISIBLE_ROWS = 1_000;
@@ -56,6 +70,19 @@ const SOURCE_LABELS: Record<string, string> = {
   none: "No progress signal",
 };
 
+const SCHEDULE_STATE_LABELS: Record<string, string> = {
+  confirmed: "Confirmed",
+  planned: "Planned",
+  forecast: "Forecast",
+  milestone: "Milestone",
+  rollup: "Rollup",
+  unscheduled: "Unscheduled",
+};
+
+function scheduleState(task: GanttTask): string {
+  return task.scheduleState ?? "confirmed";
+}
+
 function initialExpandedTasks(tasks: GanttTask[]): Set<string> {
   return new Set(tasks.filter((task) => task.expanded).map((task) => task.id));
 }
@@ -66,6 +93,20 @@ function statusClass(task: GanttTask): string {
 
 function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source;
+}
+
+function estimateLabel(days: number): string {
+  const value = Number.isInteger(days)
+    ? String(days)
+    : days.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return `${value} working day${days === 1 ? "" : "s"}`;
+}
+
+function calendarEstimateLabel(days: number): string {
+  const value = Number.isInteger(days)
+    ? String(days)
+    : days.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return `${value} calendar day${days === 1 ? "" : "s"}`;
 }
 
 function sortedUnique(values: Array<string | undefined>): string[] {
@@ -80,18 +121,46 @@ export function GanttView({
   renderer = nativeGanttRenderer,
   filterPersistence,
   editing,
+  nonWorkingDays = DEFAULT_NON_WORKING_DAYS,
 }: GanttViewProps) {
-  const { zoom, setZoom, sortBy, setSortBy } = usePersistedGanttZoom(filterPersistence);
+  const { zoom, setZoom, sortBy, setSortBy, sortDirection, setSortDirection } =
+    usePersistedGanttZoom(filterPersistence);
+  const toggleSort = (column: GanttSortOption) => {
+    if (sortBy !== column) {
+      setSortBy(column);
+      setSortDirection("asc");
+      return;
+    }
+    if (sortDirection === "asc") {
+      setSortDirection("desc");
+      return;
+    }
+    setSortBy("default");
+    setSortDirection("asc");
+  };
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() =>
     initialExpandedTasks(model.tasks),
   );
   const [selectedTaskId, setSelectedTaskId] = useState<string>();
   const [editMode, setEditMode] = useState(false);
   const [drag, setDrag] = useState<{
-    taskId: string; gesture: GanttDragGesture; startX: number; pixelDelta: number; dragging: boolean;
+    taskId: string;
+    gesture: GanttDragGesture;
+    startX: number;
+    pixelDelta: number;
+    dragging: boolean;
   }>();
   const [dragConfirm, setDragConfirm] = useState<{
-    taskId: string; result: { startDate?: string; dueDate?: string }; error: string | undefined; saving?: boolean;
+    taskId: string;
+    result: { startDate?: string; dueDate?: string };
+    error: string | undefined;
+    nonWorkingDays?: number;
+    calendarDaysEstimate?: number;
+    saving?: boolean;
+  }>();
+  const [unscheduledDatePick, setUnscheduledDatePick] = useState<{
+    taskId: string;
+    firstDate: string;
   }>();
   const suppressClick = useRef(false);
   const pointerActive = useRef(false);
@@ -108,8 +177,11 @@ export function GanttView({
     [appliedFilters, model.tasks, today],
   );
   const filterResult = useMemo(
-    () => ({ ...filteredResult, tasks: sortGanttTasks(filteredResult.tasks, sortBy) }),
-    [filteredResult, sortBy],
+    () => ({
+      ...filteredResult,
+      tasks: sortGanttTasks(filteredResult.tasks, sortBy, sortDirection),
+    }),
+    [filteredResult, sortBy, sortDirection],
   );
   const filterOptions = useMemo(
     () => ({
@@ -172,7 +244,9 @@ export function GanttView({
   const viewport = useMemo(
     () =>
       renderer.createViewport(
-        filterResult.tasks.length > 0 ? filterResult.tasks : model.tasks,
+        (filterResult.tasks.length > 0 ? filterResult.tasks : model.tasks).filter(
+          (task) => scheduleState(task) !== "unscheduled",
+        ),
         zoom,
         today,
       ),
@@ -221,6 +295,34 @@ export function GanttView({
     setFilters(nextFilters);
   };
 
+  const selectUnscheduledDate = (task: GanttTask, selectedDate: string) => {
+    if (!editing || !editMode || dragConfirm) return;
+    if (unscheduledDatePick?.taskId !== task.id) {
+      setUnscheduledDatePick({ taskId: task.id, firstDate: selectedDate });
+      return;
+    }
+    const startDate =
+      unscheduledDatePick.firstDate <= selectedDate
+        ? unscheduledDatePick.firstDate
+        : selectedDate;
+    const dueDate =
+      unscheduledDatePick.firstDate <= selectedDate
+        ? selectedDate
+        : unscheduledDatePick.firstDate;
+    const previewNonWorkingDays = countNonWorkingDays(startDate, dueDate, nonWorkingDays);
+    setUnscheduledDatePick(undefined);
+    setDragConfirm({
+      taskId: task.id,
+      result: { startDate, dueDate },
+      error: undefined,
+      nonWorkingDays: previewNonWorkingDays,
+      ...(task.originalEstimateDays === undefined
+        ? {}
+        : { calendarDaysEstimate: task.originalEstimateDays + previewNonWorkingDays }),
+      saving: false,
+    });
+  };
+
   const finishDrag = (event: PointerEvent) => {
     if (!drag || dragConfirm) return;
     const deltaPx = event.clientX - drag.startX;
@@ -234,7 +336,8 @@ export function GanttView({
     if (!task) return;
     const geometry = renderer.taskBar(task, viewport);
     const startOffset = geometry.left + (drag.gesture === "resize-end" ? 0 : deltaPx);
-    const endOffset = geometry.left + geometry.width + (drag.gesture === "resize-start" ? 0 : deltaPx);
+    const endOffset =
+      geometry.left + geometry.width + (drag.gesture === "resize-start" ? 0 : deltaPx);
     const startDate = dateAtOffset(viewport, startOffset);
     const endDate = dateAtOffset(viewport, endOffset);
     const baseDate = drag.gesture === "resize-end" ? task.end : task.start;
@@ -242,11 +345,40 @@ export function GanttView({
     const result = applyGanttDrag(task, drag.gesture, daysBetween(baseDate, movedDate));
     if (!result.allowed) {
       setDrag(undefined);
-      setDragConfirm({ taskId: task.id, result: {}, error: result.reason, saving: false });
-      window.setTimeout(() => setDragConfirm((current) => current?.taskId === task.id && current.error === result.reason ? undefined : current), 3000);
+      setDragConfirm({
+        taskId: task.id,
+        result: {},
+        error: result.reason,
+        saving: false,
+      });
+      window.setTimeout(
+        () =>
+          setDragConfirm((current) =>
+            current?.taskId === task.id && current.error === result.reason
+              ? undefined
+              : current,
+          ),
+        3000,
+      );
     } else if (result.startDate !== undefined || result.dueDate !== undefined) {
+      const previewNonWorkingDays = countNonWorkingDays(
+        result.startDate ?? task.start,
+        result.dueDate ?? task.end,
+        nonWorkingDays,
+      );
       setDrag({ ...drag, pixelDelta: deltaPx, dragging: true });
-      setDragConfirm({ taskId: task.id, result, error: undefined, saving: false });
+      setDragConfirm({
+        taskId: task.id,
+        result,
+        error: undefined,
+        nonWorkingDays: previewNonWorkingDays,
+        ...(task.originalEstimateDays === undefined
+          ? {}
+          : {
+              calendarDaysEstimate: task.originalEstimateDays + previewNonWorkingDays,
+            }),
+        saving: false,
+      });
     } else {
       setDrag(undefined);
     }
@@ -256,7 +388,15 @@ export function GanttView({
     if (!drag) return;
     const move = (event: PointerEvent) => {
       if (!pointerActive.current) return;
-      setDrag((current) => current ? { ...current, pixelDelta: event.clientX - current.startX, dragging: Math.abs(event.clientX - current.startX) >= 4 } : current);
+      setDrag((current) =>
+        current
+          ? {
+              ...current,
+              pixelDelta: event.clientX - current.startX,
+              dragging: Math.abs(event.clientX - current.startX) >= 4,
+            }
+          : current,
+      );
     };
     const up = (event: PointerEvent) => {
       pointerActive.current = false;
@@ -265,31 +405,51 @@ export function GanttView({
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
-    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up); };
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
   }, [drag, dragConfirm, renderer, taskById, viewport]);
 
   const saveDrag = async () => {
     if (!dragConfirm || !editing) return;
     const task = taskById.get(dragConfirm.taskId);
     if (!task) return;
-    setDragConfirm((current) => current ? { ...current, saving: true, error: undefined } : current);
+    setDragConfirm((current) =>
+      current ? { ...current, saving: true, error: undefined } : current,
+    );
     try {
-      const metadata: JiraIssueEditMetadata = await editing.client.getIssueEditMetadata(task.issueKey);
-      const startField = metadata.fields[editing.fieldMapping.startDateFieldId ?? "startdate"];
-      const dueField = metadata.fields[editing.fieldMapping.endDateFieldId ?? "duedate"];
-      if ((dragConfirm.result.startDate !== undefined && !editableField(startField)) || (dragConfirm.result.dueDate !== undefined && !editableField(dueField))) {
-        throw new Error("The selected Jira date field is not editable.");
-      }
+      // editmeta is useful for formatting datetime values, but it is not a
+      // reliable permission gate for Jira Plans workflows.
+      const metadata = await editing.client
+        .getIssueEditMetadata(task.issueKey)
+        .catch(() => undefined);
+      const startField =
+        metadata?.fields[editing.fieldMapping.startDateFieldId ?? "startdate"];
+      const dueField = metadata?.fields[editing.fieldMapping.endDateFieldId ?? "duedate"];
       await editing.client.updateIssueDates(task.issueKey, {
         fieldMapping: editing.fieldMapping,
-        ...(dragConfirm.result.startDate !== undefined ? { startDate: jiraDateValue(dragConfirm.result.startDate, startField) } : {}),
-        ...(dragConfirm.result.dueDate !== undefined ? { dueDate: jiraDateValue(dragConfirm.result.dueDate, dueField) } : {}),
+        ...(dragConfirm.result.startDate !== undefined
+          ? { startDate: jiraDateValue(dragConfirm.result.startDate, startField) }
+          : {}),
+        ...(dragConfirm.result.dueDate !== undefined
+          ? { dueDate: jiraDateValue(dragConfirm.result.dueDate, dueField) }
+          : {}),
       });
       await editing.refresh();
       setDrag(undefined);
       setDragConfirm(undefined);
     } catch (error) {
-      setDragConfirm((current) => current ? { ...current, saving: false, error: error instanceof Error && error.message.startsWith("The selected") ? error.message : mutationErrorMessage(error) } : current);
+      setDragConfirm((current) =>
+        current
+          ? {
+              ...current,
+              saving: false,
+              error: mutationErrorMessage(error),
+            }
+          : current,
+      );
     }
   };
 
@@ -314,8 +474,9 @@ export function GanttView({
           <p className="report-eyebrow">GANTT</p>
           <h2 id="gantt-title">Schedule workspace</h2>
           <p>
-            {model.tasks.length} tasks · {model.syntheticDateCount} inferred dates ·{" "}
-            {model.dependencyCount} dependencies
+            {model.tasks.length} tasks ·{" "}
+            {model.tasks.filter((task) => scheduleState(task) === "unscheduled").length}{" "}
+            unscheduled · {model.dependencyCount} dependencies
           </p>
         </div>
         <div className="gantt-toolbar">
@@ -324,7 +485,10 @@ export function GanttView({
               className={editMode ? "edit-mode-button is-active" : "edit-mode-button"}
               type="button"
               aria-pressed={editMode}
-              onClick={() => setEditMode((current) => !current)}
+              onClick={() => {
+                setEditMode((current) => !current);
+                setUnscheduledDatePick(undefined);
+              }}
             >
               {editMode ? "Exit Edit mode" : "Edit Jira"}
             </button>
@@ -381,8 +545,6 @@ export function GanttView({
         }
         onChange={updateFilters}
         onReset={() => updateFilters({ ...DEFAULT_GANTT_FILTERS })}
-        sortBy={sortBy}
-        onSortByChange={setSortBy}
       />
 
       {allVisibleTasks.length > MAX_VISIBLE_ROWS ? (
@@ -402,12 +564,48 @@ export function GanttView({
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
         <div className="gantt-grid-header" role="row">
-          <div className="gantt-table-header" role="columnheader">
-            <span>Issue</span>
-            <span>Summary</span>
-            <span>Status</span>
-            <span>Assignee</span>
-            <span aria-label="Warnings">!</span>
+          <div className="gantt-table-header">
+            {(
+              [
+                ["issueKey", "Issue"],
+                ["name", "Summary"],
+                ["status", "Status"],
+                ["assignee", "Assignee"],
+              ] as const
+            ).map(([column, label]) => {
+              const sortState =
+                sortBy === column
+                  ? sortDirection === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : "none";
+              return (
+                <div
+                  key={column}
+                  role="columnheader"
+                  aria-label={label}
+                  aria-sort={sortState}
+                >
+                  <button
+                    type="button"
+                    className="gantt-sortable-header"
+                    title="Sorts within each hierarchy level"
+                    aria-label={`Sort ${label} within each hierarchy level`}
+                    onClick={() => toggleSort(column)}
+                  >
+                    {label}
+                    {sortState === "ascending"
+                      ? " ▲"
+                      : sortState === "descending"
+                        ? " ▼"
+                        : ""}
+                  </button>
+                </div>
+              );
+            })}
+            <span role="columnheader" aria-label="Warnings">
+              !
+            </span>
           </div>
           <div className="gantt-timeline-header" role="columnheader">
             {viewport.ticks.map((tick) => (
@@ -432,6 +630,7 @@ export function GanttView({
         </div>
 
         <div className="gantt-grid-body" role="rowgroup">
+          <GanttNonWorkingDaysLayer viewport={viewport} nonWorkingDays={nonWorkingDays} />
           <GanttDependencyLayer
             tasks={visibleTasks}
             viewport={viewport}
@@ -456,15 +655,25 @@ export function GanttView({
               filterResult.active && filterResult.autoExpandedIds.has(task.id);
             const isSelected = selectedTaskId === task.id;
             const isContextAncestor = filterResult.contextAncestorIds.has(task.id);
-            const geometry = renderer.taskBar(task, viewport);
-            const activeDrag = drag?.taskId === task.id && drag.dragging ? drag : undefined;
-            const previewGeometry = activeDrag
-              ? activeDrag.gesture === "move"
-                ? { left: geometry.left + activeDrag.pixelDelta, width: geometry.width }
-                : activeDrag.gesture === "resize-start"
-                  ? { left: geometry.left + activeDrag.pixelDelta, width: geometry.width - activeDrag.pixelDelta }
-                  : { left: geometry.left, width: geometry.width + activeDrag.pixelDelta }
-              : geometry;
+            const taskScheduleState = scheduleState(task);
+            const isScheduled = taskScheduleState !== "unscheduled";
+            const geometry = isScheduled ? renderer.taskBar(task, viewport) : undefined;
+            const activeDrag =
+              drag?.taskId === task.id && drag.dragging ? drag : undefined;
+            const previewGeometry =
+              activeDrag && geometry
+                ? activeDrag.gesture === "move"
+                  ? { left: geometry.left + activeDrag.pixelDelta, width: geometry.width }
+                  : activeDrag.gesture === "resize-start"
+                    ? {
+                        left: geometry.left + activeDrag.pixelDelta,
+                        width: geometry.width - activeDrag.pixelDelta,
+                      }
+                    : {
+                        left: geometry.left,
+                        width: geometry.width + activeDrag.pixelDelta,
+                      }
+                : geometry;
             const dragEnabled = Boolean(editing && editMode);
             const startEnabled = task.startSource === "jira";
             const endEnabled = task.endSource === "jira";
@@ -535,13 +744,16 @@ export function GanttView({
                     <span title={task.assigneeName ?? "Unassigned"}>
                       {task.assigneeName ?? "Unassigned"}
                     </span>
+                    <span className={`gantt-schedule-state is-${taskScheduleState}`}>
+                      {SCHEDULE_STATE_LABELS[taskScheduleState]}
+                    </span>
                     {riskMessages.length > 0 ? (
                       <span
                         className="date-warning-icon"
                         title={riskMessages.join("\n")}
                         aria-label={`${task.issueKey} has schedule risks or warnings`}
                       >
-                        {task.isBlocked ? "B" : "!"}
+                        {task.isBlocked ? "Blocked" : "Needs attention"}
                       </span>
                     ) : (
                       <span />
@@ -556,39 +768,151 @@ export function GanttView({
                       aria-hidden="true"
                     />
                   ) : null}
-                  <button
-                    className={`gantt-task-bar ${statusClass(task)}${task.isBlocked ? " is-blocked" : ""}${task.hasDateMisalignment ? " date-misaligned" : ""}`}
-                    type="button"
-                    style={{ left: previewGeometry.left, width: Math.max(8, previewGeometry.width), cursor: dragEnabled ? (startEnabled && endEnabled ? "grab" : "not-allowed") : undefined }}
-                    aria-label={`Select ${task.issueKey}, ${task.start} to ${task.end}, ${task.progress}% complete${task.isBlocked ? ", blocked" : ""}${task.hasDateMisalignment ? ", date mismatch with rollup" : ""}`}
-                    aria-pressed={isSelected}
-                    onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } setSelectedTaskId(task.id); }}
-                    onPointerDown={(event) => {
-                      if (!dragEnabled) return;
-                      const rect = event.currentTarget.getBoundingClientRect();
-                      const edge = 8;
-                      const fromLeft = event.clientX - rect.left;
-                      const fromRight = rect.right - event.clientX;
-                      const gesture = fromLeft <= edge ? "resize-start" : fromRight <= edge ? "resize-end" : "move";
-                      if ((gesture === "move" && (!startEnabled || !endEnabled)) || (gesture === "resize-start" && !startEnabled) || (gesture === "resize-end" && !endEnabled)) return;
-                      pointerActive.current = true;
-                      event.currentTarget.setPointerCapture(event.pointerId);
-                      setDrag({ taskId: task.id, gesture, startX: event.clientX, pixelDelta: 0, dragging: false });
-                    }}
-                    title={dragEnabled && (!startEnabled || !endEnabled) ? "Set explicit start/end dates in Jira to enable dragging" : undefined}
-                  >
-                    <span
-                      className="gantt-task-progress"
-                      style={{ width: `${task.progress}%` }}
-                      aria-hidden="true"
-                    />
-                    <span className="gantt-task-label">{task.issueKey}</span>
-                  </button>
+                  {isScheduled && previewGeometry ? (
+                    <button
+                      className={`gantt-task-bar ${statusClass(task)}${task.isBlocked ? " is-blocked" : ""}${task.hasDateMisalignment ? " date-misaligned" : ""}`}
+                      type="button"
+                      style={{
+                        left: previewGeometry.left,
+                        width: Math.max(8, previewGeometry.width),
+                        cursor: dragEnabled
+                          ? startEnabled && endEnabled
+                            ? "grab"
+                            : "not-allowed"
+                          : undefined,
+                      }}
+                      aria-label={`Select ${task.issueKey}, ${task.start} to ${task.end}, ${task.progress}% complete${task.isBlocked ? ", blocked" : ""}${task.hasDateMisalignment ? ", date mismatch with rollup" : ""}`}
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        if (suppressClick.current) {
+                          suppressClick.current = false;
+                          return;
+                        }
+                        setSelectedTaskId(task.id);
+                      }}
+                      onPointerDown={(event) => {
+                        if (!dragEnabled) return;
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        const edge = 8;
+                        const fromLeft = event.clientX - rect.left;
+                        const fromRight = rect.right - event.clientX;
+                        const gesture =
+                          fromLeft <= edge
+                            ? "resize-start"
+                            : fromRight <= edge
+                              ? "resize-end"
+                              : "move";
+                        if (
+                          (gesture === "move" && (!startEnabled || !endEnabled)) ||
+                          (gesture === "resize-start" && !startEnabled) ||
+                          (gesture === "resize-end" && !endEnabled)
+                        )
+                          return;
+                        pointerActive.current = true;
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        setDrag({
+                          taskId: task.id,
+                          gesture,
+                          startX: event.clientX,
+                          pixelDelta: 0,
+                          dragging: false,
+                        });
+                      }}
+                      title={
+                        dragEnabled && (!startEnabled || !endEnabled)
+                          ? "Set explicit start/end dates in Jira to enable dragging"
+                          : undefined
+                      }
+                    >
+                      <span
+                        className="gantt-task-progress"
+                        style={{ width: `${task.progress}%` }}
+                        aria-hidden="true"
+                      />
+                      <span className="gantt-task-label">{task.issueKey}</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="gantt-unscheduled-message"
+                      type="button"
+                      disabled={!dragEnabled}
+                      onClick={(event) => {
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        selectUnscheduledDate(
+                          task,
+                          dateAtOffset(viewport, event.clientX - rect.left),
+                        );
+                      }}
+                      title={
+                        dragEnabled
+                          ? "Click once for Start, then click again for Due"
+                          : "Enable Edit Jira to set Start and Due dates"
+                      }
+                    >
+                      {unscheduledDatePick?.taskId === task.id
+                        ? `Start: ${unscheduledDatePick.firstDate}. Click a second date for Due.`
+                        : "Unscheduled — click twice to set Start and Due dates."}
+                    </button>
+                  )}
                   {dragConfirm?.taskId === task.id ? (
-                    <div className="gantt-drag-confirm" role="dialog" aria-label={`Confirm date change for ${task.issueKey}`}>
-                      {dragConfirm.error ? <p role="alert">{dragConfirm.error}</p> : <p>Save {dragConfirm.result.startDate ? `start ${dragConfirm.result.startDate}` : ""}{dragConfirm.result.startDate && dragConfirm.result.dueDate ? " and " : ""}{dragConfirm.result.dueDate ? `due ${dragConfirm.result.dueDate}` : ""} in Jira?</p>}
-                      {!dragConfirm.error ? <button type="button" onClick={() => void saveDrag()} disabled={dragConfirm.saving}>Save</button> : <button type="button" onClick={() => void saveDrag()} disabled={dragConfirm.saving}>Retry</button>}
-                      <button type="button" onClick={() => { setDrag(undefined); setDragConfirm(undefined); }} disabled={dragConfirm.saving}>Cancel</button>
+                    <div
+                      className="gantt-drag-confirm"
+                      role="dialog"
+                      aria-label={`Confirm date change for ${task.issueKey}`}
+                    >
+                      {dragConfirm.error ? (
+                        <p role="alert">{dragConfirm.error}</p>
+                      ) : (
+                        <>
+                          <p>
+                            Save{" "}
+                            {dragConfirm.result.startDate
+                              ? `start ${dragConfirm.result.startDate}`
+                              : ""}
+                            {dragConfirm.result.startDate && dragConfirm.result.dueDate
+                              ? " and "
+                              : ""}
+                            {dragConfirm.result.dueDate
+                              ? `due ${dragConfirm.result.dueDate}`
+                              : ""}{" "}
+                            in Jira?
+                          </p>
+                          <p className="gantt-drag-estimate">
+                            Non-working days: {dragConfirm.nonWorkingDays ?? 0}
+                            {dragConfirm.calendarDaysEstimate === undefined
+                              ? ""
+                              : ` · Calendar days estimate: ${calendarEstimateLabel(dragConfirm.calendarDaysEstimate)}`}
+                          </p>
+                        </>
+                      )}
+                      {!dragConfirm.error ? (
+                        <button
+                          type="button"
+                          onClick={() => void saveDrag()}
+                          disabled={dragConfirm.saving}
+                        >
+                          Save
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void saveDrag()}
+                          disabled={dragConfirm.saving}
+                        >
+                          Retry
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDrag(undefined);
+                          setDragConfirm(undefined);
+                          setUnscheduledDatePick(undefined);
+                        }}
+                        disabled={dragConfirm.saving}
+                      >
+                        Cancel
+                      </button>
                     </div>
                   ) : null}
                 </div>
@@ -657,6 +981,29 @@ export function GanttView({
                 <dt>Assignee</dt>
                 <dd>{selectedTask.assigneeName ?? "Unassigned"}</dd>
                 <span>{selectedTask.issueTypeName}</span>
+              </div>
+              <div>
+                <dt>Original estimate</dt>
+                <dd>
+                  {selectedTask.originalEstimateDays === undefined
+                    ? "Not set"
+                    : estimateLabel(selectedTask.originalEstimateDays)}
+                </dd>
+                <span>Jira estimate · 8 h/day</span>
+              </div>
+              <div>
+                <dt>Non-working days</dt>
+                <dd>{selectedTask.nonWorkingDays ?? 0}</dd>
+                <span>Current date range</span>
+              </div>
+              <div>
+                <dt>Calendar days estimate</dt>
+                <dd>
+                  {selectedTask.calendarDaysEstimate === undefined
+                    ? "Not set"
+                    : calendarEstimateLabel(selectedTask.calendarDaysEstimate)}
+                </dd>
+                <span>Estimate + non-working days</span>
               </div>
             </dl>
             {dependencies.length > 0 ? (

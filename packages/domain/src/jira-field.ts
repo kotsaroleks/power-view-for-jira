@@ -40,6 +40,18 @@ function isDateField(field: JiraField): boolean {
   return type === "date" || type === "datetime";
 }
 
+function isLegacyEpicLinkField(field: JiraField): boolean {
+  const customSchema = field.schema?.custom?.toLowerCase();
+  if (customSchema?.includes("gh-epic-link")) {
+    return true;
+  }
+
+  return (
+    normalizedName(field.name) === "epic link" ||
+    field.clauseNames.some((clauseName) => normalizedName(clauseName) === "epic link")
+  );
+}
+
 function candidateScore(
   field: JiraField,
   purpose: DateFieldPurpose,
@@ -125,6 +137,9 @@ export function rankDateFieldCandidates(
 export function inferDefaultDateFieldMapping(fields: JiraField[]): FieldMapping {
   const preferredStart = fields.find((field) => field.id === "customfield_10015");
   const preferredEnd = fields.find((field) => field.id === "duedate");
+  const legacyEpicLink =
+    fields.find((field) => field.schema?.custom?.toLowerCase().includes("gh-epic-link")) ??
+    fields.find(isLegacyEpicLinkField);
   const rankedStart = rankDateFieldCandidates(fields, "start")[0];
   const rankedEnd = rankDateFieldCandidates(fields, "end")[0];
 
@@ -136,6 +151,9 @@ export function inferDefaultDateFieldMapping(fields: JiraField[]): FieldMapping 
   }
   if (endId) {
     result.endDateFieldId = endId;
+  }
+  if (legacyEpicLink) {
+    result.hierarchyFieldId = legacyEpicLink.id;
   }
   return result;
 }

@@ -10,6 +10,8 @@ import {
   type JiraIssueEditField,
   type JiraIssueEditMetadata,
   type JiraIssueLinkType,
+  type JiraIssueTransition,
+  type JiraPriority,
 } from "@power-view/jira-client";
 import { useEffect, useMemo, useState } from "react";
 
@@ -115,6 +117,10 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
   const [metadataError, setMetadataError] = useState<string>();
   const [contextMissing, setContextMissing] = useState(false);
   const [linkTypes, setLinkTypes] = useState<JiraIssueLinkType[]>([]);
+  const [priorities, setPriorities] = useState<JiraPriority[]>([]);
+  const [transitions, setTransitions] = useState<JiraIssueTransition[]>([]);
+  const [priorityId, setPriorityId] = useState("");
+  const [transitionId, setTransitionId] = useState("");
   const [linkTypesError, setLinkTypesError] = useState<string>();
   const [startDate, setStartDate] = useState(task.start);
   const [dueDate, setDueDate] = useState(task.end);
@@ -178,6 +184,30 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
         }
       },
     );
+    if (typeof editing.client.getPriorities === "function") {
+      void editing.client.getPriorities(controller.signal).then(
+        (values) => {
+          if (!controller.signal.aborted) {
+            setPriorities(values);
+            setPriorityId(
+              values.find((value) => value.name === task.priorityName)?.id ?? "",
+            );
+          }
+        },
+        () => undefined,
+      );
+    }
+    if (typeof editing.client.getIssueTransitions === "function") {
+      void editing.client.getIssueTransitions(task.issueKey, controller.signal).then(
+        (values) => {
+          if (!controller.signal.aborted) {
+            setTransitions(values);
+            setTransitionId(values[0]?.id ?? "");
+          }
+        },
+        () => undefined,
+      );
+    }
 
     return () => controller.abort();
   }, [editing.client, reloadToken, task.issueKey]);
@@ -290,6 +320,29 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
     runMutation("Assignee", `Remove the assignee from ${task.issueKey}?`, () =>
       editing.client.assignIssue(task.issueKey, null),
     );
+
+  const savePriority = async () => {
+    const priority = priorities.find((value) => value.id === priorityId);
+    if (!priority) return;
+    await runMutation(
+      "Priority",
+      `Set ${task.issueKey} priority to ${priority.name}?`,
+      () =>
+        editing.client.updateIssueFields(task.issueKey, {
+          priority: { id: priority.id },
+        }),
+    );
+  };
+
+  const saveStatus = async () => {
+    const transition = transitions.find((value) => value.id === transitionId);
+    if (!transition) return;
+    await runMutation(
+      "Status",
+      `Move ${task.issueKey} to ${transition.toStatusName}?`,
+      () => editing.client.transitionIssue(task.issueKey, transition.id),
+    );
+  };
 
   const addDependency = async () => {
     const prerequisite = tasks.find((candidate) => candidate.id === dependencyTaskId);
@@ -460,6 +513,60 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
         >
           Set unassigned
         </button>
+      </fieldset>
+
+      <fieldset className="gantt-edit-group" disabled={isBusy || metadataLoading}>
+        <legend>Status and priority</legend>
+        <div className="gantt-edit-row">
+          <label className="gantt-edit-grow">
+            Move to status
+            <select
+              value={transitionId}
+              onChange={(event) => setTransitionId(event.target.value)}
+            >
+              {transitions.length === 0 ? (
+                <option value="">No available transition</option>
+              ) : null}
+              {transitions.map((transition) => (
+                <option key={transition.id} value={transition.id}>
+                  {transition.toStatusName} · {transition.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={!transitionId}
+            onClick={() => void saveStatus()}
+          >
+            {busyAction === "Status" ? "Saving…" : "Save status"}
+          </button>
+        </div>
+        <div className="gantt-edit-row">
+          <label className="gantt-edit-grow">
+            Priority
+            <select
+              value={priorityId}
+              onChange={(event) => setPriorityId(event.target.value)}
+            >
+              <option value="">Select priority…</option>
+              {priorities.map((priority) => (
+                <option key={priority.id} value={priority.id}>
+                  {priority.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={!priorityId}
+            onClick={() => void savePriority()}
+          >
+            {busyAction === "Priority" ? "Saving…" : "Save priority"}
+          </button>
+        </div>
       </fieldset>
 
       <fieldset className="gantt-edit-group" disabled={isBusy}>

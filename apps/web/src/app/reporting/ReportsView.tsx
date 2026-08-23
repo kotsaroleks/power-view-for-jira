@@ -4,6 +4,7 @@ import {
   type BoardReportConfiguration,
   type GeneratedReportSnapshot,
   type JiraBoard,
+  type NormalizedIssue,
   type ReportChangeEvent,
   type ReportingIssueSnapshot,
   type ReportLanguage,
@@ -42,6 +43,7 @@ export interface ReportsViewProps {
   baseUrl: string;
   deploymentType: "cloud" | "data-center" | "server" | "unknown";
   board: JiraBoard;
+  issues: NormalizedIssue[];
   jql: string;
   statusMapping: BoardReportConfiguration;
   historyStore?: ReportHistoryStore;
@@ -576,14 +578,38 @@ export function ReportsView({
   baseUrl,
   deploymentType,
   board,
+  issues,
   jql,
   statusMapping,
   historyStore = defaultHistoryStore(),
   historyCache = defaultHistoryCache(),
 }: ReportsViewProps) {
-  const [assigneeOptions, setAssigneeOptions] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  const assigneeOptions = useMemo(
+    () =>
+      [
+        ...new Map(
+          issues.flatMap((issue) =>
+            issue.assignee
+              ? [
+                  [
+                    issue.assignee.accountId ??
+                      issue.assignee.username ??
+                      issue.assignee.displayName,
+                    {
+                      id:
+                        issue.assignee.accountId ??
+                        issue.assignee.username ??
+                        issue.assignee.displayName,
+                      name: issue.assignee.displayName,
+                    },
+                  ] as const,
+                ]
+              : [],
+          ),
+        ).values(),
+      ].sort((left, right) => left.name.localeCompare(right.name)),
+    [issues],
+  );
   const [sprints, setSprints] = useState<
     Array<{ id: string; name: string; state: string }>
   >([]);
@@ -624,35 +650,22 @@ export function ReportsView({
   }, [refreshHistory]);
 
   useEffect(() => {
+    if (type !== "sprint" || board.type !== "scrum") {
+      setSprints([]);
+      setSprintId("");
+      return;
+    }
     let current = true;
     void (async () => {
       setError(undefined);
       try {
-        const [issuePage, sprintPage] = await Promise.all([
-          client.getBoardIssues({ boardId: board.id, pageSize: 100 }),
-          board.type === "scrum"
-            ? client.getBoardSprints({ boardId: board.id, maxResults: 50 })
-            : Promise.resolve(undefined),
-        ]);
+        const sprintPage = await client.getBoardSprints({
+          boardId: board.id,
+          maxResults: 50,
+        });
         if (!current) return;
-        setAssigneeOptions(
-          [
-            ...new Map(
-              issuePage.values.flatMap((issue) =>
-                issue.assignee
-                  ? [
-                      [
-                        issue.assignee.id,
-                        { id: issue.assignee.id, name: issue.assignee.displayName },
-                      ],
-                    ]
-                  : [],
-              ),
-            ).values(),
-          ].sort((left, right) => left.name.localeCompare(right.name)),
-        );
-        setSprints(sprintPage?.values ?? []);
-        if (sprintPage?.values[0]) setSprintId(sprintPage.values[0].id);
+        setSprints(sprintPage.values);
+        if (sprintPage.values[0]) setSprintId(sprintPage.values[0].id);
       } catch (cause) {
         if (current)
           setError(
@@ -665,7 +678,7 @@ export function ReportsView({
     return () => {
       current = false;
     };
-  }, [board.id, board.type, client]);
+  }, [board.id, board.type, client, type]);
 
   const generate = async (forceRefresh = false) => {
     if (statusMapping.completedStatusIds.length === 0) {
@@ -764,6 +777,8 @@ export function ReportsView({
       return undefined;
     }
   }, [localDate, type]);
+  const missingCompletedStatusMapping =
+    statusMapping.completedStatusIds.length === 0;
 
   return (
     <section id="reports" className="reporting-card" aria-labelledby="reports-title">
@@ -870,6 +885,11 @@ export function ReportsView({
           Board and completed statuses are inherited from Workspace Settings:{" "}
           {statusMapping.completedStatusNames.join(", ")}.
         </p>
+        {missingCompletedStatusMapping ? (
+          <p className="field-warning" role="status">
+            Configure at least one completed status in Workspace Settings.
+          </p>
+        ) : null}
         {error ? (
           <div className="setup-errors" role="alert">
             {error}
@@ -887,10 +907,15 @@ export function ReportsView({
         </p>
         <div className="setup-save-row">
           <button
-            className="primary-button"
+            className={`primary-button${loading ? " is-loading" : ""}`}
             type="button"
-            disabled={loading || statusMapping.completedStatusIds.length === 0}
-            title="Shift-click to bypass the cached Jira history."
+            disabled={loading || missingCompletedStatusMapping}
+            aria-busy={loading}
+            title={
+              missingCompletedStatusMapping
+                ? "Configure at least one completed status in Workspace Settings."
+                : "Shift-click to bypass the cached Jira history."
+            }
             onClick={(event) => void generate(event.shiftKey)}
           >
             {loading ? loadingMessage || "Generating…" : "Generate report"}

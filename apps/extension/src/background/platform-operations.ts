@@ -682,9 +682,10 @@ async function executeJiraRequest(
                 allowUncertainFallback: true,
               }),
           )
-        : await executeJiraPageBridge(requestId, request, storedContext, {
-            allowUncertainFallback: false,
-          });
+        : // Run mutations in Jira's own page context from the outset. Retrying a
+          // content-script write through another bridge can duplicate a change
+          // when the first request reached Jira but its response was lost.
+          await executeJiraMainWorldBridge(request, storedContext);
 
     await diagnosticsStore.recordRequest(
       {

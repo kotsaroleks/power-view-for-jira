@@ -20,26 +20,26 @@ describe("Jira issue to schedule integration", () => {
     const model = buildGanttScheduleModel(issues, { today: "2026-01-15" });
     const tasks = new Map(model.tasks.map((task) => [task.issueKey, task]));
 
-    expect(model.tasks).toHaveLength(5);
+    expect(model.tasks).toHaveLength(6);
     expect(model.roots.map((root) => root.issue.key)).toEqual([
+      "POWER-999",
       "POWER-1",
       "POWER-4",
-      "POWER-5",
     ]);
+    expect(tasks.get("POWER-999")).toMatchObject({
+      id: "29999",
+      isHierarchyPlaceholder: true,
+      expanded: true,
+    });
+    expect(tasks.get("POWER-5")?.parentId).toBe("29999");
     expect(tasks.get("POWER-2")?.parentId).toBe("20001");
     expect(tasks.get("POWER-3")?.parentId).toBe("20002");
     expect(tasks.get("POWER-2")?.dependencies).toEqual(["20004"]);
     expect(tasks.get("POWER-1")).toMatchObject({
-      start: "2026-01-01",
-      end: "2026-02-09",
+      start: "2026-02-02",
+      end: "2026-02-12",
       isSyntheticDate: true,
     });
-    expect(model.warnings.map((warning) => warning.code)).toEqual(
-      expect.arrayContaining([
-        "MISSING_PARENT",
-        "INVALID_START_DATE",
-        "END_BEFORE_START",
-      ]),
-    );
+    expect(model.warnings.map((warning) => warning.code)).toEqual(["INVALID_START_DATE"]);
   });
 });

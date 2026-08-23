@@ -73,6 +73,7 @@ describe("Jira request policy", () => {
     expect(sanitizedJiraRequestHeaders(dateUpdate)).toEqual({
       Accept: "application/json",
       "Content-Type": "application/json",
+      "X-Atlassian-Token": "no-check",
     });
     expect(() =>
       validatedJiraRequestUrl(
@@ -138,6 +139,41 @@ describe("Jira request policy", () => {
             outwardIssue: { key: "POWER-1" },
             comment: { body: "not allowlisted" },
           },
+        },
+        request.baseUrl,
+        false,
+      ),
+    ).toThrow();
+  });
+
+  it("allows issue-scoped workflow reads and strict status transitions", () => {
+    const transitionsPath = "/rest/api/3/issue/POWER-42/transitions";
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...request, path: transitionsPath },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...request,
+          method: "POST",
+          path: transitionsPath,
+          body: { transition: { id: "31" } },
+        },
+        request.baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...request,
+          method: "POST",
+          path: transitionsPath,
+          body: { transition: { id: "31" }, fields: { summary: "unsafe" } },
         },
         request.baseUrl,
         false,

@@ -1,5 +1,5 @@
 import type { SettingsStore } from "@power-view/storage";
-import type { GanttSortOption } from "@power-view/domain";
+import type { GanttSortDirection, GanttSortOption } from "@power-view/domain";
 import { useEffect, useState } from "react";
 
 import type { GanttZoom } from "./GanttRenderer";
@@ -15,9 +15,12 @@ export function usePersistedGanttZoom(persistence?: GanttZoomPersistence): {
   setZoom: (zoom: GanttZoom) => void;
   sortBy: GanttSortOption;
   setSortBy: (sortBy: GanttSortOption) => void;
+  sortDirection: GanttSortDirection;
+  setSortDirection: (direction: GanttSortDirection) => void;
 } {
   const [zoom, setZoom] = useState<GanttZoom>("week");
   const [sortBy, setSortBy] = useState<GanttSortOption>("default");
+  const [sortDirection, setSortDirection] = useState<GanttSortDirection>("asc");
   const [hydrated, setHydrated] = useState(!persistence);
   const store = persistence?.store;
   const jiraBaseUrl = persistence?.jiraBaseUrl;
@@ -31,12 +34,16 @@ export function usePersistedGanttZoom(persistence?: GanttZoomPersistence): {
 
     let isCurrent = true;
     setHydrated(false);
+    setZoom("week");
+    setSortBy("default");
+    setSortDirection("asc");
     void store.getGanttViewPreferences(jiraBaseUrl, workspaceKey).then(
       (preferences) => {
         if (isCurrent) {
           if (preferences) {
             setZoom(preferences.zoom);
             setSortBy(preferences.sortBy ?? "default");
+            setSortDirection(preferences.sortDirection ?? "asc");
           }
           setHydrated(true);
         }
@@ -61,11 +68,15 @@ export function usePersistedGanttZoom(persistence?: GanttZoomPersistence): {
 
     const timer = setTimeout(() => {
       void store
-        .saveGanttViewPreferences(jiraBaseUrl, workspaceKey, { zoom, sortBy })
+        .saveGanttViewPreferences(jiraBaseUrl, workspaceKey, {
+          zoom,
+          sortBy,
+          sortDirection,
+        })
         .catch(() => console.warn("Power View could not save Gantt zoom."));
     }, 300);
     return () => clearTimeout(timer);
-  }, [hydrated, jiraBaseUrl, sortBy, store, workspaceKey, zoom]);
+  }, [hydrated, jiraBaseUrl, sortBy, sortDirection, store, workspaceKey, zoom]);
 
-  return { zoom, setZoom, sortBy, setSortBy };
+  return { zoom, setZoom, sortBy, setSortBy, sortDirection, setSortDirection };
 }

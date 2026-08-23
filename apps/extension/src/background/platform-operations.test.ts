@@ -128,7 +128,7 @@ beforeEach(() => {
 describe.each(Object.entries(mutationRequests))(
   "mutation transport fallback (%s)",
   (_label, mutationRequest) => {
-    it("does not fall back to the main-world bridge when the page bridge fails after the request may already have reached Jira", async () => {
+    it("uses the main-world bridge directly so a mutation is never retried", async () => {
       const requestId = crypto.randomUUID();
       tabsSendMessage.mockResolvedValueOnce({
         type: "CONTEXT_RESULT",
@@ -151,11 +151,11 @@ describe.each(Object.entries(mutationRequests))(
         executeJiraRequest(requestId, mutationRequest, sender),
       ).rejects.toThrow();
 
-      expect(tabsSendMessage).toHaveBeenCalledTimes(2);
-      expect(scriptingExecuteScript).not.toHaveBeenCalled();
+      expect(tabsSendMessage).toHaveBeenCalledTimes(1);
+      expect(scriptingExecuteScript).toHaveBeenCalledTimes(1);
     });
 
-    it("falls back to the main-world bridge only when the page bridge itself is unreachable", async () => {
+    it("succeeds through the main-world bridge without a content-bridge write", async () => {
       const requestId = crypto.randomUUID();
       tabsSendMessage.mockResolvedValueOnce({
         type: "CONTEXT_RESULT",
@@ -184,7 +184,7 @@ describe.each(Object.entries(mutationRequests))(
         data: { id: "POWER-42" },
         transport: "jira-main-world",
       });
-      expect(tabsSendMessage).toHaveBeenCalledTimes(2);
+      expect(tabsSendMessage).toHaveBeenCalledTimes(1);
       expect(scriptingExecuteScript).toHaveBeenCalledTimes(1);
     });
   },

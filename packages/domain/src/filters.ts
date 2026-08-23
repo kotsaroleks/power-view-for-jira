@@ -11,9 +11,12 @@ export type GanttRiskFilter = "blocked" | "unresolved";
 
 export type GanttDateQuality = "explicit" | "partial" | "inferred" | "corrected";
 export type GanttFilterLogic = "and" | "or";
-export type GanttSortOption = "default" | "startDate" | "endDate" | "name" | "status";
+export type GanttSortOption =
+  "default" | "startDate" | "endDate" | "name" | "status" | "assignee" | "issueKey";
+export type GanttSortDirection = "asc" | "desc";
+const STATUS_CATEGORY_ORDER: Record<JiraStatusCategory, number> = { unknown: 0, "to-do": 1, "in-progress": 2, done: 3 };
 
-export function sortGanttTasks(tasks: GanttTask[], sortBy: GanttSortOption): GanttTask[] {
+export function sortGanttTasks(tasks: GanttTask[], sortBy: GanttSortOption, direction: GanttSortDirection = "asc"): GanttTask[] {
   if (sortBy === "default") return tasks;
 
   const order = new Map(tasks.map((task, index) => [task.id, index]));
@@ -28,17 +31,43 @@ export function sortGanttTasks(tasks: GanttTask[], sortBy: GanttSortOption): Gan
       case "endDate": return task.end;
       case "name": return task.name;
       case "status": return task.statusName;
+      case "assignee": return task.assigneeName ?? "";
+      case "issueKey": return task.issueKey;
     }
   };
   const compare = (left: GanttTask, right: GanttTask): number => {
+    if (sortBy === "status") {
+      const catOrder = STATUS_CATEGORY_ORDER[left.statusCategory] - STATUS_CATEGORY_ORDER[right.statusCategory];
+      if (catOrder !== 0) return direction === "desc" ? -catOrder : catOrder;
+      const leftEmpty = !left.statusName.trim();
+      const rightEmpty = !right.statusName.trim();
+      if (leftEmpty && rightEmpty) {
+        const tiebreaker = (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+        return direction === "desc" ? -tiebreaker : tiebreaker;
+      }
+      if (leftEmpty) return direction === "desc" ? -1 : 1;
+      if (rightEmpty) return direction === "desc" ? 1 : -1;
+      const nameOrder = left.statusName.localeCompare(right.statusName, undefined, { sensitivity: "base" });
+      if (nameOrder !== 0) return direction === "desc" ? -nameOrder : nameOrder;
+      return direction === "desc"
+        ? (order.get(right.id) ?? 0) - (order.get(left.id) ?? 0)
+        : (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+    }
+
     const leftValue = value(left).trim();
     const rightValue = value(right).trim();
-    if (!leftValue && !rightValue) return (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
-    if (!leftValue) return 1;
-    if (!rightValue) return -1;
-    return leftValue.localeCompare(rightValue, undefined, {
-      sensitivity: sortBy === "name" || sortBy === "status" ? "base" : "variant",
-    }) || (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+    if (!leftValue && !rightValue) {
+      const tiebreaker = (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+      return direction === "desc" ? -tiebreaker : tiebreaker;
+    }
+    if (!leftValue) return direction === "desc" ? -1 : 1;
+    if (!rightValue) return direction === "desc" ? 1 : -1;
+    const result = leftValue.localeCompare(rightValue, undefined, {
+      sensitivity: sortBy === "name" || sortBy === "assignee" ? "base" : "variant",
+    });
+    if (result !== 0) return direction === "desc" ? -result : result;
+    const tiebreaker = (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+    return direction === "desc" ? -tiebreaker : tiebreaker;
   };
   for (const group of children.values()) group.sort(compare);
 
@@ -67,6 +96,7 @@ export interface GanttFilters {
   riskFilters: GanttRiskFilter[];
   logic: GanttFilterLogic;
   includeDescendants: boolean;
+  excludeDone: boolean;
 }
 
 export const DEFAULT_GANTT_FILTERS: Readonly<GanttFilters> = {
@@ -81,6 +111,7 @@ export const DEFAULT_GANTT_FILTERS: Readonly<GanttFilters> = {
   riskFilters: [],
   logic: "and",
   includeDescendants: false,
+  excludeDone: false,
 };
 
 export interface GanttFilterResult {
@@ -110,7 +141,8 @@ export function isGanttFilterActive(filters: GanttFilters): boolean {
     filters.priorities.length ||
     filters.labels.length ||
     filters.dateFilters.length ||
-    filters.riskFilters.length,
+    filters.riskFilters.length ||
+    filters.excludeDone,
   );
 }
 
@@ -136,6 +168,7 @@ interface CompiledGanttFilters {
   dateFilters: Set<GanttDateFilter>;
   riskFilters: Set<GanttRiskFilter>;
   logic: GanttFilterLogic;
+  excludeDone: boolean;
 }
 
 function compileFilters(filters: GanttFilters): CompiledGanttFilters {
@@ -150,6 +183,7 @@ function compileFilters(filters: GanttFilters): CompiledGanttFilters {
     dateFilters: new Set(filters.dateFilters),
     riskFilters: new Set(filters.riskFilters),
     logic: filters.logic,
+    excludeDone: filters.excludeDone,
   };
 }
 
@@ -165,6 +199,7 @@ function matchesFilters(
   if (!searchMatches) {
     return false;
   }
+  if (filters.excludeDone && task.statusCategory === "done") return false;
 
   const groupMatches: boolean[] = [];
   if (filters.statuses.size > 0) {

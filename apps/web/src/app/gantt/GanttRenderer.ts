@@ -54,6 +54,25 @@ export function daysBetween(start: string, end: string): number {
   return Math.round((timestamp(end) - timestamp(start)) / DAY_MS);
 }
 
+export interface NonWorkingDayRange { left: number; width: number; }
+
+export function nonWorkingDayRanges(viewport: GanttViewport, nonWorkingDays: number[]): NonWorkingDayRange[] {
+  if (nonWorkingDays.length === 0) return [];
+  const ranges: NonWorkingDayRange[] = [];
+  let rangeStart: number | undefined;
+  for (let day = 0; day < viewport.totalDays; day += 1) {
+    const dayOfWeek = new Date(timestamp(addDays(viewport.start, day))).getUTCDay();
+    const isNonWorking = nonWorkingDays.includes(dayOfWeek);
+    if (isNonWorking && rangeStart === undefined) rangeStart = day;
+    else if (!isNonWorking && rangeStart !== undefined) {
+      ranges.push({ left: rangeStart * viewport.dayWidth, width: (day - rangeStart) * viewport.dayWidth });
+      rangeStart = undefined;
+    }
+  }
+  if (rangeStart !== undefined) ranges.push({ left: rangeStart * viewport.dayWidth, width: (viewport.totalDays - rangeStart) * viewport.dayWidth });
+  return ranges;
+}
+
 function addDays(date: string, days: number): string {
   const value = new Date(timestamp(date));
   value.setUTCDate(value.getUTCDate() + days);

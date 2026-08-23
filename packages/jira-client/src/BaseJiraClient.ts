@@ -24,8 +24,11 @@ import type {
   JiraClient,
   JiraIssueEditMetadata,
   JiraIssueLinkType,
+  JiraIssueTransition,
+  JiraPriority,
   JiraStatus,
   UpdateIssueDatesRequest,
+  SearchBoardIssuesRequest,
 } from "./JiraClient";
 import type { JiraTransport } from "./JiraTransport";
 import type {
@@ -52,6 +55,7 @@ import {
   rawJiraUserSchema,
   rawJiraUsersSchema,
   rawJiraIssueSchema,
+  rawDataCenterIssueSearchPageSchema,
   rawPartialJiraIssueSchema,
   rawJiraProjectStatusesSchema,
   rawJiraStatusesSchema,
@@ -350,6 +354,91 @@ export abstract class BaseJiraClient implements JiraClient {
       result,
     });
     return result;
+  }
+
+  async searchBoardIssues(
+    request: SearchBoardIssuesRequest,
+    signal?: AbortSignal,
+  ): Promise<IssueSearchResult> {
+    if (request.jql) {
+      const jqlErrors = validateJqlInput(request.jql);
+      if (jqlErrors.length > 0) {
+        throw new JiraClientError({
+          code: "INVALID_JQL",
+          message: "The Jira board filter is not valid.",
+          details: jqlErrors.join(" "),
+          retryable: false,
+        });
+      }
+    }
+    const maxIssues = boundedInteger(
+      request.maxIssues,
+      DEFAULT_MAX_ISSUES,
+      MAX_CONFIGURABLE_ISSUES,
+    );
+    const pageSize = boundedInteger(request.pageSize, MAX_PAGE_SIZE, MAX_PAGE_SIZE);
+    const fields = issueFields(request.fieldMapping);
+    const issuesById = new Map<string, NormalizedIssue>();
+    let startAt = 0;
+    let pageNumber = 0;
+    let knownTotal: number | undefined;
+    let truncated = false;
+
+    while (issuesById.size < maxIssues) {
+      abortIfRequested(signal);
+      const rawPage = await this.transport.request(
+        {
+          baseUrl: this.baseUrl,
+          method: "GET",
+          path: `/rest/agile/1.0/board/${encodeURIComponent(request.boardId)}/issue`,
+          query: {
+            startAt,
+            maxResults: pageSize,
+            fields: fields.join(","),
+            ...(request.jql?.trim()
+              ? { jql: request.jql.trim(), validateQuery: true }
+              : {}),
+          },
+          headers: { Accept: "application/json" },
+        },
+        rawDataCenterIssueSearchPageSchema,
+        signal,
+      );
+      pageNumber += 1;
+      knownTotal = rawPage.total;
+
+      for (const rawIssue of rawPage.issues) {
+        if (issuesById.size >= maxIssues) {
+          truncated = true;
+          break;
+        }
+        const id = String(rawIssue.id);
+        if (!issuesById.has(id)) {
+          issuesById.set(
+            id,
+            mapJiraIssue(rawIssue, {
+              baseUrl: this.baseUrl,
+              ...(request.fieldMapping ? { fieldMapping: request.fieldMapping } : {}),
+            }),
+          );
+        }
+      }
+      reportProgress(request.onProgress, issuesById.size, pageNumber, knownTotal);
+
+      const nextStart = rawPage.startAt + rawPage.issues.length;
+      if (rawPage.issues.length === 0 || nextStart >= rawPage.total) break;
+      startAt = nextStart;
+    }
+
+    return {
+      values: [...issuesById.values()],
+      startAt: 0,
+      maxResults: maxIssues,
+      total: knownTotal ?? issuesById.size,
+      isLast: !truncated && (knownTotal ?? issuesById.size) <= issuesById.size,
+      truncated,
+      fromCache: false,
+    };
   }
 
   async getBoards(
@@ -796,6 +885,91 @@ export abstract class BaseJiraClient implements JiraClient {
         path: `/rest/api/${this.apiVersion}/issue/${issueKey}`,
         headers: { Accept: "application/json" },
         body: { fields },
+      },
+      z.unknown(),
+      signal,
+    );
+    this.clearIssueCache();
+  }
+
+  async updateIssueFields(
+    issueKey: string,
+    fields: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (Object.keys(fields).length === 0) return;
+    await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "PUT",
+        path: `/rest/api/${this.apiVersion}/issue/${issueKey}`,
+        headers: { Accept: "application/json" },
+        body: { fields },
+      },
+      z.unknown(),
+      signal,
+    );
+    this.clearIssueCache();
+  }
+
+  async getPriorities(signal?: AbortSignal): Promise<JiraPriority[]> {
+    const priorities = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/api/${this.apiVersion}/priority`,
+        headers: { Accept: "application/json" },
+      },
+      z.array(z.object({ id: z.union([z.string(), z.number()]), name: z.string() })),
+      signal,
+    );
+    return priorities.map((priority) => ({
+      id: String(priority.id),
+      name: priority.name,
+    }));
+  }
+
+  async getIssueTransitions(
+    issueKey: string,
+    signal?: AbortSignal,
+  ): Promise<JiraIssueTransition[]> {
+    const response = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/api/${this.apiVersion}/issue/${issueKey}/transitions`,
+        headers: { Accept: "application/json" },
+      },
+      z.object({
+        transitions: z.array(
+          z.object({
+            id: z.union([z.string(), z.number()]),
+            name: z.string(),
+            to: z.object({ name: z.string() }),
+          }),
+        ),
+      }),
+      signal,
+    );
+    return response.transitions.map((transition) => ({
+      id: String(transition.id),
+      name: transition.name,
+      toStatusName: transition.to.name,
+    }));
+  }
+
+  async transitionIssue(
+    issueKey: string,
+    transitionId: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "POST",
+        path: `/rest/api/${this.apiVersion}/issue/${issueKey}/transitions`,
+        headers: { Accept: "application/json" },
+        body: { transition: { id: transitionId } },
       },
       z.unknown(),
       signal,

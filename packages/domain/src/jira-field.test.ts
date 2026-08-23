@@ -64,10 +64,21 @@ describe("date field discovery", () => {
     expect(inferDefaultDateFieldMapping([
       ...fields,
       { id: "customfield_10015", name: "Custom start", custom: true, schema: { type: "date" }, clauseNames: [] },
-    ])).toEqual({ startDateFieldId: "customfield_10015", endDateFieldId: "duedate" });
+    ])).toEqual({
+      startDateFieldId: "customfield_10015",
+      endDateFieldId: "duedate",
+      hierarchyFieldId: "customfield_10014",
+    });
     expect(inferDefaultDateFieldMapping(fields)).toEqual({
       startDateFieldId: "customfield_10010",
       endDateFieldId: "duedate",
+      hierarchyFieldId: "customfield_10014",
+    });
+  });
+
+  it("automatically maps Jira's legacy Epic Link for task-to-epic hierarchy", () => {
+    expect(inferDefaultDateFieldMapping(fields)).toMatchObject({
+      hierarchyFieldId: "customfield_10014",
     });
   });
 

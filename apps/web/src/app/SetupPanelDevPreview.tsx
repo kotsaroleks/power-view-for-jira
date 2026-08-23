@@ -1,4 +1,4 @@
-import type { JiraPageContext } from "@power-view/domain";
+import { PRODUCT_VERSION, type JiraPageContext } from "@power-view/domain";
 import type { ExtensionRuntime } from "@power-view/extension-messaging";
 import { SettingsStore, type StorageArea } from "@power-view/storage";
 
@@ -149,7 +149,7 @@ const issueSearchPage = {
 const currentUser = { accountId: "user-1", displayName: "Riley Chen" };
 const serverInfo = { baseUrl: previewContext.baseUrl, version: "9.12.0" };
 const diagnosticsSnapshot = {
-  extensionVersion: "0.2.1",
+  extensionVersion: PRODUCT_VERSION,
   browserVersion: "127.0.0.0",
   cacheStatus: "ready",
   loadedIssueCount: 2,

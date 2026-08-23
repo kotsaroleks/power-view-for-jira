@@ -3,6 +3,7 @@ import {
   buildDefaultBoardJql,
   buildDefaultProjectJql,
   DEFAULT_DURATION_DAYS,
+  DEFAULT_NON_WORKING_DAYS,
   MAX_CONFIGURABLE_ISSUES,
   rankDateFieldCandidates,
   inferDefaultDateFieldMapping,
@@ -10,7 +11,6 @@ import {
   validateJqlInput,
   type FieldMapping,
   type DefaultDurationDays,
-  type GanttScheduleModel,
   type IssueSearchResult,
   type JiraBoard,
   type JiraField,
@@ -36,6 +36,11 @@ import type { SettingsStore } from "@power-view/storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { loadProjectBoards } from "./load-project-boards";
+import { BoardConfigurationTransfer } from "./workspace/BoardConfigurationTransfer";
+import {
+  createWorkspaceContext,
+  type WorkspaceContext,
+} from "./workspace/WorkspaceContext";
 
 export interface SetupPanelProps {
   context: JiraPageContext;
@@ -44,6 +49,8 @@ export interface SetupPanelProps {
   onDiagnosticsChanged?: () => void;
   onScheduleReady?: (schedule: ReadyGanttSchedule | undefined) => void;
   onSetupComplete?: (schedule: ReadyGanttSchedule) => void;
+  /** Publishes a zero-configuration Workspace once Jira context supplies a board. */
+  onQuickStart?: (schedule: ReadyGanttSchedule) => void;
   /** Skip straight past this page when a matching saved setup already exists.
    * Only appropriate on the very first arrival at Settings in a session — pass
    * false when the user explicitly navigated here to review/edit an existing
@@ -51,29 +58,8 @@ export interface SetupPanelProps {
   autoContinue?: boolean;
 }
 
-export interface ReadyGanttSchedule {
-  model: GanttScheduleModel;
-  issues: NormalizedIssue[];
-  queryKey: string;
-  jiraBaseUrl: string;
-  projectKey: string;
-  projectName: string;
-  board: JiraBoard;
-  reporting: {
-    completedStatusIds: string[];
-    completedStatusNames: string[];
-  };
-  jql: string;
-  loadedAt: string;
-  truncated: boolean;
-  sprintDataAvailable: boolean;
-  storyPointsDataAvailable: boolean;
-  editing: {
-    client: JiraClient;
-    fieldMapping: FieldMapping;
-    refresh: () => Promise<void>;
-  };
-}
+/** @deprecated Use WorkspaceContext at a service boundary. */
+export type ReadyGanttSchedule = WorkspaceContext;
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 type IssueLoadState = "idle" | "loading" | "ready" | "error";
@@ -150,6 +136,38 @@ function resolveCompletedStatuses(
   };
 }
 
+function resolveWorkspaceCompletedStatuses(
+  completedStatusIds: string[],
+  statusOptions: StatusOption[],
+  issues: NormalizedIssue[],
+): { completedStatusIds: string[]; completedStatusNames: string[] } {
+  const issueStatuses = issues.flatMap((issue) =>
+    issue.status.id
+      ? [{ id: issue.status.id, name: issue.status.name } satisfies StatusOption]
+      : [],
+  );
+  const resolved = resolveCompletedStatuses(completedStatusIds, [
+    ...statusOptions,
+    ...issueStatuses,
+  ]);
+  if (resolved.completedStatusIds.length > 0) {
+    return resolved;
+  }
+  const inferredDoneStatuses = [
+    ...new Map(
+      issues.flatMap((issue) =>
+        issue.status.id && issue.status.category === "done"
+          ? [[issue.status.id, { id: issue.status.id, name: issue.status.name }] as const]
+          : [],
+      ),
+    ).values(),
+  ];
+  return {
+    completedStatusIds: inferredDoneStatuses.map((status) => status.id),
+    completedStatusNames: inferredDoneStatuses.map((status) => status.name),
+  };
+}
+
 function fieldOptionLabel(field: JiraField): string {
   const type = field.schema?.type ? ` · ${field.schema.type}` : "";
   return `${field.name}${type} · ${field.id}`;
@@ -179,6 +197,7 @@ export function SetupPanel({
   onDiagnosticsChanged,
   onScheduleReady,
   onSetupComplete,
+  onQuickStart,
   autoContinue = true,
 }: SetupPanelProps) {
   const client = useMemo(
@@ -199,6 +218,12 @@ export function SetupPanel({
   const [selectedProjectKey, setSelectedProjectKey] = useState("");
   const [boards, setBoards] = useState<JiraBoard[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState("");
+  // Loading a board catalogue is required to open the Gantt. Board configuration
+  // and status metadata are not: they only enrich optional setup controls. Keep
+  // these states separate so a slow metadata endpoint never leaves first launch
+  // on an indefinite "Preparing" screen.
+  const [boardCatalogState, setBoardCatalogState] = useState<LoadState>("idle");
+  const [boardCatalogError, setBoardCatalogError] = useState<string>();
   const [boardLoadState, setBoardLoadState] = useState<LoadState>("idle");
   const [boardLoadError, setBoardLoadError] = useState<string>();
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
@@ -210,9 +235,14 @@ export function SetupPanel({
   const [defaultDurations, setDefaultDurations] = useState<DefaultDurationDays>({
     ...DEFAULT_DURATION_DAYS,
   });
+  const [nonWorkingDays, setNonWorkingDays] = useState<number[]>([
+    ...DEFAULT_NON_WORKING_DAYS,
+  ]);
   const [recentJql, setRecentJql] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [manualSettingsOpen, setManualSettingsOpen] = useState(false);
+  const autoPersistedBoards = useRef(new Set<string>());
   const requestAbort = useRef<AbortController | undefined>(undefined);
   const issueAbort = useRef<AbortController | undefined>(undefined);
   const [issueLoadState, setIssueLoadState] = useState<IssueLoadState>("idle");
@@ -223,9 +253,12 @@ export function SetupPanel({
   const scheduleModel = useMemo(
     () =>
       issueResult
-        ? buildGanttScheduleModel(issueResult.values, { defaultDurations })
+        ? buildGanttScheduleModel(issueResult.values, {
+            defaultDurations,
+            nonWorkingDays,
+          })
         : undefined,
-    [defaultDurations, issueResult],
+    [defaultDurations, issueResult, nonWorkingDays],
   );
   const scheduleQueryKey = `${context.baseUrl}\n${selectedProjectKey}\n${jql.trim()}`;
 
@@ -364,6 +397,8 @@ export function SetupPanel({
     if (!selectedProjectKey) {
       setBoards([]);
       setSelectedBoardId("");
+      setBoardCatalogState("idle");
+      setBoardCatalogError(undefined);
       setStatusOptions([]);
       setCompletedStatusIds([]);
       setStoredSetup(undefined);
@@ -377,6 +412,8 @@ export function SetupPanel({
       setJql(buildDefaultProjectJql(selectedProjectKey));
       setBoards([]);
       setSelectedBoardId("");
+      setBoardCatalogState("idle");
+      setBoardCatalogError(undefined);
       setValidationErrors([]);
       setSaveStatus("idle");
       issueAbort.current?.abort();
@@ -388,8 +425,48 @@ export function SetupPanel({
 
     const controller = new AbortController();
     let isCurrent = true;
-    setBoardLoadState("loading");
-    setBoardLoadError(undefined);
+    setBoardCatalogState("loading");
+    setBoardCatalogError(undefined);
+
+    // A board URL already gives us everything required to render a first Gantt:
+    // its id and its project.  Do not make the initial screen depend on Jira's
+    // paginated board catalogue, which can be slow or unavailable to a user who
+    // can nevertheless read the board currently open in their browser.
+    if (context.boardId) {
+      const detectedBoard: JiraBoard = {
+        id: context.boardId,
+        name: `Board ${context.boardId}`,
+        type: "unknown",
+        projectKeys: [selectedProjectKey],
+      };
+      setBoards([detectedBoard]);
+      setSelectedBoardId(detectedBoard.id);
+      setRecentJql([]);
+      setFieldMapping(inferredReportFieldMapping(fields));
+      setDefaultDurations({ ...DEFAULT_DURATION_DAYS });
+      setNonWorkingDays([...DEFAULT_NON_WORKING_DAYS]);
+      setJql(buildDefaultProjectJql(selectedProjectKey));
+      setBoardCatalogState("ready");
+      setValidationErrors([]);
+      setSaveStatus("idle");
+
+      // Restore optional saved preferences when Chrome storage answers, without
+      // holding the first Gantt behind that asynchronous work.
+      void Promise.all([
+        settingsStore.getSetup(context.baseUrl, selectedProjectKey, context.boardId),
+        settingsStore.getRecentJql(context.baseUrl, selectedProjectKey, context.boardId),
+      ]).then(([loadedSetup, storedRecentJql]) => {
+        if (!isCurrent) return;
+        setStoredSetup(loadedSetup);
+        setRecentJql(storedRecentJql);
+      });
+
+      return () => {
+        isCurrent = false;
+        controller.abort();
+      };
+    }
+
     void Promise.all([
       settingsStore.getSetup(context.baseUrl, selectedProjectKey, context.boardId),
       settingsStore.getRecentJql(context.baseUrl, selectedProjectKey, context.boardId),
@@ -414,8 +491,9 @@ export function SetupPanel({
         setDefaultDurations(
           loadedSetup?.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
         );
+        setNonWorkingDays(loadedSetup?.nonWorkingDays ?? [...DEFAULT_NON_WORKING_DAYS]);
         setJql(loadedSetup?.jql ?? buildDefaultProjectJql(selectedProjectKey));
-        setBoardLoadState("ready");
+        setBoardCatalogState("ready");
         setValidationErrors([]);
         setSaveStatus("idle");
         issueAbort.current?.abort();
@@ -426,8 +504,8 @@ export function SetupPanel({
       })
       .catch(() => {
         if (isCurrent) {
-          setBoardLoadState("error");
-          setBoardLoadError("Power View could not load boards for this project.");
+          setBoardCatalogState("error");
+          setBoardCatalogError("Power View could not load boards for this project.");
         }
       });
 
@@ -493,7 +571,6 @@ export function SetupPanel({
           );
         }
         setBoardLoadState("ready");
-        invalidateIssuePreview();
         const hasInitialPlaceholder = statuses.some(
           (status) => status.name === `Status ${status.id}`,
         );
@@ -558,7 +635,7 @@ export function SetupPanel({
       isCurrent = false;
       controller.abort();
     };
-  }, [client, invalidateIssuePreview, selectedBoard, selectedProjectKey, storedSetup]);
+  }, [client, selectedBoard, selectedProjectKey, storedSetup]);
 
   useEffect(
     () => () => {
@@ -620,10 +697,15 @@ export function SetupPanel({
         fieldMapping,
         reporting,
         defaultDurations,
+        nonWorkingDays,
         updatedAt: new Date().toISOString(),
       });
       setRecentJql(
-        await settingsStore.getRecentJql(context.baseUrl, selectedProject.key, selectedBoard.id),
+        await settingsStore.getRecentJql(
+          context.baseUrl,
+          selectedProject.key,
+          selectedBoard.id,
+        ),
       );
       setSaveStatus("saved");
       return true;
@@ -655,8 +737,11 @@ export function SetupPanel({
     [onDiagnosticsChanged, runtime],
   );
 
-  const loadIssues = async (forceRefresh = false) => {
-    if (!(await saveSetup())) {
+  const loadIssues = async (forceRefresh = false, quickStart = false) => {
+    if (!quickStart && !(await saveSetup())) {
+      return;
+    }
+    if (quickStart && (!selectedProject || !selectedBoard || !jql.trim())) {
       return;
     }
 
@@ -669,8 +754,9 @@ export function SetupPanel({
     setIssueLoadError(undefined);
 
     try {
-      const result = await client.searchIssues(
+      const result = await client.searchBoardIssues(
         {
+          boardId: selectedBoard!.id,
           jql,
           fieldMapping,
           maxIssues: MAX_CONFIGURABLE_ISSUES,
@@ -691,15 +777,23 @@ export function SetupPanel({
       setIssueResult(result);
       setIssueLoadedAt(loadedAt);
       setIssueLoadState("ready");
-      const readySchedule: ReadyGanttSchedule = {
-        model: buildGanttScheduleModel(result.values, { defaultDurations }),
+      const readySchedule = createWorkspaceContext({
+        model: buildGanttScheduleModel(result.values, {
+          defaultDurations,
+          nonWorkingDays,
+        }),
+        nonWorkingDays,
         issues: result.values,
         queryKey: scheduleQueryKey,
         jiraBaseUrl: context.baseUrl,
         projectKey: selectedProjectKey,
         projectName: selectedProject?.name ?? selectedProjectKey,
         board: selectedBoard!,
-        reporting: resolveCompletedStatuses(completedStatusIds, statusOptions),
+        reporting: resolveWorkspaceCompletedStatuses(
+          completedStatusIds,
+          statusOptions,
+          result.values,
+        ),
         jql: jql.trim(),
         loadedAt,
         truncated: result.truncated,
@@ -710,9 +804,13 @@ export function SetupPanel({
           fieldMapping,
           refresh: refreshLoadedIssues,
         },
-      };
+      });
       onScheduleReady?.(readySchedule);
-      onSetupComplete?.(readySchedule);
+      if (quickStart) {
+        onQuickStart?.(readySchedule);
+      } else {
+        onSetupComplete?.(readySchedule);
+      }
       reportIssueLoad(result.values.length, "ready");
     } catch (error) {
       if (controller.signal.aborted) {
@@ -737,7 +835,7 @@ export function SetupPanel({
   useEffect(() => {
     if (!autoContinue || hasAutoSubmitted.current) return;
     if (
-      boardLoadState === "ready" &&
+      boardCatalogState === "ready" &&
       selectedBoard &&
       storedSetup?.board?.id === selectedBoard.id &&
       jql.trim().length > 0 &&
@@ -745,8 +843,26 @@ export function SetupPanel({
     ) {
       hasAutoSubmitted.current = true;
       void loadIssuesRef.current();
+    } else if (
+      boardCatalogState === "ready" &&
+      selectedProject &&
+      selectedBoard &&
+      jql.trim().length > 0
+    ) {
+      // A board URL already identifies the workspace.  Load its default query
+      // directly; field/status choices remain available as optional settings.
+      hasAutoSubmitted.current = true;
+      void loadIssuesRef.current(false, true);
     }
-  }, [autoContinue, boardLoadState, selectedBoard, storedSetup, jql, completedStatusIds]);
+  }, [
+    autoContinue,
+    boardCatalogState,
+    selectedProject,
+    selectedBoard,
+    storedSetup,
+    jql,
+    completedStatusIds,
+  ]);
 
   const refreshLoadedIssues = useCallback(async (): Promise<void> => {
     issueAbort.current?.abort();
@@ -757,8 +873,12 @@ export function SetupPanel({
     client.clearIssueCache();
 
     try {
-      const result = await client.searchIssues(
+      if (!selectedBoard) {
+        throw new Error("A board is required to refresh Gantt issues.");
+      }
+      const result = await client.searchBoardIssues(
         {
+          boardId: selectedBoard.id,
           jql,
           fieldMapping,
           maxIssues: MAX_CONFIGURABLE_ISSUES,
@@ -792,20 +912,86 @@ export function SetupPanel({
       reportIssueLoad(0, "error");
       throw error;
     }
-  }, [client, fieldMapping, jql, reportIssueLoad]);
+  }, [client, fieldMapping, jql, reportIssueLoad, selectedBoard]);
+
+  useEffect(() => {
+    if (
+      !settingsStore ||
+      !context.boardId ||
+      boardLoadState !== "ready" ||
+      !selectedProject ||
+      !selectedBoard ||
+      !jql.trim()
+    ) {
+      return;
+    }
+    const boardKey = `${context.baseUrl}:${selectedProject.key}:${selectedBoard.id}`;
+    if (autoPersistedBoards.current.has(boardKey)) return;
+    autoPersistedBoards.current.add(boardKey);
+    let active = true;
+
+    void settingsStore
+      .getSetup(context.baseUrl, selectedProject.key, selectedBoard.id)
+      .then(async (existing) => {
+        if (!active) return;
+        if (existing) {
+          setStoredSetup(existing);
+          return;
+        }
+        const reporting = resolveCompletedStatuses(completedStatusIds, statusOptions);
+        const configuration: SetupConfiguration = {
+          jiraBaseUrl: context.baseUrl,
+          project: selectedProject,
+          board: selectedBoard,
+          jql: jql.trim(),
+          fieldMapping,
+          reporting,
+          defaultDurations,
+          nonWorkingDays,
+          updatedAt: new Date().toISOString(),
+        };
+        await settingsStore.saveSetup(configuration);
+        if (active) setStoredSetup(configuration);
+      })
+      .catch(() => {
+        autoPersistedBoards.current.delete(boardKey);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    boardLoadState,
+    completedStatusIds,
+    context.baseUrl,
+    context.boardId,
+    defaultDurations,
+    fieldMapping,
+    jql,
+    nonWorkingDays,
+    selectedBoard,
+    selectedProject,
+    settingsStore,
+    statusOptions,
+  ]);
 
   useEffect(() => {
     onScheduleReady?.(
       scheduleModel && issueResult && issueLoadedAt && selectedProject && selectedBoard
-        ? {
+        ? createWorkspaceContext({
             model: scheduleModel,
             issues: issueResult.values,
             queryKey: scheduleQueryKey,
+            nonWorkingDays,
             jiraBaseUrl: context.baseUrl,
             projectKey: selectedProjectKey,
             projectName: selectedProject.name,
             board: selectedBoard,
-            reporting: resolveCompletedStatuses(completedStatusIds, statusOptions),
+            reporting: resolveWorkspaceCompletedStatuses(
+              completedStatusIds,
+              statusOptions,
+              issueResult.values,
+            ),
             jql: jql.trim(),
             loadedAt: issueLoadedAt,
             truncated: issueResult.truncated,
@@ -816,7 +1002,7 @@ export function SetupPanel({
               fieldMapping,
               refresh: refreshLoadedIssues,
             },
-          }
+          })
         : undefined,
     );
   }, [
@@ -826,6 +1012,7 @@ export function SetupPanel({
     issueLoadedAt,
     issueResult,
     jql,
+    nonWorkingDays,
     onScheduleReady,
     refreshLoadedIssues,
     scheduleModel,
@@ -844,14 +1031,14 @@ export function SetupPanel({
   // showing the form (with the error) once loadIssues settles on "error".
   const isReturningBoard =
     autoContinue &&
-    boardLoadState === "ready" &&
+    boardCatalogState === "ready" &&
     Boolean(selectedBoard) &&
     storedSetup?.board?.id === selectedBoard?.id;
   const resolving =
     loadState !== "error" &&
-    boardLoadState !== "error" &&
+    boardCatalogState !== "error" &&
     (loadState !== "ready" ||
-      boardLoadState !== "ready" ||
+      boardCatalogState !== "ready" ||
       (isReturningBoard && issueLoadState !== "error"));
 
   // Only hide the form behind the preloader while we're still deciding whether to
@@ -870,6 +1057,9 @@ export function SetupPanel({
       </div>
     );
   }
+
+  const manualSettingsRequired =
+    !context.boardId || boardCatalogState === "error" || issueLoadState === "error";
 
   return (
     <div id="setup">
@@ -893,7 +1083,56 @@ export function SetupPanel({
         </div>
       ) : null}
 
-      {loadState === "ready" ? (
+      {loadState === "ready" &&
+      context.boardId &&
+      !manualSettingsRequired &&
+      !manualSettingsOpen ? (
+        <section className="setup-intro" aria-label="Detected board settings">
+          <h2>Board detected</h2>
+          <p>
+            Power View will use {selectedBoard?.name ?? `Board ${context.boardId}`}
+            {selectedProject ? ` in ${selectedProject.name}` : ""} automatically.
+          </p>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setManualSettingsOpen(true)}
+          >
+            Edit settings manually
+          </button>
+        </section>
+      ) : null}
+
+      {loadState === "ready" && settingsStore && selectedProjectKey && selectedBoardId ? (
+        <BoardConfigurationTransfer
+          store={settingsStore}
+          scope={{
+            jiraBaseUrl: context.baseUrl,
+            projectKey: selectedProjectKey,
+            boardId: selectedBoardId,
+          }}
+          onImported={async () => {
+            const imported = await settingsStore.getSetup(
+              context.baseUrl,
+              selectedProjectKey,
+              selectedBoardId,
+            );
+            if (!imported) return;
+            setStoredSetup(imported);
+            setJql(imported.jql);
+            setFieldMapping(imported.fieldMapping);
+            setDefaultDurations(
+              imported.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
+            );
+            setNonWorkingDays(imported.nonWorkingDays ?? [...DEFAULT_NON_WORKING_DAYS]);
+            setCompletedStatusIds(imported.reporting?.completedStatusIds ?? []);
+            setSaveStatus("saved");
+            invalidateIssuePreview();
+          }}
+        />
+      ) : null}
+
+      {loadState === "ready" && (manualSettingsRequired || manualSettingsOpen) ? (
         <form
           className="setup-form"
           onSubmit={(event) => {
@@ -939,7 +1178,7 @@ export function SetupPanel({
               <select
                 aria-label="Jira board"
                 value={selectedBoardId}
-                disabled={!selectedProject || boardLoadState === "loading"}
+                disabled={!selectedProject || boardCatalogState === "loading"}
                 onChange={(event) => {
                   setSelectedBoardId(event.target.value);
                   setSaveStatus("idle");
@@ -982,9 +1221,9 @@ export function SetupPanel({
             </div>
           </div>
 
-          {boardLoadError ? (
+          {boardCatalogError || boardLoadError ? (
             <div className="setup-errors" role="alert">
-              {boardLoadError}
+              {boardCatalogError ?? boardLoadError}
             </div>
           ) : null}
 
@@ -1070,8 +1309,8 @@ export function SetupPanel({
               <fieldset>
                 <legend>Date field mapping</legend>
                 <p className="field-help">
-                  Candidates are ranked, but Power View never selects an uncertain custom
-                  field automatically.
+                  Select the Jira fields used for planning. Jira verifies permission for
+                  the specific task when you drag or edit its dates.
                 </p>
                 <div className="candidate-row">
                   <span>Start suggestions</span>
@@ -1127,6 +1366,40 @@ export function SetupPanel({
                   </select>
                 </label>
               </fieldset>
+            </div>
+          </details>
+
+          <details className="optional-fields non-working-days-settings">
+            <summary>Non-working days</summary>
+            <div className="accordion-body">
+              <p className="field-help">
+                Selected days are skipped when inferring dates and included in
+                calendar-day estimates.
+              </p>
+              <div className="non-working-days-grid">
+                {(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const).map(
+                  (label, day) => (
+                    <label key={label}>
+                      <input
+                        type="checkbox"
+                        aria-label={label}
+                        checked={nonWorkingDays.includes(day)}
+                        disabled={
+                          !nonWorkingDays.includes(day) && nonWorkingDays.length === 6
+                        }
+                        onChange={(event) =>
+                          setNonWorkingDays((current) =>
+                            event.target.checked
+                              ? [...new Set([...current, day])].sort((a, b) => a - b)
+                              : current.filter((value) => value !== day),
+                          )
+                        }
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ),
+                )}
+              </div>
             </div>
           </details>
 
@@ -1190,10 +1463,10 @@ export function SetupPanel({
           </details>
 
           <details className="optional-fields duration-settings">
-            <summary>Default durations for inferred end dates</summary>
+            <summary>Default estimates for inferred end dates</summary>
             <div className="accordion-body">
               <p className="field-help">
-                Values are calendar days and are saved with this project setup.
+                Values are working days and are saved with this project setup.
               </p>
               <div className="duration-grid">
                 {(

@@ -8,6 +8,8 @@ export {
   type JiraIssueEditField,
   type JiraIssueEditMetadata,
   type JiraIssueLinkType,
+  type JiraIssueTransition,
+  type JiraPriority,
   type JiraStatus,
   type UpdateIssueDatesRequest,
 } from "./JiraClient";

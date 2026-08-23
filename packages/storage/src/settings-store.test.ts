@@ -73,6 +73,30 @@ describe("SettingsStore", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("round-trips nonWorkingDays and leaves it undefined when absent", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    await store.saveSetup({
+      ...configuration('project = "POWER"'),
+      nonWorkingDays: [0, 6],
+    });
+    await expect(
+      store.getSetup("https://example.atlassian.net", "POWER", "7"),
+    ).resolves.toMatchObject({ nonWorkingDays: [0, 6] });
+
+    const store2 = new SettingsStore(new MemoryStorage());
+    await store2.saveSetup(configuration('project = "POWER"'));
+    const loaded = await store2.getSetup("https://example.atlassian.net", "POWER", "7");
+    expect(loaded?.nonWorkingDays).toBeUndefined();
+  });
+
+  it("rejects a setup with no configured working days", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    await expect(store.saveSetup({
+      ...configuration('project = "POWER"'),
+      nonWorkingDays: [0, 1, 2, 3, 4, 5, 6],
+    })).rejects.toThrow();
+  });
+
   it("deduplicates and orders recent JQL", async () => {
     const store = new SettingsStore(new MemoryStorage());
     await store.saveSetup(configuration('project = "POWER"'));
@@ -144,7 +168,7 @@ describe("SettingsStore", () => {
 
     await expect(
       store.getGanttViewPreferences("https://example.atlassian.net/", "POWER"),
-    ).resolves.toEqual({ zoom: "month", sortBy: "default" });
+    ).resolves.toEqual({ zoom: "month", sortBy: "default", sortDirection: "asc" });
     await expect(
       store.getGanttViewPreferences("https://example.atlassian.net", "OTHER"),
     ).resolves.toBeUndefined();
@@ -157,14 +181,14 @@ describe("SettingsStore", () => {
       zoom: "week", sortBy: "status",
     });
     await expect(store.getGanttViewPreferences("https://example.atlassian.net", "POWER"))
-      .resolves.toEqual({ zoom: "week", sortBy: "status" });
+      .resolves.toEqual({ zoom: "week", sortBy: "status", sortDirection: "asc" });
     await storage.set({ "settings:v2": {
       schemaVersion: 2, setups: {}, recentJql: {}, ganttViewPreferences: {
         "https%3A%2F%2Fexample.atlassian.net:OLD": { zoom: "day" },
       },
     }});
     await expect(store.getGanttViewPreferences("https://example.atlassian.net", "OLD"))
-      .resolves.toEqual({ zoom: "day", sortBy: "default" });
+      .resolves.toEqual({ zoom: "day", sortBy: "default", sortDirection: "asc" });
   });
 
   it("migrates legacy single-value Gantt filters without losing settings", async () => {

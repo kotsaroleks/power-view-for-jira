@@ -21,10 +21,10 @@ import { SettingsStore } from "@power-view/storage";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
-import { GanttView } from "./gantt/GanttView";
-import { BoardHealthReportView } from "./reports/BoardHealthReport";
-import { SetupPanel, type ReadyGanttSchedule } from "./SetupPanel";
-import { ReportsView } from "./reporting/ReportsView";
+import { GanttV2Service } from "./gantt-v2/GanttV2Service";
+import { ReportsService } from "./reports/ReportsService";
+import { WorkspaceSettingsService } from "./workspace/WorkspaceSettingsService";
+import type { WorkspaceContext } from "./workspace/WorkspaceContext";
 
 interface ClipboardWriter {
   writeText(value: string): Promise<void>;
@@ -78,7 +78,7 @@ function AppContent({
   const [diagnostics, setDiagnostics] = useState<DiagnosticsSnapshot>();
   const [diagnosticsError, setDiagnosticsError] = useState<string>();
   const [copyStatus, setCopyStatus] = useState<string>();
-  const [readySchedule, setReadySchedule] = useState<ReadyGanttSchedule>();
+  const [readySchedule, setReadySchedule] = useState<WorkspaceContext>();
   const [jiraClient, setJiraClient] = useState<JiraClient>();
   const [page, setPage] = useState<AppPage>("settings");
   const connectionAbort = useRef<AbortController | undefined>(undefined);
@@ -375,14 +375,18 @@ function AppContent({
                       </div>
                     </div>
                   ) : authenticated ? (
-                    <SetupPanel
+                    <WorkspaceSettingsService
                       context={context}
                       runtime={runtime}
                       {...(settingsStore ? { settingsStore } : {})}
                       autoContinue={!hasNavigatedRef.current}
                       onDiagnosticsChanged={() => void loadDiagnostics()}
-                      onScheduleReady={setReadySchedule}
+                      onWorkspaceReady={setReadySchedule}
                       onSetupComplete={(schedule) => {
+                        setReadySchedule(schedule);
+                        navigate("chooser");
+                      }}
+                      onQuickStart={(schedule) => {
                         setReadySchedule(schedule);
                         navigate("chooser");
                       }}
@@ -471,48 +475,10 @@ function AppContent({
                 <p>Generate decision-ready team updates from live Jira data.</p>
               </div>
             </div>
-            <BoardHealthReportView
+            <ReportsService
+              workspace={readySchedule}
+              pageContext={context}
               client={jiraClient!}
-              boardId={readySchedule.board.id}
-              issues={readySchedule.issues}
-              model={readySchedule.model}
-              projectKey={readySchedule.projectKey}
-              projectName={readySchedule.projectName}
-              jql={readySchedule.jql}
-              loadedAt={readySchedule.loadedAt}
-              truncated={readySchedule.truncated}
-              sprintDataAvailable={readySchedule.sprintDataAvailable}
-              storyPointsDataAvailable={readySchedule.storyPointsDataAvailable}
-              completedStatusIds={readySchedule.reporting.completedStatusIds}
-              completedStatusNames={readySchedule.reporting.completedStatusNames}
-              preferredBoardId={readySchedule.board.id}
-              {...(context.boardId === readySchedule.board.id && context.sprintId
-                ? { preferredSprintId: context.sprintId }
-                : {})}
-            />
-            <ReportsView
-              client={jiraClient!}
-              baseUrl={context.baseUrl}
-              deploymentType={context.deploymentType}
-              board={readySchedule.board}
-              jql={readySchedule.jql}
-              statusMapping={{
-                schemaVersion: 1,
-                jiraBaseUrl: context.baseUrl,
-                boardId: readySchedule.board.id,
-                completedStatusIds: readySchedule.reporting.completedStatusIds,
-                completedStatusNames: readySchedule.reporting.completedStatusNames,
-                ...(readySchedule.editing.fieldMapping.storyPointsFieldId
-                  ? {
-                      storyPointsFieldId:
-                        readySchedule.editing.fieldMapping.storyPointsFieldId,
-                    }
-                  : {}),
-                ...(readySchedule.editing.fieldMapping.sprintFieldId
-                  ? { sprintFieldId: readySchedule.editing.fieldMapping.sprintFieldId }
-                  : {}),
-                updatedAt: readySchedule.loadedAt,
-              }}
             />
           </section>
         ) : null}
@@ -534,19 +500,9 @@ function AppContent({
               </div>
             </div>
             {readySchedule ? (
-              <GanttView
-                key={readySchedule.queryKey}
-                model={readySchedule.model}
-                editing={readySchedule.editing}
-                {...(settingsStore
-                  ? {
-                      filterPersistence: {
-                        store: settingsStore,
-                        jiraBaseUrl: readySchedule.jiraBaseUrl,
-                        workspaceKey: `${readySchedule.projectKey}:${readySchedule.board.id}`,
-                      },
-                    }
-                  : {})}
+              <GanttV2Service
+                workspace={readySchedule}
+                {...(settingsStore ? { settingsStore } : {})}
               />
             ) : (
               <div className="empty-tool-state">
