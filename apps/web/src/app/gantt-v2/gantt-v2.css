@@ -610,13 +610,32 @@
   fill: #65728a;
 }
 
+.gantt-v2-dependency-link {
+  outline: none;
+}
+
+.gantt-v2-dependency-hit-area {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14px;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
 .gantt-v2-dependency-path {
   fill: none;
   stroke: #65728a;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.5;
+  pointer-events: none;
   vector-effect: non-scaling-stroke;
+}
+
+.gantt-v2-dependency-link:hover .gantt-v2-dependency-path,
+.gantt-v2-dependency-link:focus-visible .gantt-v2-dependency-path {
+  stroke: #d93636;
+  stroke-width: 2.5;
 }
 
 .gantt-v2-dependency-path.is-external-conflict {
@@ -643,6 +662,45 @@
 .gantt-v2-bar.is-external-conflict {
   outline: 3px solid #d93636;
   outline-offset: 2px;
+}
+
+.gantt-v2-bar.is-drag-preview {
+  z-index: 8;
+  outline: 2px solid #0c66e4;
+  outline-offset: 2px;
+  box-shadow: 0 5px 14px rgb(31 42 68 / 30%);
+}
+
+.gantt-v2-bar.is-drag-preview.is-invalid-preview {
+  outline-color: #d93636;
+}
+
+.gantt-v2-drag-preview-label {
+  position: absolute;
+  z-index: 10;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #172b4d;
+  box-shadow: 0 4px 12px rgb(31 42 68 / 24%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.gantt-v2-drag-preview-label::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  border: 5px solid transparent;
+  border-top-color: #172b4d;
+  content: "";
+  transform: translateX(-50%);
 }
 
 .gantt-v2-move {
@@ -703,26 +761,48 @@
 
 .gantt-v2-dependency-handle {
   top: 50%;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  cursor: crosshair;
+  touch-action: none;
+  transform: translateY(-50%);
+}
+
+.gantt-v2-dependency-handle::after {
+  position: absolute;
+  top: 50%;
   width: 10px;
   height: 10px;
   border: 2px solid #fff;
   border-radius: 50%;
   background: #2d5ea8;
-  opacity: 0;
-  cursor: crosshair;
+  content: "";
   transform: translateY(-50%);
 }
 
 .gantt-v2-dependency-handle.is-start {
-  left: -12px;
+  left: -24px;
+}
+
+.gantt-v2-dependency-handle.is-start::after {
+  right: 0;
 }
 
 .gantt-v2-dependency-handle.is-end {
-  right: -12px;
+  right: -24px;
+}
+
+.gantt-v2-dependency-handle.is-end::after {
+  left: 0;
 }
 
 .gantt-v2-bar:hover .gantt-v2-dependency-handle,
 .gantt-v2-dependency-handle:focus-visible {
+  opacity: 1;
+}
+
+.gantt-v2.is-linking .gantt-v2-dependency-handle {
   opacity: 1;
 }
 

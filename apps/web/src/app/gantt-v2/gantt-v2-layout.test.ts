@@ -12,6 +12,15 @@ function declarations(selector: string): string {
   return match[1];
 }
 
+function exactDeclarations(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const declarations = css.match(
+    new RegExp(`(?:^|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`),
+  )?.[1];
+  if (!declarations) throw new Error(`Missing CSS rule for ${selector}.`);
+  return declarations;
+}
+
 beforeAll(async () => {
   css = await readFile(resolve(import.meta.dirname, "gantt-v2.css"), "utf8");
 });
@@ -26,5 +35,18 @@ describe("Gantt v2 page layout", () => {
     expect(timelineScroll).toMatch(/overflow-x\s*:\s*auto/);
     expect(timelineScroll).not.toMatch(/overflow-y\s*:\s*auto/);
     expect(timelineScroll).not.toMatch(/overflow\s*:\s*auto/);
+  });
+
+  it("gives dependency connectors a usable hit target without enlarging the dot", () => {
+    const handle = exactDeclarations(".gantt-v2-dependency-handle");
+    expect(handle).toMatch(/width\s*:\s*24px/);
+    expect(handle).toMatch(/height\s*:\s*24px/);
+
+    const dot = declarations(".gantt-v2-dependency-handle::after");
+    expect(dot).toMatch(/width\s*:\s*10px/);
+    expect(dot).toMatch(/height\s*:\s*10px/);
+    expect(declarations(".gantt-v2.is-linking .gantt-v2-dependency-handle")).toMatch(
+      /opacity\s*:\s*1/,
+    );
   });
 });

@@ -209,7 +209,10 @@ package/module boundaries, typed public contracts and contract tests.
    Today navigation, clearly visible task bars and dependency lines.
 9. A user can move a scheduled task by dragging the whole bar, resize it by dragging
    either edge, and create an unscheduled task schedule with two timeline clicks. All
-   interactions operate on whole days and require no secondary confirmation dialog.
+   interactions operate on whole days and require no secondary confirmation dialog. During
+   move, resize-start and resize-end gestures, the task bar follows the snapped target
+   position and shows the exact prospective Start and Due dates before pointer-up. This
+   preview does not mutate Jira; persistence starts only when the gesture completes.
 10. All replacement behaviours are introduced test-first. The old Gantt remains available
     as a fallback until the new module's acceptance tests pass and the app entry point is
     deliberately switched.
@@ -232,7 +235,9 @@ package/module boundaries, typed public contracts and contract tests.
    in Gantt cascades through every downstream dependent task in dependency order.
 2. Users create dependencies by dragging a connector from an edge of one task to an edge
    of another. The supported relationships are Finish-to-Start (FS), Finish-to-Finish
-   (FF), Start-to-Start (SS), and Start-to-Finish (SF).
+   (FF), Start-to-Start (SS), and Start-to-Finish (SF). Each compact connector has a
+   minimum `24 × 24 px` pointer target, and all valid target connectors remain visible
+   while a dependency gesture is active.
 3. Dependency definitions may be stored by the application and are not required to be
    represented as Jira issue links. They are scoped to the Jira instance and board.
 4. When a task is changed through Gantt, completing the gesture authorizes both the direct
@@ -265,6 +270,10 @@ package/module boundaries, typed public contracts and contract tests.
     through every downstream level.
 12. Creating a dependency that would introduce a directed cycle is rejected before storage
     or any Jira mutation. A duplicate dependency is ignored.
+13. A dependency is removed from the board configuration by double-clicking its rendered
+    arrow, without a confirmation dialog or Jira mutation. The interactive hit area is
+    wider than the visible line, hover/focus communicates the destructive action, one
+    click does nothing, and a focused arrow also supports `Delete` or `Backspace`.
 
 ## Portable board configuration
 

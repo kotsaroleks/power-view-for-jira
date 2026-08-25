@@ -537,9 +537,24 @@ describe("GanttV2", () => {
 
   it("moves a whole task and saves immediately without a confirmation dialog", async () => {
     const edit = editing();
-    render(<GanttV2 model={model([task()])} today="2026-08-20" editing={edit.context} />);
+    const { container } = render(
+      <GanttV2 model={model([task()])} today="2026-08-20" editing={edit.context} />,
+    );
 
-    act(() => drag(screen.getByRole("button", { name: "Move POWER-1" }), 100, 148));
+    const moveButton = screen.getByRole("button", { name: "Move POWER-1" });
+    const bar = container.querySelector('.gantt-v2-bar[data-task-id="1"]');
+    const originalLeft = (bar as HTMLElement).style.left;
+    fireEvent.pointerDown(moveButton, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 148, pointerId: 1 });
+
+    expect(bar).toHaveClass("is-drag-preview");
+    expect((bar as HTMLElement).style.left).not.toBe(originalLeft);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "POWER-1 · 2026-08-19 → 2026-08-23",
+    );
+    expect(edit.updateIssueDates).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(window, { clientX: 148, pointerId: 1 });
 
     await waitFor(() =>
       expect(edit.updateIssueDates).toHaveBeenCalledWith("POWER-1", {
@@ -556,9 +571,14 @@ describe("GanttV2", () => {
     const edit = editing();
     render(<GanttV2 model={model([task()])} today="2026-08-20" editing={edit.context} />);
 
-    act(() =>
-      drag(screen.getByRole("button", { name: "Resize end of POWER-1" }), 100, 124),
+    const resizeEnd = screen.getByRole("button", { name: "Resize end of POWER-1" });
+    fireEvent.pointerDown(resizeEnd, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 124, pointerId: 1 });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "POWER-1 · 2026-08-17 → 2026-08-22",
     );
+    expect(edit.updateIssueDates).not.toHaveBeenCalled();
+    fireEvent.pointerUp(window, { clientX: 124, pointerId: 1 });
 
     await waitFor(() =>
       expect(edit.updateIssueDates).toHaveBeenCalledWith("POWER-1", {
@@ -567,6 +587,29 @@ describe("GanttV2", () => {
       }),
     );
     expect(screen.queryByText(/Save due/i)).not.toBeInTheDocument();
+  });
+
+  it("previews and saves a changed start edge independently", async () => {
+    const edit = editing();
+    render(<GanttV2 model={model([task()])} today="2026-08-20" editing={edit.context} />);
+
+    const resizeStart = screen.getByRole("button", {
+      name: "Resize start of POWER-1",
+    });
+    fireEvent.pointerDown(resizeStart, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerMove(window, { clientX: 124, pointerId: 1 });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "POWER-1 · 2026-08-18 → 2026-08-21",
+    );
+    expect(edit.updateIssueDates).not.toHaveBeenCalled();
+    fireEvent.pointerUp(window, { clientX: 124, pointerId: 1 });
+
+    await waitFor(() =>
+      expect(edit.updateIssueDates).toHaveBeenCalledWith("POWER-1", {
+        fieldMapping: {},
+        startDate: "2026-08-18",
+      }),
+    );
   });
 
   it("writes a moved task and every downstream cascade in one gesture", async () => {
@@ -692,6 +735,9 @@ describe("GanttV2", () => {
       screen.getByRole("button", { name: "Dependency from end of POWER-1" }),
       { pointerId: 2 },
     );
+    expect(screen.getByRole("region", { name: "Gantt planning workspace" })).toHaveClass(
+      "is-linking",
+    );
     fireEvent.pointerUp(
       screen.getByRole("button", { name: "Dependency to start of POWER-2" }),
       { pointerId: 2 },
@@ -732,8 +778,59 @@ describe("GanttV2", () => {
     );
 
     expect(
-      screen.getByRole("img", { name: "FS dependency POWER-1 to POWER-2" }),
+      screen.getByRole("button", {
+        name: "FS dependency POWER-1 to POWER-2; double-click to delete",
+      }),
     ).toBeInTheDocument();
+  });
+
+  it("deletes a dependency only on double-click or a deletion key", async () => {
+    const dependency = {
+      id: "POWER-1:POWER-2:FS",
+      predecessorIssueKey: "POWER-1",
+      successorIssueKey: "POWER-2",
+      type: "FS" as const,
+      lagWorkingDays: 0,
+    };
+    const onBoardStateChange = vi.fn().mockResolvedValue(undefined);
+    const { rerender } = render(
+      <GanttV2
+        model={model([task(), secondTask])}
+        today="2026-08-20"
+        boardState={{ dependencies: [dependency], reconciledDates: {} }}
+        onBoardStateChange={onBoardStateChange}
+      />,
+    );
+
+    const arrow = screen.getByRole("button", {
+      name: "FS dependency POWER-1 to POWER-2; double-click to delete",
+    });
+    fireEvent.click(arrow);
+    expect(onBoardStateChange).not.toHaveBeenCalled();
+    fireEvent.doubleClick(arrow);
+    await waitFor(() =>
+      expect(onBoardStateChange).toHaveBeenCalledWith({
+        dependencies: [],
+        reconciledDates: {},
+      }),
+    );
+
+    onBoardStateChange.mockClear();
+    rerender(
+      <GanttV2
+        model={model([task(), secondTask])}
+        today="2026-08-20"
+        boardState={{ dependencies: [dependency], reconciledDates: {} }}
+        onBoardStateChange={onBoardStateChange}
+      />,
+    );
+    fireEvent.keyDown(
+      screen.getByRole("button", {
+        name: "FS dependency POWER-1 to POWER-2; double-click to delete",
+      }),
+      { key: "Delete" },
+    );
+    await waitFor(() => expect(onBoardStateChange).toHaveBeenCalledOnce());
   });
 
   it("highlights an external Jira change and repairs only downstream tasks on demand", async () => {

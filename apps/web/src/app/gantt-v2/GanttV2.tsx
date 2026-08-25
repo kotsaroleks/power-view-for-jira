@@ -60,6 +60,16 @@ interface ActiveDrag {
   currentX: number;
 }
 
+interface DragPreview {
+  taskId: string;
+  gesture: GanttDragGesture;
+  deltaDays: number;
+  startDate: string;
+  dueDate: string;
+  allowed: boolean;
+  reason?: string;
+}
+
 interface DependencyDraft {
   issueKey: string;
   edge: TaskEdge;
@@ -94,6 +104,31 @@ function daysBetween(start: string, end: string): number {
     (Date.parse(`${end}T00:00:00.000Z`) - Date.parse(`${start}T00:00:00.000Z`)) /
       86_400_000,
   );
+}
+
+function targetForDrag(
+  task: GanttTask,
+  gesture: GanttDragGesture,
+  deltaDays: number,
+): DragPreview {
+  const result = applyGanttDrag(task, gesture, deltaDays);
+  return {
+    taskId: task.id,
+    gesture,
+    deltaDays,
+    startDate:
+      result.startDate ??
+      (gesture === "move" || gesture === "resize-start"
+        ? addDays(task.start, deltaDays)
+        : task.start),
+    dueDate:
+      result.dueDate ??
+      (gesture === "move" || gesture === "resize-end"
+        ? addDays(task.end, deltaDays)
+        : task.end),
+    allowed: result.allowed,
+    ...(result.reason ? { reason: result.reason } : {}),
+  };
 }
 
 function dateRange(start: string, end: string): string[] {
@@ -254,6 +289,7 @@ export function GanttV2({
     taskId: string;
     date: string;
   }>();
+  const [dragPreview, setDragPreview] = useState<DragPreview>();
   const [dependencyDraft, setDependencyDraft] = useState<DependencyDraft>();
   const [resolvedExternalConflicts, setResolvedExternalConflicts] = useState<Set<string>>(
     new Set(),
@@ -574,7 +610,21 @@ export function GanttV2({
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
-      if (dragRef.current) dragRef.current.currentX = event.clientX;
+      if (dragRef.current) {
+        const drag = dragRef.current;
+        drag.currentX = event.clientX;
+        const task = effectiveTasks.find((candidate) => candidate.id === drag.taskId);
+        if (task) {
+          const deltaDays = Math.round((event.clientX - drag.startX) / dayWidth);
+          setDragPreview((current) =>
+            current?.taskId === drag.taskId &&
+            current.gesture === drag.gesture &&
+            current.deltaDays === deltaDays
+              ? current
+              : targetForDrag(task, drag.gesture, deltaDays),
+          );
+        }
+      }
       if (dividerRef.current) {
         const width =
           dividerRef.current.startWidth + event.clientX - dividerRef.current.startX;
@@ -585,6 +635,7 @@ export function GanttV2({
       const drag = dragRef.current;
       dragRef.current = undefined;
       dividerRef.current = undefined;
+      setDragPreview(undefined);
       if (!drag) return;
       const task = effectiveTasks.find((candidate) => candidate.id === drag.taskId);
       if (!task) return;
@@ -608,11 +659,18 @@ export function GanttV2({
         optimistic,
       );
     };
+    const cancel = () => {
+      dragRef.current = undefined;
+      dividerRef.current = undefined;
+      setDragPreview(undefined);
+    };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
     };
   }, [dayWidth, effectiveTasks, saveSchedule]);
 
@@ -630,6 +688,8 @@ export function GanttV2({
       startX: event.clientX,
       currentX: event.clientX,
     };
+    const task = effectiveTasks.find((candidate) => candidate.id === taskId);
+    if (task) setDragPreview(targetForDrag(task, gesture, 0));
   };
 
   const chooseScheduleDate = (task: GanttTask, date: string) => {
@@ -708,6 +768,15 @@ export function GanttV2({
             }
           : {}),
       },
+    });
+  };
+
+  const removeDependency = (dependencyId: string) => {
+    void onBoardStateChange?.({
+      ...boardState,
+      dependencies: boardState.dependencies.filter(
+        (dependency) => dependency.id !== dependencyId,
+      ),
     });
   };
 
@@ -936,7 +1005,10 @@ export function GanttV2({
   };
 
   return (
-    <section className="gantt-v2" aria-label="Gantt planning workspace">
+    <section
+      className={`gantt-v2${dependencyDraft ? " is-linking" : ""}${dragPreview ? " is-dragging" : ""}`}
+      aria-label="Gantt planning workspace"
+    >
       <header className="gantt-v2-toolbar">
         <label className="gantt-v2-search">
           <span className="sr-only">Search tasks</span>
@@ -1349,9 +1421,25 @@ export function GanttV2({
               {dependencyArrows.map((dependency) => (
                 <g
                   key={dependency.id}
-                  role="img"
-                  aria-label={`${dependency.type} dependency ${dependency.predecessorIssueKey} to ${dependency.successorIssueKey}`}
+                  className="gantt-v2-dependency-link"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${dependency.type} dependency ${dependency.predecessorIssueKey} to ${dependency.successorIssueKey}; double-click to delete`}
+                  onDoubleClick={(event) => {
+                    event.stopPropagation();
+                    removeDependency(dependency.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Delete" && event.key !== "Backspace") return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    removeDependency(dependency.id);
+                  }}
                 >
+                  <title>
+                    {`${dependency.type}: ${dependency.predecessorIssueKey} → ${dependency.successorIssueKey}. Double-click to delete.`}
+                  </title>
+                  <path className="gantt-v2-dependency-hit-area" d={dependency.path} />
                   <path
                     className={`gantt-v2-dependency-path${externalConflictKeys.has(dependency.predecessorIssueKey) ? " is-external-conflict" : ""}`}
                     d={dependency.path}
@@ -1362,8 +1450,15 @@ export function GanttV2({
             </svg>
             {filteredTasks.map((task) => {
               const unscheduled = task.scheduleState === "unscheduled";
-              const left = daysBetween(rangeStart, task.start) * dayWidth;
-              const width = (daysBetween(task.start, task.end) + 1) * dayWidth;
+              const activePreview =
+                dragPreview?.taskId === task.id ? dragPreview : undefined;
+              const previewIsAllowed = activePreview?.allowed !== false;
+              const displayedStart =
+                activePreview && previewIsAllowed ? activePreview.startDate : task.start;
+              const displayedEnd =
+                activePreview && previewIsAllowed ? activePreview.dueDate : task.end;
+              const left = daysBetween(rangeStart, displayedStart) * dayWidth;
+              const width = (daysBetween(displayedStart, displayedEnd) + 1) * dayWidth;
               return (
                 <div
                   className={`gantt-v2-timeline-row${task.parentId ? "" : " is-root"}`}
@@ -1424,10 +1519,20 @@ export function GanttV2({
                     </div>
                   ) : (
                     <div
-                      className={`gantt-v2-bar${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
+                      className={`gantt-v2-bar${activePreview ? " is-drag-preview" : ""}${activePreview && !activePreview.allowed ? " is-invalid-preview" : ""}${externalConflictKeys.has(task.issueKey) ? " is-external-conflict" : ""}`}
                       style={{ left, width, background: taskColor(task) }}
                       data-task-id={task.id}
                     >
+                      {activePreview ? (
+                        <span
+                          className="gantt-v2-drag-preview-label"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          {task.issueKey} · {activePreview.startDate} →{" "}
+                          {activePreview.dueDate}
+                        </span>
+                      ) : null}
                       <button
                         type="button"
                         className="gantt-v2-resize gantt-v2-resize-start"
