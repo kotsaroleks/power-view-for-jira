@@ -14,60 +14,70 @@ export type GanttFilterLogic = "and" | "or";
 export type GanttSortOption =
   "default" | "startDate" | "endDate" | "name" | "status" | "assignee" | "issueKey";
 export type GanttSortDirection = "asc" | "desc";
-const STATUS_CATEGORY_ORDER: Record<JiraStatusCategory, number> = { unknown: 0, "to-do": 1, "in-progress": 2, done: 3 };
+const STATUS_CATEGORY_ORDER: Record<JiraStatusCategory, number> = {
+  unknown: 0,
+  "to-do": 1,
+  "in-progress": 2,
+  done: 3,
+};
 
-export function sortGanttTasks(tasks: GanttTask[], sortBy: GanttSortOption, direction: GanttSortDirection = "asc"): GanttTask[] {
+export function sortGanttTasks(
+  tasks: GanttTask[],
+  sortBy: GanttSortOption,
+  direction: GanttSortDirection = "asc",
+): GanttTask[] {
   if (sortBy === "default") return tasks;
 
   const order = new Map(tasks.map((task, index) => [task.id, index]));
   const children = new Map<string | undefined, GanttTask[]>();
   for (const task of tasks) {
     const key = task.parentId && order.has(task.parentId) ? task.parentId : undefined;
-    children.set(key, [...(children.get(key) ?? []), task]);
+    const siblings = children.get(key);
+    if (siblings) siblings.push(task);
+    else children.set(key, [task]);
   }
   const value = (task: GanttTask): string => {
     switch (sortBy) {
-      case "startDate": return task.start;
-      case "endDate": return task.end;
-      case "name": return task.name;
-      case "status": return task.statusName;
-      case "assignee": return task.assigneeName ?? "";
-      case "issueKey": return task.issueKey;
+      case "startDate":
+        return task.start;
+      case "endDate":
+        return task.end;
+      case "name":
+        return task.name;
+      case "status":
+        return task.statusName;
+      case "assignee":
+        return task.assigneeName ?? "";
+      case "issueKey":
+        return task.issueKey;
     }
   };
+  // Construct locale options once per sort, rather than for every comparison.
+  const collator = new Intl.Collator(undefined, {
+    sensitivity:
+      sortBy === "status" || sortBy === "name" || sortBy === "assignee"
+        ? "base"
+        : "variant",
+  });
+  const multiplier = direction === "desc" ? -1 : 1;
   const compare = (left: GanttTask, right: GanttTask): number => {
     if (sortBy === "status") {
-      const catOrder = STATUS_CATEGORY_ORDER[left.statusCategory] - STATUS_CATEGORY_ORDER[right.statusCategory];
-      if (catOrder !== 0) return direction === "desc" ? -catOrder : catOrder;
-      const leftEmpty = !left.statusName.trim();
-      const rightEmpty = !right.statusName.trim();
-      if (leftEmpty && rightEmpty) {
-        const tiebreaker = (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
-        return direction === "desc" ? -tiebreaker : tiebreaker;
-      }
-      if (leftEmpty) return direction === "desc" ? -1 : 1;
-      if (rightEmpty) return direction === "desc" ? 1 : -1;
-      const nameOrder = left.statusName.localeCompare(right.statusName, undefined, { sensitivity: "base" });
-      if (nameOrder !== 0) return direction === "desc" ? -nameOrder : nameOrder;
-      return direction === "desc"
-        ? (order.get(right.id) ?? 0) - (order.get(left.id) ?? 0)
-        : (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
+      const categoryOrder =
+        STATUS_CATEGORY_ORDER[left.statusCategory] -
+        STATUS_CATEGORY_ORDER[right.statusCategory];
+      if (categoryOrder !== 0) return multiplier * categoryOrder;
     }
 
-    const leftValue = value(left).trim();
-    const rightValue = value(right).trim();
-    if (!leftValue && !rightValue) {
-      const tiebreaker = (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
-      return direction === "desc" ? -tiebreaker : tiebreaker;
-    }
-    if (!leftValue) return direction === "desc" ? -1 : 1;
-    if (!rightValue) return direction === "desc" ? 1 : -1;
-    const result = leftValue.localeCompare(rightValue, undefined, {
-      sensitivity: sortBy === "name" || sortBy === "assignee" ? "base" : "variant",
-    });
-    if (result !== 0) return direction === "desc" ? -result : result;
-    const tiebreaker = (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0);
-    return direction === "desc" ? -tiebreaker : tiebreaker;
+    // Status names retain their original whitespace in locale comparisons.
+    const leftValue = sortBy === "status" ? left.statusName : value(left).trim();
+    const rightValue = sortBy === "status" ? right.statusName : value(right).trim();
+    const leftEmpty = !leftValue.trim();
+    const rightEmpty = !rightValue.trim();
+    if (leftEmpty !== rightEmpty) return multiplier * (leftEmpty ? 1 : -1);
+    const compared = leftEmpty ? 0 : collator.compare(leftValue, rightValue);
+    return (
+      multiplier * (compared || (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0))
+    );
   };
   for (const group of children.values()) group.sort(compare);
 
@@ -283,25 +293,21 @@ export function filterGanttTasks(
   const compiledFilters = compileFilters(filters);
   const taskById = new Map(tasks.map((task) => [task.id, task]));
   const childrenByParent = new Map<string, string[]>();
-  tasks.forEach((task) => {
-    if (task.parentId) {
-      childrenByParent.set(task.parentId, [
-        ...(childrenByParent.get(task.parentId) ?? []),
-        task.id,
-      ]);
+  const directMatchIds = new Set<string>();
+  for (const task of tasks) {
+    if (filters.includeDescendants && task.parentId) {
+      const children = childrenByParent.get(task.parentId);
+      if (children) children.push(task.id);
+      else childrenByParent.set(task.parentId, [task.id]);
     }
-  });
-
-  const directMatchIds = new Set(
-    tasks
-      .filter((task) => matchesFilters(task, compiledFilters, today))
-      .map((task) => task.id),
-  );
+    if (matchesFilters(task, compiledFilters, today)) directMatchIds.add(task.id);
+  }
   const includedIds = new Set(directMatchIds);
   const contextAncestorIds = new Set<string>();
 
+  // Shared ancestors only need to be followed once, including cyclic links.
+  const visited = new Set<string>();
   for (const matchId of directMatchIds) {
-    const visited = new Set<string>();
     let parentId = taskById.get(matchId)?.parentId;
     while (parentId && !visited.has(parentId)) {
       visited.add(parentId);
@@ -316,8 +322,8 @@ export function filterGanttTasks(
   if (filters.includeDescendants) {
     const queue = [...directMatchIds];
     const expandedMatches = new Set<string>();
-    while (queue.length > 0) {
-      const parentId = queue.shift();
+    for (let cursor = 0; cursor < queue.length; cursor += 1) {
+      const parentId = queue[cursor];
       if (!parentId || expandedMatches.has(parentId)) {
         continue;
       }
