@@ -300,6 +300,19 @@ describe("App", () => {
 
     fireEvent.click(
       screen
+        .getByText("See every Jira status across the selected board.")
+        .closest("button")!,
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Status chart" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /Power Delivery Board: Done 1, 100%/ }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Workspace" }));
+
+    fireEvent.click(
+      screen
         .getByText("Explore schedule, dependencies, risks, and delivery dates.")
         .closest("button")!,
     );

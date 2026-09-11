@@ -23,6 +23,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { GanttV2Service } from "./gantt-v2/GanttV2Service";
 import { ReportsService } from "./reports/ReportsService";
+import { BoardStatusReport } from "./status/BoardStatusReport";
 import { WorkspaceSettingsService } from "./workspace/WorkspaceSettingsService";
 import type { WorkspaceContext } from "./workspace/WorkspaceContext";
 
@@ -30,7 +31,7 @@ interface ClipboardWriter {
   writeText(value: string): Promise<void>;
 }
 
-type AppPage = "settings" | "chooser" | "reports" | "gantt" | "diagnostics";
+type AppPage = "settings" | "chooser" | "reports" | "gantt" | "status" | "diagnostics";
 
 export interface AppProps {
   runtime?: ExtensionRuntime;
@@ -266,6 +267,13 @@ function AppContent({
             >
               Gantt
             </button>
+            <button
+              type="button"
+              aria-current={page === "status" ? "page" : undefined}
+              onClick={() => navigate("status")}
+            >
+              Status
+            </button>
           </nav>
         ) : null}
         <div className="topbar-actions">
@@ -448,6 +456,23 @@ function AppContent({
                   →
                 </span>
               </button>
+              <button
+                className="tool-card tool-card-status"
+                type="button"
+                onClick={() => navigate("status")}
+              >
+                <span className="tool-icon" aria-hidden="true">
+                  S
+                </span>
+                <span className="tool-card-copy">
+                  <small>OVERVIEW</small>
+                  <strong>Status chart</strong>
+                  <span>See every Jira status across the selected board.</span>
+                </span>
+                <span className="tool-arrow" aria-hidden="true">
+                  →
+                </span>
+              </button>
             </div>
             <button
               className="text-button"
@@ -520,6 +545,32 @@ function AppContent({
                 </button>
               </div>
             )}
+          </section>
+        ) : null}
+
+        {page === "status" && authenticated && readySchedule ? (
+          <section className="page-frame tool-page">
+            <div className="tool-page-heading">
+              <button
+                className="back-button"
+                type="button"
+                onClick={() => navigate("chooser")}
+              >
+                ← Workspace
+              </button>
+              <div>
+                <p className="report-eyebrow">OVERVIEW</p>
+                <h1>Status chart</h1>
+                <p>Review the issue distribution for your selected Jira board.</p>
+              </div>
+            </div>
+            <BoardStatusReport
+              boardId={readySchedule.board.id}
+              boardName={readySchedule.board.name}
+              issues={readySchedule.issues}
+              loadedAt={readySchedule.loadedAt}
+              truncated={readySchedule.truncated}
+            />
           </section>
         ) : null}
 

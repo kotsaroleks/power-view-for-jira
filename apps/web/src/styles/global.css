@@ -2867,8 +2867,8 @@ h1 {
 
 .tool-grid {
   display: grid;
-  width: min(900px, 100%);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(1120px, 100%);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-5);
   margin: 38px 0 24px;
 }
@@ -2910,6 +2910,10 @@ h1 {
   background: var(--success-bg);
 }
 
+.tool-card-status::after {
+  background: #f3edff;
+}
+
 .tool-card:hover {
   border-color: var(--accent-mid);
   box-shadow: 0 24px 64px rgb(9 30 66 / 14%);
@@ -2932,6 +2936,10 @@ h1 {
   background: var(--success-accent);
 }
 
+.tool-card-status .tool-icon {
+  background: #7e57c2;
+}
+
 .tool-card-copy {
   display: grid;
   gap: 7px;
@@ -2948,6 +2956,10 @@ h1 {
   color: var(--success-accent);
 }
 
+.tool-card-status .tool-card-copy small {
+  color: #6e45ad;
+}
+
 .tool-card-copy strong {
   font-size: 28px;
   letter-spacing: -0.035em;
@@ -2955,6 +2967,7 @@ h1 {
 
 .tool-card-copy > span {
   max-width: 300px;
+  padding-right: 30px;
   color: var(--text-secondary);
   font-size: var(--font-size-5);
   line-height: 1.5;
@@ -3007,8 +3020,222 @@ h1 {
 }
 
 .tool-page .reporting-card,
-.tool-page .gantt-workspace {
+.tool-page .gantt-workspace,
+.tool-page .status-report-card {
   grid-column: auto;
+}
+
+.status-report-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-10);
+  background: var(--color-white);
+  box-shadow: 0 14px 44px rgb(9 30 66 / 8%);
+}
+
+.status-report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(115deg, #f8f5ff, var(--color-white) 62%);
+}
+
+.status-report-header h2 {
+  margin: 4px 0 0;
+  font-size: var(--font-size-10);
+  letter-spacing: -0.025em;
+}
+
+.status-report-header > div > p:last-child {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-5);
+}
+
+.status-report-meta {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+.status-report-meta > div {
+  display: grid;
+  gap: 4px;
+}
+
+.status-report-meta dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-1);
+  font-weight: var(--fw-5);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-report-meta dd {
+  margin: 0;
+  font-size: var(--font-size-4);
+  font-weight: var(--fw-4);
+}
+
+.status-report-card > .report-alert {
+  margin: var(--space-5) var(--space-6) 0;
+}
+
+.status-report-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(360px, 1.15fr);
+  gap: clamp(36px, 6vw, 80px);
+  align-items: center;
+  padding: clamp(32px, 5vw, 64px);
+}
+
+.status-chart-figure {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.status-chart-wrap {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+}
+
+.status-pie-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 12px 18px rgb(9 30 66 / 14%));
+}
+
+.status-pie-chart path,
+.status-pie-chart circle {
+  stroke: var(--color-white);
+  stroke-width: 2;
+  transition: opacity 140ms ease;
+}
+
+.status-pie-chart:has(path:hover) path:not(:hover),
+.status-pie-chart:has(circle:hover) circle:not(:hover) {
+  opacity: 0.55;
+}
+
+.status-chart-total {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-content: center;
+  border: 1px solid rgb(9 30 66 / 8%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 6px 18px rgb(9 30 66 / 12%);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.status-chart-total strong {
+  font-size: var(--font-size-12);
+  line-height: 1;
+}
+
+.status-chart-total span,
+.status-chart-figure figcaption {
+  color: var(--text-secondary);
+  font-size: var(--font-size-3);
+}
+
+.status-legend {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.status-legend li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-7);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.status-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--status-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-color) 16%, transparent);
+}
+
+.status-legend-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.status-legend-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-legend-copy span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-3);
+}
+
+.status-legend-percentage {
+  font-size: var(--font-size-6);
+}
+
+.status-legend-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    var(--status-color) 0 calc(var(--status-size) * 1%),
+    var(--surface-subtle) calc(var(--status-size) * 1%) 100%
+  );
+}
+
+.status-report-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: 76px 24px;
+  text-align: center;
+}
+
+.status-report-empty > span {
+  color: var(--text-subtle);
+  font-size: 56px;
+  line-height: 1;
+}
+
+.status-report-empty h3 {
+  margin: 0;
+  font-size: var(--font-size-8);
+}
+
+.status-report-empty p {
+  max-width: 430px;
+  margin: 0;
+  color: var(--text-secondary);
 }
 
 .diagnostics-page {
@@ -3032,6 +3259,10 @@ h1 {
 
   .tool-card {
     min-height: 210px;
+  }
+
+  .status-report-layout {
+    grid-template-columns: 1fr;
   }
 
   .setup-project-board {
@@ -3067,6 +3298,19 @@ h1 {
 
   .tool-page-heading {
     display: grid;
+  }
+
+  .status-report-header {
+    display: grid;
+    padding: var(--space-5);
+  }
+
+  .status-report-meta {
+    flex-wrap: wrap;
+  }
+
+  .status-report-layout {
+    padding: var(--space-5);
   }
 }
 
