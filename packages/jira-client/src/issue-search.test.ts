@@ -80,9 +80,7 @@ describe("paginated issue search", () => {
       query: { startAt: 0, maxResults: 100 },
     });
     expect(
-      requestMock.mock.calls.some(([request]) =>
-        (request as JiraTransportRequest).path.includes("/search"),
-      ),
+      requestMock.mock.calls.some(([request]) => request.path.includes("/search")),
     ).toBe(false);
   });
 

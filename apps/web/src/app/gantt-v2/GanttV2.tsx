@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import "./gantt-v2.css";
+import { useGanttGridNavigation } from "./useGanttGridNavigation";
 import { planCascadeSchedule, wouldCreateDependencyCycle } from "./cascade-schedule";
 import { dependencyTypeFromEdges, type TaskEdge } from "./dependency-types";
 import { findExternalScheduleConflicts } from "./external-schedule-conflicts";
@@ -306,6 +307,11 @@ export function GanttV2({
   const statusLoadRequestRef = useRef(0);
 
   const closeAssigneeEditor = useCallback(() => {
+    if (assigneeEditorRef.current?.contains(document.activeElement)) {
+      assigneeEditorRef.current
+        .querySelector<HTMLButtonElement>(".gantt-v2-assignee-button")
+        ?.focus();
+    }
     setAssigneeEditorTaskId(undefined);
     setAssigneeQuery("");
     setAssigneeOptions([]);
@@ -313,6 +319,11 @@ export function GanttV2({
   }, []);
 
   const closeStatusEditor = useCallback(() => {
+    if (statusEditorRef.current?.contains(document.activeElement)) {
+      statusEditorRef.current
+        .querySelector<HTMLButtonElement>(".gantt-v2-status-button")
+        ?.focus();
+    }
     statusLoadRequestRef.current += 1;
     setStatusEditorTaskId(undefined);
     setStatusTransitions([]);
@@ -420,6 +431,8 @@ export function GanttV2({
     );
   }, [expanded, hideCompleted, search, sortedTasks]);
 
+  const gridNavigation = useGanttGridNavigation(filteredTasks.map((task) => task.id));
+
   const [rangeStart, rangeEnd] = useMemo(() => {
     const scheduled = effectiveTasks.filter(
       (task) => task.scheduleState !== "unscheduled" && task.start && task.end,
@@ -433,6 +446,32 @@ export function GanttV2({
   }, [effectiveTasks, today]);
   const days = useMemo(() => dateRange(rangeStart, rangeEnd), [rangeEnd, rangeStart]);
   const timelineWidth = days.length * dayWidth;
+  const dateLabels = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat("en", {
+      month: "short",
+      ...(zoom === "month" ? { year: "numeric" as const } : { day: "numeric" as const }),
+      timeZone: "UTC",
+    });
+    const starts = days.flatMap((date, index) => {
+      const value = new Date(`${date}T00:00:00Z`);
+      const boundary =
+        zoom === "day" ||
+        (zoom === "week" ? value.getUTCDay() === 1 : value.getUTCDate() === 1);
+      return index === 0 || boundary ? [index] : [];
+    });
+    return starts.map((index, group) => {
+      const date = days[index]!;
+      const width = ((starts[group + 1] ?? days.length) - index) * dayWidth;
+      return {
+        date,
+        width,
+        label:
+          zoom === "day"
+            ? date.slice(5)
+            : formatter.format(new Date(`${date}T00:00:00Z`)),
+      };
+    });
+  }, [days, dayWidth, zoom]);
   const externalConflicts = useMemo(
     () =>
       findExternalScheduleConflicts({
@@ -1146,8 +1185,11 @@ export function GanttV2({
       >
         <div
           className="gantt-v2-table"
+          ref={gridNavigation.ref}
+          onKeyDown={gridNavigation.onKeyDown}
           role="grid"
           aria-label="Gantt tasks"
+          aria-description="Use arrow keys to move between cells, Enter to focus the issue link or editor, F2 to focus the first action, and Escape to return to the cell."
           aria-rowcount={filteredTasks.length + 1}
         >
           <div className="gantt-v2-table-header" role="row">
@@ -1164,12 +1206,15 @@ export function GanttV2({
               <div
                 className="gantt-v2-task-cell"
                 role="gridcell"
+                {...gridNavigation.cellProps(task.id, 0)}
                 style={{ paddingInlineStart: 12 + task.depth * 18 }}
               >
                 {taskIdsWithVisibleChildren.has(task.id) ? (
                   <button
                     type="button"
                     className="gantt-v2-disclosure"
+                    tabIndex={-1}
+                    aria-expanded={expanded.has(task.id)}
                     aria-label={`${expanded.has(task.id) ? "Collapse" : "Expand"} ${task.issueKey}`}
                     onClick={() =>
                       setExpanded((current) => {
@@ -1187,7 +1232,7 @@ export function GanttV2({
                 )}
                 <IssueTypeIcon issueTypeName={task.issueTypeName} />
                 <span className="gantt-v2-task-text">
-                  <a href={task.browseUrl} target="_blank" rel="noreferrer">
+                  <a href={task.browseUrl} target="_blank" rel="noreferrer" tabIndex={-1}>
                     {task.issueKey}
                   </a>
                   <small title={task.name}>{task.name}</small>
@@ -1195,6 +1240,7 @@ export function GanttV2({
               </div>
               <div
                 role="gridcell"
+                {...gridNavigation.cellProps(task.id, 1)}
                 className={`gantt-v2-status is-${task.statusCategory}${isReviewStatusName(statusOverrides[task.id] ?? task.statusName) ? " is-review" : ""}`}
                 ref={statusEditorTaskId === task.id ? statusEditorRef : undefined}
               >
@@ -1202,6 +1248,7 @@ export function GanttV2({
                   <button
                     type="button"
                     className="gantt-v2-status-button"
+                    tabIndex={-1}
                     aria-label={`Edit status for ${task.issueKey}`}
                     aria-expanded={statusEditorTaskId === task.id}
                     onClick={() => void openStatusEditor(task)}
@@ -1263,6 +1310,7 @@ export function GanttV2({
               </div>
               <div
                 role="gridcell"
+                {...gridNavigation.cellProps(task.id, 2)}
                 className="gantt-v2-assignee"
                 ref={assigneeEditorTaskId === task.id ? assigneeEditorRef : undefined}
               >
@@ -1270,6 +1318,7 @@ export function GanttV2({
                   <button
                     type="button"
                     className="gantt-v2-assignee-button"
+                    tabIndex={-1}
                     aria-label={`Edit assignee for ${task.issueKey}`}
                     aria-expanded={assigneeEditorTaskId === task.id}
                     onClick={() => openAssigneeEditor(task.id)}
@@ -1363,6 +1412,17 @@ export function GanttV2({
           aria-valuemax={760}
           aria-valuenow={leftWidth}
           className="gantt-v2-divider"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            setLeftWidth((width) =>
+              Math.min(
+                760,
+                Math.max(320, width + (event.key === "ArrowRight" ? 20 : -20)),
+              ),
+            );
+          }}
           onPointerDown={(event) => {
             dividerRef.current = { startX: event.clientX, startWidth: leftWidth };
           }}
@@ -1376,23 +1436,21 @@ export function GanttV2({
             style={{ width: timelineWidth }}
           >
             <div className="gantt-v2-date-header">
-              {days.map((date) => {
-                const day = new Date(`${date}T00:00:00.000Z`).getUTCDay();
-                return (
-                  <span
-                    key={date}
-                    className={
-                      nonWorkingDays.includes(day) ? "is-non-working" : undefined
-                    }
-                    style={{ width: dayWidth }}
-                    title={date}
-                  >
-                    {zoom === "month"
-                      ? new Date(`${date}T00:00:00Z`).getUTCDate()
-                      : date.slice(5)}
-                  </span>
-                );
-              })}
+              {dateLabels.map(({ date, width, label }) => (
+                <span
+                  key={date}
+                  style={{ width }}
+                  title={date}
+                  className={
+                    zoom === "day" &&
+                    nonWorkingDays.includes(new Date(`${date}T00:00:00Z`).getUTCDay())
+                      ? "is-non-working"
+                      : undefined
+                  }
+                >
+                  {width >= (zoom === "day" ? 24 : 64) ? label : ""}
+                </span>
+              ))}
             </div>
             <div
               className="gantt-v2-today-line"

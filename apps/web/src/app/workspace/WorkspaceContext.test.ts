@@ -33,7 +33,7 @@ describe("WorkspaceContext contract", () => {
       editing: {
         client: {} as never,
         fieldMapping: {},
-        refresh: async () => undefined,
+        refresh: () => Promise.resolve(),
       },
       reporting: { completedStatusIds: [], completedStatusNames: [] },
       sprintDataAvailable: false,
@@ -67,7 +67,7 @@ describe("WorkspaceContext contract", () => {
       editing: {
         client: {} as never,
         fieldMapping: {},
-        refresh: async () => undefined,
+        refresh: () => Promise.resolve(),
       },
       reporting: { completedStatusIds: [], completedStatusNames: [] },
       sprintDataAvailable: false,

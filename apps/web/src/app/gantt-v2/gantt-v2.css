@@ -841,10 +841,6 @@
 }
 
 @media (max-width: 900px) {
-  .gantt-v2-hide-completed {
-    display: none;
-  }
-
   .gantt-v2-toolbar {
     flex-wrap: wrap;
   }
@@ -860,4 +856,9 @@
     scroll-behavior: auto !important;
     transition: none !important;
   }
+}
+
+.gantt-v2 [role="gridcell"]:focus-visible {
+  outline: 2px solid #0758d1;
+  outline-offset: -2px;
 }

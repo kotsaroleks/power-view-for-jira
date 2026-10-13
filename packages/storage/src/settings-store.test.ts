@@ -91,10 +91,12 @@ describe("SettingsStore", () => {
 
   it("rejects a setup with no configured working days", async () => {
     const store = new SettingsStore(new MemoryStorage());
-    await expect(store.saveSetup({
-      ...configuration('project = "POWER"'),
-      nonWorkingDays: [0, 1, 2, 3, 4, 5, 6],
-    })).rejects.toThrow();
+    await expect(
+      store.saveSetup({
+        ...configuration('project = "POWER"'),
+        nonWorkingDays: [0, 1, 2, 3, 4, 5, 6],
+      }),
+    ).rejects.toThrow();
   });
 
   it("deduplicates and orders recent JQL", async () => {
@@ -178,17 +180,25 @@ describe("SettingsStore", () => {
     const storage = new MemoryStorage();
     const store = new SettingsStore(storage);
     await store.saveGanttViewPreferences("https://example.atlassian.net", "POWER", {
-      zoom: "week", sortBy: "status",
+      zoom: "week",
+      sortBy: "status",
     });
-    await expect(store.getGanttViewPreferences("https://example.atlassian.net", "POWER"))
-      .resolves.toEqual({ zoom: "week", sortBy: "status", sortDirection: "asc" });
-    await storage.set({ "settings:v2": {
-      schemaVersion: 2, setups: {}, recentJql: {}, ganttViewPreferences: {
-        "https%3A%2F%2Fexample.atlassian.net:OLD": { zoom: "day" },
+    await expect(
+      store.getGanttViewPreferences("https://example.atlassian.net", "POWER"),
+    ).resolves.toEqual({ zoom: "week", sortBy: "status", sortDirection: "asc" });
+    await storage.set({
+      "settings:v2": {
+        schemaVersion: 2,
+        setups: {},
+        recentJql: {},
+        ganttViewPreferences: {
+          "https%3A%2F%2Fexample.atlassian.net:OLD": { zoom: "day" },
+        },
       },
-    }});
-    await expect(store.getGanttViewPreferences("https://example.atlassian.net", "OLD"))
-      .resolves.toEqual({ zoom: "day", sortBy: "default", sortDirection: "asc" });
+    });
+    await expect(
+      store.getGanttViewPreferences("https://example.atlassian.net", "OLD"),
+    ).resolves.toEqual({ zoom: "day", sortBy: "default", sortDirection: "asc" });
   });
 
   it("migrates legacy single-value Gantt filters without losing settings", async () => {

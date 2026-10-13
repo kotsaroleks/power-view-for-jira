@@ -48,7 +48,11 @@ describe("Gantt filters", () => {
       task({ id: "b1", parentId: "b", name: "Child", depth: 1 }),
     ];
     expect(sortGanttTasks(tasks, "name").map((item) => item.id)).toEqual([
-      "b", "b1", "a", "a2", "a1",
+      "b",
+      "b1",
+      "a",
+      "a2",
+      "a1",
     ]);
   });
 
@@ -72,11 +76,27 @@ describe("Gantt filters", () => {
       }),
       task({ id: "3", name: "", start: "", end: "", statusName: "", assigneeName: "" }),
     ];
-    expect(sortGanttTasks(tasks, "startDate").map((item) => item.id)).toEqual(["2", "1", "3"]);
-    expect(sortGanttTasks(tasks, "endDate").map((item) => item.id)).toEqual(["2", "1", "3"]);
+    expect(sortGanttTasks(tasks, "startDate").map((item) => item.id)).toEqual([
+      "2",
+      "1",
+      "3",
+    ]);
+    expect(sortGanttTasks(tasks, "endDate").map((item) => item.id)).toEqual([
+      "2",
+      "1",
+      "3",
+    ]);
     expect(sortGanttTasks(tasks, "name").map((item) => item.id)).toEqual(["1", "2", "3"]);
-    expect(sortGanttTasks(tasks, "status").map((item) => item.id)).toEqual(["2", "1", "3"]);
-    expect(sortGanttTasks(tasks, "assignee").map((item) => item.id)).toEqual(["2", "1", "3"]);
+    expect(sortGanttTasks(tasks, "status").map((item) => item.id)).toEqual([
+      "2",
+      "1",
+      "3",
+    ]);
+    expect(sortGanttTasks(tasks, "assignee").map((item) => item.id)).toEqual([
+      "2",
+      "1",
+      "3",
+    ]);
     expect(sortGanttTasks(tasks, "default")).toBe(tasks);
   });
   it("searches issue key and summary case-insensitively", () => {
@@ -361,12 +381,12 @@ describe("Gantt filters", () => {
       ).tasks.map((t) => t.id),
     ).toEqual(["1", "3"]);
 
-    expect(
-      isGanttFilterActive({ ...DEFAULT_GANTT_FILTERS, excludeDone: true }),
-    ).toBe(true);
-    expect(
-      isGanttFilterActive({ ...DEFAULT_GANTT_FILTERS, excludeDone: false }),
-    ).toBe(false);
+    expect(isGanttFilterActive({ ...DEFAULT_GANTT_FILTERS, excludeDone: true })).toBe(
+      true,
+    );
+    expect(isGanttFilterActive({ ...DEFAULT_GANTT_FILTERS, excludeDone: false })).toBe(
+      false,
+    );
   });
 
   it("supports issueKey sort and desc direction cycling", () => {
@@ -376,18 +396,26 @@ describe("Gantt filters", () => {
       task({ id: "3", issueKey: "POWER-2", name: "B" }),
     ];
 
-    expect(sortGanttTasks(tasks, "issueKey", "asc").map((t) => t.id)).toEqual(
-      ["2", "3", "1"],
-    );
-    expect(sortGanttTasks(tasks, "issueKey", "desc").map((t) => t.id)).toEqual(
-      ["1", "3", "2"],
-    );
-    expect(sortGanttTasks(tasks, "name", "asc").map((t) => t.id)).toEqual(
-      ["2", "3", "1"],
-    );
-    expect(sortGanttTasks(tasks, "name", "desc").map((t) => t.id)).toEqual(
-      ["1", "3", "2"],
-    );
+    expect(sortGanttTasks(tasks, "issueKey", "asc").map((t) => t.id)).toEqual([
+      "2",
+      "3",
+      "1",
+    ]);
+    expect(sortGanttTasks(tasks, "issueKey", "desc").map((t) => t.id)).toEqual([
+      "1",
+      "3",
+      "2",
+    ]);
+    expect(sortGanttTasks(tasks, "name", "asc").map((t) => t.id)).toEqual([
+      "2",
+      "3",
+      "1",
+    ]);
+    expect(sortGanttTasks(tasks, "name", "desc").map((t) => t.id)).toEqual([
+      "1",
+      "3",
+      "2",
+    ]);
   });
 
   it("sorts status by category order (unknown < to-do < in-progress < done), not alphabetically", () => {
@@ -398,11 +426,17 @@ describe("Gantt filters", () => {
       task({ id: "4", statusName: "In Dev", statusCategory: "in-progress" }),
     ];
 
-    expect(sortGanttTasks(tasks, "status", "asc").map((t) => t.id)).toEqual(
-      ["3", "2", "4", "1"],
-    );
-    expect(sortGanttTasks(tasks, "status", "desc").map((t) => t.id)).toEqual(
-      ["1", "4", "2", "3"],
-    );
+    expect(sortGanttTasks(tasks, "status", "asc").map((t) => t.id)).toEqual([
+      "3",
+      "2",
+      "4",
+      "1",
+    ]);
+    expect(sortGanttTasks(tasks, "status", "desc").map((t) => t.id)).toEqual([
+      "1",
+      "4",
+      "2",
+      "3",
+    ]);
   });
 });

@@ -14,6 +14,7 @@ import {
 } from "@power-view/domain";
 import {
   type CSSProperties,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -21,12 +22,8 @@ import {
   useState,
 } from "react";
 
-import {
-  jiraDateValue,
-  GanttEditPanel,
-  mutationErrorMessage,
-  type GanttEditingContext,
-} from "./GanttEditPanel";
+import { GanttEditPanel, type GanttEditingContext } from "./GanttEditPanel";
+import { jiraDateValue, mutationErrorMessage } from "./ganttEditing";
 import { GanttDependencyLayer } from "./GanttDependencyLayer";
 import { GanttNonWorkingDaysLayer } from "./GanttNonWorkingDaysLayer";
 import { GanttFiltersToolbar } from "./GanttFiltersToolbar";
@@ -323,66 +320,69 @@ export function GanttView({
     });
   };
 
-  const finishDrag = (event: PointerEvent) => {
-    if (!drag || dragConfirm) return;
-    const deltaPx = event.clientX - drag.startX;
-    const wasDrag = Math.abs(deltaPx) >= 4;
-    if (!wasDrag) {
-      setDrag(undefined);
-      return;
-    }
-    suppressClick.current = true;
-    const task = taskById.get(drag.taskId);
-    if (!task) return;
-    const geometry = renderer.taskBar(task, viewport);
-    const startOffset = geometry.left + (drag.gesture === "resize-end" ? 0 : deltaPx);
-    const endOffset =
-      geometry.left + geometry.width + (drag.gesture === "resize-start" ? 0 : deltaPx);
-    const startDate = dateAtOffset(viewport, startOffset);
-    const endDate = dateAtOffset(viewport, endOffset);
-    const baseDate = drag.gesture === "resize-end" ? task.end : task.start;
-    const movedDate = drag.gesture === "resize-end" ? endDate : startDate;
-    const result = applyGanttDrag(task, drag.gesture, daysBetween(baseDate, movedDate));
-    if (!result.allowed) {
-      setDrag(undefined);
-      setDragConfirm({
-        taskId: task.id,
-        result: {},
-        error: result.reason,
-        saving: false,
-      });
-      window.setTimeout(
-        () =>
-          setDragConfirm((current) =>
-            current?.taskId === task.id && current.error === result.reason
-              ? undefined
-              : current,
-          ),
-        3000,
-      );
-    } else if (result.startDate !== undefined || result.dueDate !== undefined) {
-      const previewNonWorkingDays = countNonWorkingDays(
-        result.startDate ?? task.start,
-        result.dueDate ?? task.end,
-        nonWorkingDays,
-      );
-      setDrag({ ...drag, pixelDelta: deltaPx, dragging: true });
-      setDragConfirm({
-        taskId: task.id,
-        result,
-        error: undefined,
-        nonWorkingDays: previewNonWorkingDays,
-        ...(task.originalEstimateDays === undefined
-          ? {}
-          : {
-              calendarDaysEstimate: task.originalEstimateDays + previewNonWorkingDays,
-            }),
-        saving: false,
-      });
-    } else {
-      setDrag(undefined);
-    }
-  };
+  const finishDrag = useCallback(
+    (event: PointerEvent) => {
+      if (!drag || dragConfirm) return;
+      const deltaPx = event.clientX - drag.startX;
+      const wasDrag = Math.abs(deltaPx) >= 4;
+      if (!wasDrag) {
+        setDrag(undefined);
+        return;
+      }
+      suppressClick.current = true;
+      const task = taskById.get(drag.taskId);
+      if (!task) return;
+      const geometry = renderer.taskBar(task, viewport);
+      const startOffset = geometry.left + (drag.gesture === "resize-end" ? 0 : deltaPx);
+      const endOffset =
+        geometry.left + geometry.width + (drag.gesture === "resize-start" ? 0 : deltaPx);
+      const startDate = dateAtOffset(viewport, startOffset);
+      const endDate = dateAtOffset(viewport, endOffset);
+      const baseDate = drag.gesture === "resize-end" ? task.end : task.start;
+      const movedDate = drag.gesture === "resize-end" ? endDate : startDate;
+      const result = applyGanttDrag(task, drag.gesture, daysBetween(baseDate, movedDate));
+      if (!result.allowed) {
+        setDrag(undefined);
+        setDragConfirm({
+          taskId: task.id,
+          result: {},
+          error: result.reason,
+          saving: false,
+        });
+        window.setTimeout(
+          () =>
+            setDragConfirm((current) =>
+              current?.taskId === task.id && current.error === result.reason
+                ? undefined
+                : current,
+            ),
+          3000,
+        );
+      } else if (result.startDate !== undefined || result.dueDate !== undefined) {
+        const previewNonWorkingDays = countNonWorkingDays(
+          result.startDate ?? task.start,
+          result.dueDate ?? task.end,
+          nonWorkingDays,
+        );
+        setDrag({ ...drag, pixelDelta: deltaPx, dragging: true });
+        setDragConfirm({
+          taskId: task.id,
+          result,
+          error: undefined,
+          nonWorkingDays: previewNonWorkingDays,
+          ...(task.originalEstimateDays === undefined
+            ? {}
+            : {
+                calendarDaysEstimate: task.originalEstimateDays + previewNonWorkingDays,
+              }),
+          saving: false,
+        });
+      } else {
+        setDrag(undefined);
+      }
+    },
+    [drag, dragConfirm, renderer, taskById, viewport, nonWorkingDays],
+  );
 
   useEffect(() => {
     if (!drag) return;
@@ -410,7 +410,7 @@ export function GanttView({
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
     };
-  }, [drag, dragConfirm, renderer, taskById, viewport]);
+  }, [drag, finishDrag]);
 
   const saveDrag = async () => {
     if (!dragConfirm || !editing) return;

@@ -138,8 +138,9 @@ export function inferDefaultDateFieldMapping(fields: JiraField[]): FieldMapping 
   const preferredStart = fields.find((field) => field.id === "customfield_10015");
   const preferredEnd = fields.find((field) => field.id === "duedate");
   const legacyEpicLink =
-    fields.find((field) => field.schema?.custom?.toLowerCase().includes("gh-epic-link")) ??
-    fields.find(isLegacyEpicLinkField);
+    fields.find((field) =>
+      field.schema?.custom?.toLowerCase().includes("gh-epic-link"),
+    ) ?? fields.find(isLegacyEpicLinkField);
   const rankedStart = rankDateFieldCandidates(fields, "start")[0];
   const rankedEnd = rankDateFieldCandidates(fields, "end")[0];
 

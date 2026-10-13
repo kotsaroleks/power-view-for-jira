@@ -54,9 +54,15 @@ export function daysBetween(start: string, end: string): number {
   return Math.round((timestamp(end) - timestamp(start)) / DAY_MS);
 }
 
-export interface NonWorkingDayRange { left: number; width: number; }
+export interface NonWorkingDayRange {
+  left: number;
+  width: number;
+}
 
-export function nonWorkingDayRanges(viewport: GanttViewport, nonWorkingDays: number[]): NonWorkingDayRange[] {
+export function nonWorkingDayRanges(
+  viewport: GanttViewport,
+  nonWorkingDays: number[],
+): NonWorkingDayRange[] {
   if (nonWorkingDays.length === 0) return [];
   const ranges: NonWorkingDayRange[] = [];
   let rangeStart: number | undefined;
@@ -65,11 +71,18 @@ export function nonWorkingDayRanges(viewport: GanttViewport, nonWorkingDays: num
     const isNonWorking = nonWorkingDays.includes(dayOfWeek);
     if (isNonWorking && rangeStart === undefined) rangeStart = day;
     else if (!isNonWorking && rangeStart !== undefined) {
-      ranges.push({ left: rangeStart * viewport.dayWidth, width: (day - rangeStart) * viewport.dayWidth });
+      ranges.push({
+        left: rangeStart * viewport.dayWidth,
+        width: (day - rangeStart) * viewport.dayWidth,
+      });
       rangeStart = undefined;
     }
   }
-  if (rangeStart !== undefined) ranges.push({ left: rangeStart * viewport.dayWidth, width: (viewport.totalDays - rangeStart) * viewport.dayWidth });
+  if (rangeStart !== undefined)
+    ranges.push({
+      left: rangeStart * viewport.dayWidth,
+      width: (viewport.totalDays - rangeStart) * viewport.dayWidth,
+    });
   return ranges;
 }
 

@@ -110,7 +110,9 @@ function renderIssueScopeTree(
   const tree = pruneToChanged(buildIssueTree(issues), changedIds);
   const body = tree.length
     ? `<ul class="report-issue-tree">${tree
-        .map((node) => renderTreeNode(node, changedIds, entriesByIssueKey, statusMapping, 0))
+        .map((node) =>
+          renderTreeNode(node, changedIds, entriesByIssueKey, statusMapping, 0),
+        )
         .join("")}</ul>`
     : `<div class="report-unavailable"><strong>No issues changed</strong><p>There were no tracked changes in this period.</p></div>`;
   return `<section class="reporting-people daily-weekly-people">

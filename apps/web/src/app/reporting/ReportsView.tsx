@@ -123,7 +123,6 @@ function activityLabel(type: GeneratedReportSnapshot["changes"][number]["type"])
   }[type];
 }
 
-
 function IssueTreeItem({
   node,
   changedIds,
@@ -777,8 +776,7 @@ export function ReportsView({
       return undefined;
     }
   }, [localDate, type]);
-  const missingCompletedStatusMapping =
-    statusMapping.completedStatusIds.length === 0;
+  const missingCompletedStatusMapping = statusMapping.completedStatusIds.length === 0;
 
   return (
     <section id="reports" className="reporting-card" aria-labelledby="reports-title">

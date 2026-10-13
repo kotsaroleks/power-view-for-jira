@@ -61,10 +61,18 @@ const fields: JiraField[] = [
 
 describe("date field discovery", () => {
   it("defaults to the organization's start date and Jira due date, then ranked candidates", () => {
-    expect(inferDefaultDateFieldMapping([
-      ...fields,
-      { id: "customfield_10015", name: "Custom start", custom: true, schema: { type: "date" }, clauseNames: [] },
-    ])).toEqual({
+    expect(
+      inferDefaultDateFieldMapping([
+        ...fields,
+        {
+          id: "customfield_10015",
+          name: "Custom start",
+          custom: true,
+          schema: { type: "date" },
+          clauseNames: [],
+        },
+      ]),
+    ).toEqual({
       startDateFieldId: "customfield_10015",
       endDateFieldId: "duedate",
       hierarchyFieldId: "customfield_10014",

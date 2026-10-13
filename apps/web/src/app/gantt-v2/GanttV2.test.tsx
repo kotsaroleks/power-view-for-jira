@@ -1,7 +1,7 @@
 import type { GanttScheduleModel, GanttTask } from "@power-view/domain";
 import type { JiraClient } from "@power-view/jira-client";
 import type { GanttBoardState } from "@power-view/storage";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { dependencyTypeFromEdges } from "./dependency-types";
@@ -107,6 +107,73 @@ function drag(element: Element, startX: number, endX: number) {
 }
 
 describe("GanttV2", () => {
+  it("navigates grid cells with one tab stop and preserves the active task after sorting", () => {
+    render(<GanttV2 model={model([task(), secondTask])} today="2026-08-20" />);
+    const grid = screen.getByRole("grid", { name: "Gantt tasks" });
+    const cells = within(grid).getAllByRole("gridcell");
+    expect(cells.filter((cell) => cell.tabIndex === 0)).toEqual([cells[0]]);
+    act(() => cells[0]!.focus());
+    fireEvent.keyDown(cells[0]!, { key: "ArrowDown" });
+    expect(cells[3]).toHaveFocus();
+    fireEvent.keyDown(cells[3]!, { key: "ArrowRight" });
+    expect(cells[4]).toHaveFocus();
+    fireEvent.keyDown(cells[4]!, { key: "End" });
+    expect(cells[5]).toHaveFocus();
+    fireEvent.keyDown(cells[5]!, { key: "Home", ctrlKey: true });
+    expect(cells[0]).toHaveFocus();
+    fireEvent.keyDown(cells[0]!, { key: "Enter" });
+    expect(screen.getByRole("link", { name: "POWER-1" })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("link", { name: "POWER-1" }), { key: "Escape" });
+    expect(cells[0]).toHaveFocus();
+    fireEvent.change(screen.getByRole("combobox", { name: "Sort tasks" }), {
+      target: { value: "name" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Sort descending" }));
+    expect(cells[0]).toHaveAttribute("tabindex", "0");
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Ship" } });
+    expect(
+      within(grid)
+        .getAllByRole("gridcell")
+        .filter((cell) => cell.tabIndex === 0),
+    ).toHaveLength(1);
+  });
+
+  it("returns keyboard focus from a closed status editor without swallowing select navigation", async () => {
+    const context = editing();
+    render(
+      <GanttV2 model={model([task()])} editing={context.context} today="2026-08-20" />,
+    );
+    const trigger = screen.getByRole("button", { name: "Edit status for POWER-1" });
+    fireEvent.click(trigger);
+    const select = await screen.findByRole("combobox", {
+      name: "Change status for POWER-1",
+    });
+    act(() => select.focus());
+    fireEvent.keyDown(select, { key: "ArrowDown" });
+    expect(select).toHaveFocus();
+    fireEvent.keyDown(select, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("groups week and month labels while keeping day cells aligned", () => {
+    const { container } = render(<GanttV2 model={model([task()])} today="2026-08-20" />);
+    const labels = () =>
+      Array.from(container.querySelectorAll<HTMLElement>(".gantt-v2-date-header > span"));
+    const weekWidth = labels().reduce(
+      (width, label) => width + parseFloat(label.style.width),
+      0,
+    );
+    expect(labels().length).toBeLessThan(15);
+    expect(labels().some((label) => label.textContent?.includes("Aug"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Month" }));
+    expect(labels().length).toBeLessThan(5);
+    expect(labels().some((label) => label.textContent?.includes("2026"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Day" }));
+    expect(labels().length).toBeGreaterThan(40);
+    expect(labels().length * 24).toBe(weekWidth);
+  });
+
   it("renders a synchronized Wrike-style table and timeline with core controls", () => {
     render(<GanttV2 model={model([task(), secondTask])} today="2026-08-20" />);
 

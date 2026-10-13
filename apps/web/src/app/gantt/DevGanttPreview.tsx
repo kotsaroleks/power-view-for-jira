@@ -122,14 +122,6 @@ const tasks = [
   }),
 ];
 
-const model: GanttScheduleModel = {
-  roots: [],
-  tasks,
-  warnings: [],
-  syntheticDateCount: 1,
-  dependencyCount: 3,
-};
-
 const largeModel: GanttScheduleModel = {
   roots: [],
   tasks: Array.from({ length: 1_000 }, (_, index) => {
@@ -169,32 +161,37 @@ const largeModel: GanttScheduleModel = {
   dependencyCount: 51,
 };
 
-function useMockEditingContext(
-  initialTasks: GanttTask[],
-): { model: GanttScheduleModel; editing: GanttEditingContext } {
+function useMockEditingContext(initialTasks: GanttTask[]): {
+  model: GanttScheduleModel;
+  editing: GanttEditingContext;
+} {
   const [taskList, setTaskList] = useState(initialTasks);
-  const pending = { current: undefined as { issueKey: string; startDate?: string; dueDate?: string } | undefined };
+  const pending = {
+    current: undefined as
+      { issueKey: string; startDate?: string; dueDate?: string } | undefined,
+  };
 
   const client = {
-    getIssueEditMetadata: async () => ({
-      fields: {
-        startdate: {
-          id: "startdate",
-          name: "Start date",
-          required: false,
-          operations: ["set"],
-          schema: { type: "date" },
+    getIssueEditMetadata: () =>
+      Promise.resolve({
+        fields: {
+          startdate: {
+            id: "startdate",
+            name: "Start date",
+            required: false,
+            operations: ["set"],
+            schema: { type: "date" },
+          },
+          duedate: {
+            id: "duedate",
+            name: "Due date",
+            required: false,
+            operations: ["set"],
+            schema: { type: "date" },
+          },
         },
-        duedate: {
-          id: "duedate",
-          name: "Due date",
-          required: false,
-          operations: ["set"],
-          schema: { type: "date" },
-        },
-      },
-    }),
-    updateIssueDates: async (
+      }),
+    updateIssueDates: (
       issueKey: string,
       request: { startDate?: string; dueDate?: string },
     ) => {
@@ -204,12 +201,13 @@ function useMockEditingContext(
         ...(request.startDate !== undefined ? { startDate: request.startDate } : {}),
         ...(request.dueDate !== undefined ? { dueDate: request.dueDate } : {}),
       };
+      return Promise.resolve();
     },
   } as unknown as JiraClient;
 
-  const refresh = async () => {
+  const refresh = () => {
     const change = pending.current;
-    if (!change) return;
+    if (!change) return Promise.resolve();
     setTaskList((current) =>
       current.map((existingTask) =>
         existingTask.issueKey === change.issueKey
@@ -221,10 +219,17 @@ function useMockEditingContext(
           : existingTask,
       ),
     );
+    return Promise.resolve();
   };
 
   return {
-    model: { roots: [], tasks: taskList, warnings: [], syntheticDateCount: 1, dependencyCount: 3 },
+    model: {
+      roots: [],
+      tasks: taskList,
+      warnings: [],
+      syntheticDateCount: 1,
+      dependencyCount: 3,
+    },
     editing: { client, fieldMapping: {}, refresh },
   };
 }

@@ -153,14 +153,14 @@ async function beginMove() {
     y: 0,
     toJSON: () => ({}),
   });
-  await act(async () => {
+  act(() => {
     fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
   });
   await act(async () => {
     fireEvent.pointerMove(window, { clientX: 140, pointerId: 1 });
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
-  await act(async () => {
+  act(() => {
     fireEvent.pointerUp(window, { clientX: 140, pointerId: 1 });
   });
 }
@@ -227,7 +227,7 @@ describe("GanttView", () => {
     expect(screen.getByText("7 calendar days")).toBeInTheDocument();
   });
 
-  it("keeps a click separate from a small drag", async () => {
+  it("keeps a click separate from a small drag", () => {
     const context = editingContext();
     render(<GanttView model={dragModel()} editing={context.editing} />);
     fireEvent.click(screen.getByRole("button", { name: "Edit Jira" }));
@@ -245,7 +245,7 @@ describe("GanttView", () => {
       y: 0,
       toJSON: () => ({}),
     });
-    await act(async () => {
+    act(() => {
       fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 });
     });
     fireEvent.pointerMove(window, { clientX: 102, pointerId: 1 });

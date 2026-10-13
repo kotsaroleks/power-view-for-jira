@@ -24,11 +24,19 @@ const task = {
 } satisfies GanttTask;
 
 describe("non-working day ranges", () => {
-  const viewport = { start: "2026-08-20", end: "2026-08-26", dayWidth: 10, totalDays: 7, width: 70, ticks: [] };
+  const viewport = {
+    start: "2026-08-20",
+    end: "2026-08-26",
+    dayWidth: 10,
+    totalDays: 7,
+    width: 70,
+    ticks: [],
+  };
   it("merges adjacent weekends", () => {
     expect(nonWorkingDayRanges(viewport, [0, 6])).toEqual([{ left: 20, width: 20 }]);
   });
-  it("supports empty settings", () => expect(nonWorkingDayRanges(viewport, [])).toEqual([]));
+  it("supports empty settings", () =>
+    expect(nonWorkingDayRanges(viewport, [])).toEqual([]));
 });
 
 describe("nativeGanttRenderer", () => {
@@ -53,13 +61,16 @@ describe("nativeGanttRenderer", () => {
     });
   });
 
-  it.each(["day", "week", "month"] as const)("round-trips task start offsets at %s zoom", (zoom) => {
-    const viewport = nativeGanttRenderer.createViewport([task], zoom, "2026-07-22");
-    expect(viewport.dayWidth).toBeGreaterThan(0);
-    expect(dateAtOffset(viewport, nativeGanttRenderer.taskBar(task, viewport).left)).toBe(
-      task.start,
-    );
-  });
+  it.each(["day", "week", "month"] as const)(
+    "round-trips task start offsets at %s zoom",
+    (zoom) => {
+      const viewport = nativeGanttRenderer.createViewport([task], zoom, "2026-07-22");
+      expect(viewport.dayWidth).toBeGreaterThan(0);
+      expect(
+        dateAtOffset(viewport, nativeGanttRenderer.taskBar(task, viewport).left),
+      ).toBe(task.start);
+    },
+  );
 
   it("rounds boundary and mid-day offsets, including negative offsets", () => {
     const viewport = nativeGanttRenderer.createViewport([task], "day", "2026-07-22");

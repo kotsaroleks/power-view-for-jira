@@ -8,6 +8,7 @@ import type {
   JiraServerInfo,
   JiraUser,
   PaginatedResult,
+  PageProgress,
   ProjectSearchOptions,
   SearchIssuesRequest,
 } from "@power-view/domain";
@@ -66,7 +67,7 @@ export interface SearchBoardIssuesRequest {
   maxIssues?: number;
   pageSize?: number;
   forceRefresh?: boolean;
-  onProgress?: (progress: import("@power-view/domain").PageProgress) => void;
+  onProgress?: (progress: PageProgress) => void;
 }
 
 export interface CreateIssueLinkRequest {

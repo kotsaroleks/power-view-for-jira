@@ -101,7 +101,16 @@ function MultiSelectFilter<Value extends string>({
   return (
     <div className="gantt-filter-field">
       <span className="gantt-filter-label">{label}</span>
-      <details className="gantt-multiselect" name="gantt-filter">
+      <details
+        className="gantt-multiselect"
+        name="gantt-filter"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          event.currentTarget.open = false;
+          event.currentTarget.querySelector("summary")?.focus();
+        }}
+      >
         <summary aria-label={`${label}: ${summary}`}>
           <span>{summary}</span>
           {selected.length > 0 ? (

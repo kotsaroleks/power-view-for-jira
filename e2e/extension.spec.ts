@@ -1,11 +1,5 @@
 import { chromium, expect, test, type BrowserContext } from "@playwright/test";
-import {
-  jiraCloudCurrentUserFixture,
-  jiraCloudProjectsFixture,
-  jiraCloudServerInfoFixture,
-  jiraFieldsFixture,
-  makeJiraScheduleFixtures,
-} from "../packages/test-fixtures/src/index";
+import { installJiraFixture } from "./jira-fixture";
 import { existsSync } from "node:fs";
 import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -67,9 +61,7 @@ test.describe("extension shell", () => {
 
     const app = await context.newPage();
     await app.goto(`chrome-extension://${extensionId}/app/index.html`);
-    await expect(
-      app.getByRole("heading", { name: "Open Power View from Jira." }),
-    ).toBeVisible();
+    await expect(app.getByText("No Jira context is available yet.")).toBeVisible();
   });
 
   test("detects Jira and loads a fixture schedule through the browser session", async () => {
@@ -77,44 +69,7 @@ test.describe("extension shell", () => {
       throw new Error("The extension browser context was not initialized.");
     }
 
-    const issues = makeJiraScheduleFixtures();
-    await context.route("https://fixture.atlassian.net/**", async (route) => {
-      const url = new URL(route.request().url());
-      const json = url.pathname.endsWith("/serverInfo")
-        ? jiraCloudServerInfoFixture
-        : url.pathname.endsWith("/myself")
-          ? jiraCloudCurrentUserFixture
-          : url.pathname.endsWith("/project/search")
-            ? jiraCloudProjectsFixture
-            : url.pathname.endsWith("/field")
-              ? jiraFieldsFixture
-              : url.pathname.endsWith("/search/jql")
-                ? { issues, isLast: true }
-                : undefined;
-
-      if (json) {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(json),
-        });
-        return;
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: "text/html",
-        body: `<!doctype html>
-          <html>
-            <head>
-              <meta name="ajs-base-url" content="https://fixture.atlassian.net">
-              <meta name="ajs-project-key" content="POWER">
-              <meta name="ajs-issue-key" content="POWER-1">
-            </head>
-            <body><h1>Fixture Jira issue</h1></body>
-          </html>`,
-      });
-    });
+    const fixture = await installJiraFixture(context);
 
     const jira = await context.newPage();
     await jira.goto("https://fixture.atlassian.net/browse/POWER-1");
@@ -127,20 +82,114 @@ test.describe("extension shell", () => {
     await app.goto(`chrome-extension://${extensionId}/app/index.html`);
 
     await expect(
-      app.getByRole("heading", { name: "Test your Jira connection." }),
+      app.getByRole("heading", { name: "What do you want to open?" }),
     ).toBeVisible();
-    await app.getByRole("button", { name: "Test Jira connection" }).click();
-    await expect(app.getByText("Connected as Fixture Cloud User")).toBeVisible();
+    await app.getByRole("button", { name: "Gantt", exact: true }).click();
+    const grid = app.getByRole("grid", { name: "Gantt tasks" });
+    await expect(grid.getByRole("link", { name: "POWER-1", exact: true })).toBeVisible();
+    await expect(grid.getByRole("row")).toHaveCount(4);
 
-    await app.getByRole("button", { name: "Load projects and fields" }).click();
-    await expect(app.getByLabel("Jira project")).toHaveValue("POWER");
-    await app.getByRole("button", { name: "Load issue preview" }).click();
-    await expect(app.getByText("5 normalized issues ready")).toBeVisible();
-    await expect(app.getByRole("heading", { name: "Schedule workspace" })).toBeVisible();
-    await expect(app.locator(".gantt-dependency-path")).toHaveCount(1);
+    // Active filters must remain visible and reversible at narrow widths.
+    const hideCompleted = app.getByRole("checkbox", {
+      name: "Hide completed matching tasks",
+    });
+    await hideCompleted.check();
+    await expect(grid.getByRole("row")).toHaveCount(3);
+    await app.setViewportSize({ width: 768, height: 900 });
+    await expect(hideCompleted).toBeVisible();
+    await hideCompleted.uncheck();
+    await expect(grid.getByRole("row")).toHaveCount(4);
+    await app.setViewportSize({ width: 1280, height: 900 });
 
-    await app.locator('summary[aria-label="Risk: All risks"]').click();
-    await app.getByRole("checkbox", { name: "Risk: Blocked" }).check();
-    await expect(app.getByText(/1 match/)).toBeVisible();
+    // Grid arrows move focus without opening an issue or changing Jira.
+    const firstCell = grid.getByRole("gridcell").nth(0);
+    await firstCell.focus();
+    await app.keyboard.press("ArrowDown");
+    await expect(grid.getByRole("gridcell").nth(3)).toBeFocused();
+    await app.keyboard.press("Control+Home");
+    await expect(firstCell).toBeFocused();
+
+    // Labels span weeks/months instead of competing for a daily cell.
+    const dateLabels = app.locator(".gantt-v2-date-header > span");
+    expect(await dateLabels.count()).toBeLessThan(15);
+    for (const label of await dateLabels.all()) {
+      expect(
+        await label.evaluate((element) => element.scrollWidth <= element.clientWidth),
+      ).toBe(true);
+    }
+    await app.getByRole("button", { name: "Month", exact: true }).click();
+    expect(await dateLabels.count()).toBeLessThan(5);
+
+    // Real extension messaging + transport, with a mutable simulated Jira server.
+    await app
+      .getByRole("button", { name: "Edit status for POWER-1", exact: true })
+      .click();
+    await app
+      .getByRole("combobox", { name: "Change status for POWER-1", exact: true })
+      .selectOption("31");
+    await expect(
+      app.getByRole("button", { name: "Edit status for POWER-1", exact: true }),
+    ).toHaveText("Done");
+    await expect.poll(() => fixture.issues[0]?.fields.status.name).toBe("Done");
+
+    await app
+      .getByRole("button", { name: "Edit assignee for POWER-2", exact: true })
+      .click();
+    await app
+      .getByRole("searchbox", { name: "Search assignee for POWER-2", exact: true })
+      .fill("Fixture New User");
+    await app.getByRole("button", { name: "Search Jira users", exact: true }).click();
+    await app
+      .getByRole("button", { name: "Assign POWER-2 to Fixture New User", exact: true })
+      .click();
+    await expect(
+      app.getByRole("button", { name: "Edit assignee for POWER-2", exact: true }),
+    ).toHaveText("Fixture New User");
+    await expect
+      .poll(() => fixture.issues[1]?.fields.assignee.accountId)
+      .toBe("fixture-new-user");
+
+    await app.getByRole("button", { name: "Day", exact: true }).click();
+    await app.getByRole("button", { name: "Today", exact: true }).click();
+    const move = app.getByRole("button", { name: "Move POWER-2", exact: true });
+    await move.scrollIntoViewIfNeeded();
+    const bar = await move.boundingBox();
+    if (!bar) throw new Error("Missing task bar");
+    const originalDate = fixture.issues[1]?.fields.customfield_10010;
+    await app.mouse.move(bar.x + bar.width / 2, bar.y + bar.height / 2);
+    await app.mouse.down();
+    await app.mouse.move(bar.x + bar.width / 2 + 80, bar.y + bar.height / 2, {
+      steps: 5,
+    });
+    await app.mouse.up();
+    await expect
+      .poll(() => fixture.issues[1]?.fields.customfield_10010)
+      .not.toBe(originalDate);
+    expect(fixture.writes.map(({ method }) => method)).toEqual(["POST", "PUT", "PUT"]);
+
+    // A reload verifies server-backed state rather than just optimistic labels.
+    await app.reload();
+    await expect(
+      app.getByRole("heading", { name: "What do you want to open?" }),
+    ).toBeVisible();
+    await app.getByRole("button", { name: "Gantt", exact: true }).click();
+    await expect(
+      app.getByRole("button", { name: "Edit status for POWER-1", exact: true }),
+    ).toHaveText("Done");
+    await expect(
+      app.getByRole("button", { name: "Edit assignee for POWER-2", exact: true }),
+    ).toHaveText("Fixture New User");
+    await app.getByRole("button", { name: "Reports", exact: true }).click();
+    await app
+      .getByRole("combobox", { name: "Report type", exact: true })
+      .selectOption("weekly");
+    await app.getByRole("button", { name: "Generate report", exact: true }).click();
+    await expect(
+      app.getByRole("button", { name: "Copy stand-up", exact: true }),
+    ).toBeVisible();
+    await expect(
+      app.getByRole("button", { name: /WEEKLY · Power Delivery Board/ }),
+    ).toBeVisible();
+    expect(fixture.unexpected).toEqual([]);
   });
 });

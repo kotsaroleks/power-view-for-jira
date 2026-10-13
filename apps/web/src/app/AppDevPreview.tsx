@@ -1,7 +1,7 @@
 import { SettingsStore } from "@power-view/storage";
 
 import { App } from "./App";
-import { MemoryStorage, previewRuntime } from "./SetupPanelDevPreview";
+import { MemoryStorage, previewRuntime } from "./preview-runtime";
 
 export function AppDevPreview() {
   return (
