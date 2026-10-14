@@ -6,6 +6,7 @@ const ALLOWED_READ_ROUTES = new Map<string, ReadonlySet<string>>([
   ["/rest/api/2/project", new Set()],
   ["/rest/api/2/field", new Set()],
   ["/rest/api/2/status", new Set()],
+  ["/rest/api/2/priority", new Set()],
   [
     "/rest/api/2/search",
     new Set(["jql", "startAt", "maxResults", "fields", "validateQuery"]),
@@ -14,6 +15,7 @@ const ALLOWED_READ_ROUTES = new Map<string, ReadonlySet<string>>([
   ["/rest/api/3/serverInfo", new Set()],
   ["/rest/api/3/field", new Set()],
   ["/rest/api/3/status", new Set()],
+  ["/rest/api/3/priority", new Set()],
   [
     "/rest/api/3/search/jql",
     new Set(["jql", "nextPageToken", "maxResults", "fields", "fieldsByKeys", "failFast"]),
@@ -47,21 +49,26 @@ function validIssueReference(value: unknown): boolean {
   );
 }
 
-function validDateUpdateBody(value: unknown): boolean {
+function validIssueUpdateBody(value: unknown): boolean {
   if (!isRecord(value) || !hasOnlyKeys(value, ["fields"]) || !isRecord(value.fields)) {
     return false;
   }
   const entries = Object.entries(value.fields);
   return (
     entries.length > 0 &&
-    entries.length <= 2 &&
-    entries.every(
-      ([fieldId, fieldValue]) =>
-        ISSUE_FIELD_PATTERN.test(fieldId) &&
-        (fieldValue === null ||
-          (typeof fieldValue === "string" &&
-            fieldValue.length <= 64 &&
-            DATE_VALUE_PATTERN.test(fieldValue))),
+    entries.length <= 3 &&
+    entries.filter(([fieldId]) => fieldId !== "priority").length <= 2 &&
+    entries.every(([fieldId, fieldValue]) =>
+      fieldId === "priority"
+        ? isRecord(fieldValue) &&
+          hasOnlyKeys(fieldValue, ["id"]) &&
+          typeof fieldValue.id === "string" &&
+          /^\d{1,32}$/.test(fieldValue.id)
+        : ISSUE_FIELD_PATTERN.test(fieldId) &&
+          (fieldValue === null ||
+            (typeof fieldValue === "string" &&
+              fieldValue.length <= 64 &&
+              DATE_VALUE_PATTERN.test(fieldValue))),
     )
   );
 }
@@ -239,7 +246,7 @@ function validMutationRequest(request: JiraTransportRequest): boolean {
   );
 
   if (request.method === "PUT" && issuePath.test(request.path)) {
-    return validDateUpdateBody(request.body);
+    return validIssueUpdateBody(request.body);
   }
   if (request.method === "PUT" && assigneePath.test(request.path)) {
     return validAssigneeBody(request.body);

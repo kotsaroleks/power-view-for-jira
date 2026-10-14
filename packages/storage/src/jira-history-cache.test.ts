@@ -166,6 +166,10 @@ class FakeDatabase {
     return this.upgrade.objectStore(name);
   }
 
+  deleteObjectStore(name: string): void {
+    this.rows.delete(name);
+  }
+
   transaction(): FakeTransaction {
     this.transactions += 1;
     return new FakeTransaction(this);
@@ -227,7 +231,7 @@ function record(
   overrides: Partial<JiraHistoryCacheRecord<string>> = {},
 ): JiraHistoryCacheRecord<string> {
   return {
-    key: jiraHistoryCacheKey(baseUrl, issueId),
+    key: jiraHistoryCacheKey(baseUrl, issueId, "user-a"),
     issueId,
     issueUpdatedAt: "2026-08-01T00:00:00.000Z",
     fetchedAt: new Date().toISOString(),
@@ -255,8 +259,8 @@ describe.each(caches)("%s", (_name, create) => {
     await cache.putMany("changelogs", [record("1"), record("2")]);
 
     const records = await cache.getMany<string>("changelogs", [
-      jiraHistoryCacheKey(baseUrl, "1"),
-      jiraHistoryCacheKey(baseUrl, "missing"),
+      jiraHistoryCacheKey(baseUrl, "1", "user-a"),
+      jiraHistoryCacheKey(baseUrl, "missing", "user-a"),
     ]);
 
     expect(records.map((item) => item.issueId)).toEqual(["1"]);
@@ -267,9 +271,9 @@ describe.each(caches)("%s", (_name, create) => {
     const cache = create();
     await cache.putMany("changelogs", [record("1")]);
 
-    expect(await cache.getMany("worklogs", [jiraHistoryCacheKey(baseUrl, "1")])).toEqual(
-      [],
-    );
+    expect(
+      await cache.getMany("worklogs", [jiraHistoryCacheKey(baseUrl, "1", "user-a")]),
+    ).toEqual([]);
   });
 
   it("stores an issue that produced no entries so it can hit next time", async () => {
@@ -277,7 +281,7 @@ describe.each(caches)("%s", (_name, create) => {
     await cache.putMany("changelogs", [record("1", { entries: [] })]);
 
     const [stored] = await cache.getMany<string>("changelogs", [
-      jiraHistoryCacheKey(baseUrl, "1"),
+      jiraHistoryCacheKey(baseUrl, "1", "user-a"),
     ]);
 
     expect(stored?.entries).toEqual([]);
@@ -295,9 +299,9 @@ describe.each(caches)("%s", (_name, create) => {
     await cache.putMany("changelogs", [record("new")]);
 
     const records = await cache.getMany<string>("changelogs", [
-      jiraHistoryCacheKey(baseUrl, "old"),
-      jiraHistoryCacheKey(baseUrl, "fresh"),
-      jiraHistoryCacheKey(baseUrl, "new"),
+      jiraHistoryCacheKey(baseUrl, "old", "user-a"),
+      jiraHistoryCacheKey(baseUrl, "fresh", "user-a"),
+      jiraHistoryCacheKey(baseUrl, "new", "user-a"),
     ]);
     expect(records.map((item) => item.issueId)).toEqual(["fresh", "new"]);
   });
@@ -318,7 +322,7 @@ describe("IndexedDbJiraHistoryCache", () => {
     await cache.getMany(
       "changelogs",
       Array.from({ length: 25 }, (_, index) =>
-        jiraHistoryCacheKey(baseUrl, String(index)),
+        jiraHistoryCacheKey(baseUrl, String(index), "user-a"),
       ),
     );
     expect(database.transactions).toBe(2);
@@ -351,4 +355,21 @@ describe("isFreshCacheRecord", () => {
   it("misses when there is no record at all", () => {
     expect(isFreshCacheRecord(undefined, "2026-08-01T00:00:00.000Z", "fp")).toBe(false);
   });
+});
+
+it("discards unscoped v1 records during database upgrade", async () => {
+  const factory = new FakeIndexedDb();
+  const database = factory.database("legacy-cache");
+  database.version = 1;
+  database.rows.set(
+    "worklogs",
+    new Map([["legacy", { key: "legacy", fetchedAt: "2026-10-14" }]]),
+  );
+  database.rows.set("changelogs", new Map());
+  const cache = new IndexedDbJiraHistoryCache(
+    factory as unknown as IDBFactory,
+    "legacy-cache",
+  );
+  expect(await cache.getMany("worklogs", ["legacy"])).toEqual([]);
+  expect(database.version).toBe(2);
 });

@@ -48,6 +48,8 @@ export interface CachedHistoryFetch<TEntry> {
   cache?: JiraHistoryCache;
   storeName: JiraHistoryCacheStoreName;
   baseUrl: string;
+  /** Verified current Jira identity; absent identity disables all cache operations. */
+  userId?: string;
   issues: readonly HistoryIssueRef[];
   fingerprint: string;
   forceRefresh?: boolean;
@@ -77,18 +79,20 @@ async function tolerate<T>(operation: () => Promise<T>, fallback: T): Promise<T>
 export async function fetchWithHistoryCache<TEntry>(
   options: CachedHistoryFetch<TEntry>,
 ): Promise<TEntry[]> {
-  const { cache, storeName, baseUrl, issues, fingerprint } = options;
+  const { storeName, baseUrl, issues, fingerprint } = options;
+  const userId = options.userId?.trim();
+  const cache = userId ? options.cache : undefined;
   const hits = new Map<string, TEntry[]>();
 
   if (cache && !options.forceRefresh) {
-    const keys = issues.map((issue) => jiraHistoryCacheKey(baseUrl, issue.id));
+    const keys = issues.map((issue) => jiraHistoryCacheKey(baseUrl, issue.id, userId!));
     const records = await tolerate(
       () => cache.getMany<TEntry>(storeName, keys),
       [] as Array<JiraHistoryCacheRecord<TEntry>>,
     );
     const byKey = new Map(records.map((record) => [record.key, record]));
     for (const issue of issues) {
-      const record = byKey.get(jiraHistoryCacheKey(baseUrl, issue.id));
+      const record = byKey.get(jiraHistoryCacheKey(baseUrl, issue.id, userId!));
       if (isFreshCacheRecord(record, issue.updatedAt, fingerprint))
         hits.set(issue.id, record!.entries);
     }
@@ -119,7 +123,7 @@ export async function fetchWithHistoryCache<TEntry>(
         ? []
         : [
             {
-              key: jiraHistoryCacheKey(baseUrl, issue.id),
+              key: jiraHistoryCacheKey(baseUrl, issue.id, userId!),
               issueId: issue.id,
               issueUpdatedAt: issue.updatedAt,
               fetchedAt,

@@ -181,7 +181,8 @@ function reportProgress(
 
 export abstract class BaseJiraClient implements JiraClient {
   protected abstract readonly apiVersion: "2" | "3";
-  private fieldsCache?: JiraField[];
+  private fieldsCache: JiraField[] | undefined;
+  private currentUserIdentity: string | undefined;
   private readonly issueCache = new Map<string, IssueCacheEntry>();
 
   constructor(
@@ -201,7 +202,14 @@ export abstract class BaseJiraClient implements JiraClient {
       rawJiraUserSchema,
       signal,
     );
-    return mapJiraUser(rawUser);
+    const user = mapJiraUser(rawUser);
+    const identity = this.deploymentType === "cloud" ? user.accountId : user.username;
+    if (!identity || identity !== this.currentUserIdentity) {
+      this.clearIssueCache();
+      this.fieldsCache = undefined;
+    }
+    this.currentUserIdentity = identity;
+    return user;
   }
 
   async getServerInfo(signal?: AbortSignal): Promise<JiraServerInfo> {

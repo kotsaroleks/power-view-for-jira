@@ -284,3 +284,52 @@ describe("Jira request policy", () => {
     }
   });
 });
+
+describe("priority production policy", () => {
+  it.each(["2", "3"])(
+    "allows API %s priorities and a combined date/priority update",
+    (version) => {
+      expect(() =>
+        validatedJiraRequestUrl(
+          { ...request, path: `/rest/api/${version}/priority` },
+          request.baseUrl,
+          false,
+        ),
+      ).not.toThrow();
+      for (const fields of [
+        { priority: { id: "1" } },
+        { priority: { id: "1" }, duedate: "2026-10-14", customfield_10010: "2026-10-12" },
+      ]) {
+        expect(() =>
+          validatedJiraRequestUrl(
+            {
+              ...request,
+              method: "PUT",
+              path: `/rest/api/${version}/issue/POWER-42`,
+              body: { fields },
+            },
+            request.baseUrl,
+            false,
+          ),
+        ).not.toThrow();
+      }
+    },
+  );
+  it.each([null, { id: "" }, { id: 1 }, { id: "1", name: "High" }, { id: "../1" }])(
+    "rejects invalid priority %j",
+    (priority) => {
+      expect(() =>
+        validatedJiraRequestUrl(
+          {
+            ...request,
+            method: "PUT",
+            path: "/rest/api/3/issue/POWER-42",
+            body: { fields: { priority } },
+          },
+          request.baseUrl,
+          false,
+        ),
+      ).toThrow();
+    },
+  );
+});

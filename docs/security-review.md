@@ -35,3 +35,10 @@ web-accessible resources. CI reruns validation before packaging.
 Any new Jira endpoint, mutation field, Chrome permission, externally reachable resource,
 analytics destination, or persistent issue-data cache requires a fresh threat-model and
 privacy review.
+
+Jira response bodies are streamed with a 20 MiB byte limit in the service worker, content
+bridge, and self-contained MAIN-world bridge. Content-Length can reject a response early,
+but actual stream bytes are checked even when that header is absent or inaccurate.
+Oversized bodies are cancelled before JSON parsing. History cache keys include the freshly
+resolved Jira user identity; unidentified users bypass caching, and the IndexedDB v2
+upgrade discards unscoped v1 records.

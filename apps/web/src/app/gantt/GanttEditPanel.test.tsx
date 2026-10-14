@@ -1,6 +1,6 @@
 import type { GanttTask } from "@power-view/domain";
 import type { JiraClient } from "@power-view/jira-client";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { GanttEditPanel, type GanttEditingContext } from "./GanttEditPanel";
@@ -164,5 +164,39 @@ describe("GanttEditPanel dependency candidates", () => {
     );
 
     expect(await dependsOnOptionLabels()).toEqual([]);
+  });
+});
+
+describe("GanttEditPanel priorities", () => {
+  it("shows a priority loading failure and disables saving", async () => {
+    const editing = editingContext();
+    editing.client.getPriorities = vi
+      .fn()
+      .mockRejectedValue(new Error("Network unavailable"));
+    const selected = task({});
+    render(<GanttEditPanel task={selected} tasks={[selected]} editing={editing} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not load Jira priorities",
+    );
+    expect(screen.getByRole("button", { name: "Save priority" })).toBeDisabled();
+  });
+
+  it("saves the selected priority and refreshes Jira data", async () => {
+    const editing = editingContext();
+    editing.client.getPriorities = vi.fn().mockResolvedValue([{ id: "1", name: "High" }]);
+    const update = vi.fn().mockResolvedValue(undefined);
+    editing.client.updateIssueFields = update;
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    try {
+      const selected = task({});
+      render(<GanttEditPanel task={selected} tasks={[selected]} editing={editing} />);
+      await screen.findByRole("option", { name: "High" });
+      fireEvent.change(screen.getByLabelText("Priority"), { target: { value: "1" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save priority" }));
+      await waitFor(() => expect(editing.refresh).toHaveBeenCalledOnce());
+      expect(update).toHaveBeenCalledWith("POWER-1", { priority: { id: "1" } });
+    } finally {
+      confirm.mockRestore();
+    }
   });
 });

@@ -36,15 +36,19 @@ export interface JiraHistoryCache {
 }
 
 const DATABASE_NAME = "power-view-jira-cache";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAMES: readonly JiraHistoryCacheStoreName[] = ["changelogs", "worklogs"];
 const FETCHED_AT_INDEX = "fetchedAt";
 
 /** A month of untouched history is dead weight; the issue itself is long gone from view. */
 export const MAX_CACHE_RECORD_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function jiraHistoryCacheKey(baseUrl: string, issueId: string): string {
-  return `${baseUrl}|${issueId}`;
+export function jiraHistoryCacheKey(
+  baseUrl: string,
+  issueId: string,
+  userId: string,
+): string {
+  return JSON.stringify([baseUrl, userId, issueId]);
 }
 
 /**
@@ -187,12 +191,20 @@ export class IndexedDbJiraHistoryCache implements JiraHistoryCache {
       request.onupgradeneeded = () => {
         const database = request.result;
         for (const storeName of STORE_NAMES) {
-          if (database.objectStoreNames.contains(storeName)) continue;
+          // Version 1 records have no user scope and must never be migrated.
+          if (database.objectStoreNames.contains(storeName))
+            database.deleteObjectStore(storeName);
           const store = database.createObjectStore(storeName, { keyPath: "key" });
           store.createIndex(FETCHED_AT_INDEX, FETCHED_AT_INDEX, { unique: false });
         }
       };
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        const database = request.result;
+        database.onversionchange = () => database.close();
+        resolve(database);
+      };
+      request.onblocked = () =>
+        reject(new Error("Jira history cache upgrade is blocked by another tab."));
       request.onerror = () =>
         reject(request.error ?? new Error("Could not open the Jira history cache."));
     });

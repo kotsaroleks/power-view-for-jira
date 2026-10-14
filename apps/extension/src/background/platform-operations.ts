@@ -586,7 +586,8 @@ async function executeJiraMainWorldBridge(
         : result.reason === "invalid-response"
           ? {
               code: "INVALID_RESPONSE" as const,
-              message: "Jira returned malformed JSON.",
+              message:
+                "Jira returned invalid JSON or a response exceeding the 20 MiB limit.",
               details: "The endpoint response could not be validated.",
               retryable: true,
               ...(result.status === undefined ? {} : { httpStatus: result.status }),

@@ -24,6 +24,37 @@ export async function fetchJiraInMainWorld(
   body: string | null,
   timeoutMs: number,
 ): Promise<JiraMainWorldFetchResult> {
+  // Chrome serializes this function into MAIN world, so the reader must be local.
+  async function readBoundedJiraResponse(response: Response): Promise<string> {
+    const limit = 20 * 1024 * 1024;
+    const declared = Number(response.headers.get("Content-Length"));
+    if (Number.isFinite(declared) && declared > limit) {
+      await response.body?.cancel();
+      throw new Error("Jira response exceeds the 20 MiB limit.");
+    }
+    if (!response.body) return "";
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const parts: string[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > limit) {
+          await reader.cancel();
+          throw new Error("Jira response exceeds the 20 MiB limit.");
+        }
+        parts.push(decoder.decode(value, { stream: true }));
+      }
+      parts.push(decoder.decode());
+      return parts.join("");
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
   const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("timeout"), timeoutMs);
@@ -63,7 +94,7 @@ export async function fetchJiraInMainWorld(
     }
 
     try {
-      const responseText = await response.text();
+      const responseText = await readBoundedJiraResponse(response);
       return {
         kind: "success",
         status: response.status,

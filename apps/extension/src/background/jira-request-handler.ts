@@ -4,6 +4,7 @@ import {
   sanitizedJiraRequestHeaders,
   validatedJiraRequestUrl,
 } from "../jira-request-policy";
+import { readBoundedJiraResponse } from "../jira-response-reader";
 import { jiraStatusError } from "../jira-response-policy";
 import { ExtensionOperationError } from "./message-handler";
 
@@ -235,7 +236,7 @@ export class JiraRequestHandler {
           if (response.ok) {
             let data: unknown;
             try {
-              const responseText = await response.text();
+              const responseText = await readBoundedJiraResponse(response);
               data = responseText.trim() ? JSON.parse(responseText) : null;
             } catch {
               if (controller.signal.reason === "timeout") {
@@ -253,7 +254,8 @@ export class JiraRequestHandler {
               throw new JiraRequestExecutionError(
                 {
                   code: "INVALID_RESPONSE",
-                  message: "Jira returned malformed JSON.",
+                  message:
+                    "Jira returned invalid JSON or a response exceeding the 20 MiB limit.",
                   details: "The endpoint response could not be validated.",
                   retryable: true,
                   httpStatus: response.status,

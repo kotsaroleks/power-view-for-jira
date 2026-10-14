@@ -89,6 +89,7 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
   const [linkTypes, setLinkTypes] = useState<JiraIssueLinkType[]>([]);
   const [priorities, setPriorities] = useState<JiraPriority[]>([]);
   const [transitions, setTransitions] = useState<JiraIssueTransition[]>([]);
+  const [prioritiesError, setPrioritiesError] = useState<string>();
   const [priorityId, setPriorityId] = useState("");
   const [transitionId, setTransitionId] = useState("");
   const [linkTypesError, setLinkTypesError] = useState<string>();
@@ -119,6 +120,9 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
     setContextMissing(false);
     setLinkTypes([]);
     setLinkTypesError(undefined);
+    setPrioritiesError(undefined);
+    setPriorities([]);
+    setPriorityId("");
     setAssigneeQuery("");
     setAssignees([]);
     setSelectedAssignee("");
@@ -164,7 +168,10 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
             );
           }
         },
-        () => undefined,
+        (loadError: unknown) => {
+          if (!controller.signal.aborted)
+            setPrioritiesError(mutationErrorMessage(loadError));
+        },
       );
     }
     if (typeof editing.client.getIssueTransitions === "function") {
@@ -537,6 +544,11 @@ export function GanttEditPanel({ task, tasks, editing }: GanttEditPanelProps) {
             {busyAction === "Priority" ? "Saving…" : "Save priority"}
           </button>
         </div>
+        {prioritiesError ? (
+          <small role="alert" className="gantt-edit-error">
+            Could not load Jira priorities: {prioritiesError}
+          </small>
+        ) : null}
       </fieldset>
 
       <fieldset className="gantt-edit-group" disabled={isBusy}>

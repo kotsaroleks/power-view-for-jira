@@ -189,6 +189,19 @@ export async function generateReport(
 ): Promise<GeneratedReportSnapshot> {
   const { client, request } = options;
   abortIfRequested(options.signal);
+  // Resolve identity afresh for every run; a stored connection can outlive Jira sign-in.
+  let userId: string | undefined;
+  if (options.historyCache) {
+    try {
+      const user = await client.getCurrentUser(options.signal);
+      const identifier =
+        options.deploymentType === "cloud" ? user.accountId : user.username;
+      if (identifier?.trim()) userId = `${options.deploymentType}:${identifier}`;
+    } catch {
+      abortIfRequested(options.signal);
+      // Unknown identity costs an uncached report, never cross-account cache access.
+    }
+  }
   options.onProgress?.({ stage: "board" });
   const [board, boardConfiguration] = await Promise.all([
     client.getBoard(request.boardId, options.signal),
@@ -296,6 +309,7 @@ export async function generateReport(
       ...(options.historyCache ? { cache: options.historyCache } : {}),
       storeName: "changelogs",
       baseUrl: options.baseUrl,
+      ...(userId ? { userId } : {}),
       issues: changelogCandidates(candidateIssues, period.start),
       fingerprint: changelogFingerprint(changelogRequest),
       ...(options.forceRefresh ? { forceRefresh: true } : {}),
@@ -321,6 +335,7 @@ export async function generateReport(
       ...(options.historyCache ? { cache: options.historyCache } : {}),
       storeName: "worklogs",
       baseUrl: options.baseUrl,
+      ...(userId ? { userId } : {}),
       issues: worklogIssueRefs,
       fingerprint: worklogFingerprint(period.start, period.dataCutoff),
       ...(options.forceRefresh ? { forceRefresh: true } : {}),

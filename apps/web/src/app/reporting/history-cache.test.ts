@@ -74,6 +74,7 @@ function clientFixture(issues: ReportingIssueSnapshot[]) {
   const ids = (request: { issues: Array<{ id: string }> }) =>
     request.issues.map((item) => item.id);
   return {
+    getCurrentUser: vi.fn().mockResolvedValue({ accountId: "user-a", displayName: "A" }),
     getBoard: vi.fn().mockResolvedValue({
       id: "7",
       name: "Power Delivery Board",
@@ -372,5 +373,30 @@ describe("generateReport history cache", () => {
 
     expect(mixed.changes).toEqual(uncached.changes);
     expect(mixed.worklogs).toEqual(uncached.worklogs);
+  });
+  it("does not reuse user A history after the same client switches to user B", async () => {
+    const cache = new MemoryJiraHistoryCache();
+    const client = clientFixture([issue("1")]);
+    await run(client, { cache });
+    client.getCurrentUser.mockResolvedValue({ accountId: "user-b", displayName: "B" });
+    client.getIssueWorklogs.mockResolvedValue([]);
+    const result = await run(client, { cache });
+    expect(requestedChangelogIds(client, 1)).toEqual(["1"]);
+    expect(result.worklogs).toEqual([]);
+    await run(client, { cache });
+    expect(requestedChangelogIds(client, 2)).toEqual([]);
+  });
+
+  it("neither reads nor writes history when current identity cannot be verified", async () => {
+    const cache = new MemoryJiraHistoryCache();
+    const reads = vi.spyOn(cache, "getMany");
+    const writes = vi.spyOn(cache, "putMany");
+    const client = clientFixture([issue("1")]);
+    client.getCurrentUser.mockRejectedValue(new Error("Signed out"));
+    await run(client, { cache });
+    await run(client, { cache });
+    expect(reads).not.toHaveBeenCalled();
+    expect(writes).not.toHaveBeenCalled();
+    expect(requestedChangelogIds(client, 1)).toEqual(["1"]);
   });
 });
