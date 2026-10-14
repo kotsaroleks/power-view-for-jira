@@ -9,10 +9,24 @@ import { registerUpdateChecks, runUpdateCheck } from "./update-checker-runner";
 
 const handleMessage = createExtensionMessageHandler(platformOperations);
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   const version = chrome.runtime.getManifest().version;
   console.info(`${PRODUCT_NAME} ${version} installed.`);
   void runUpdateCheck();
+  if (details.reason === "update") {
+    void chrome.tabs
+      .query({ url: `${chrome.runtime.getURL("app/index.html")}*` })
+      .then((tabs) =>
+        Promise.all(
+          tabs
+            .filter((tab) => tab.id !== undefined)
+            .map((tab) => chrome.tabs.reload(tab.id!)),
+        ),
+      )
+      .catch(() => {
+        console.warn("Power View could not refresh an open workspace after updating.");
+      });
+  }
 });
 
 chrome.runtime.onStartup.addListener(() => {

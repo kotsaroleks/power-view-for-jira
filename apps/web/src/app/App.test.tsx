@@ -81,6 +81,14 @@ function runtimeFor(
 }
 
 describe("App", () => {
+  it("reloads the extension from the workspace update button", async () => {
+    const reload = vi.fn();
+    render(<App runtime={{ ...runtimeFor(), reload }} />);
+    await screen.findByText(context.baseUrl);
+    fireEvent.click(screen.getByRole("button", { name: "↻ Update app" }));
+    expect(reload).toHaveBeenCalledOnce();
+  });
+
   it("displays the latest validated Jira context", async () => {
     render(<App runtime={runtimeFor()} />);
 

@@ -20,6 +20,7 @@ import {
 import { SettingsStore } from "@power-view/storage";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { EstimationBoard } from "./estimation/EstimationBoard";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { GanttV2Service } from "./gantt-v2/GanttV2Service";
 import { ReportsService } from "./reports/ReportsService";
@@ -31,10 +32,11 @@ interface ClipboardWriter {
   writeText(value: string): Promise<void>;
 }
 
-type AppPage = "settings" | "chooser" | "reports" | "gantt" | "status" | "diagnostics";
+type AppPage =
+  "settings" | "chooser" | "reports" | "gantt" | "status" | "estimation" | "diagnostics";
 
 export interface AppProps {
-  runtime?: ExtensionRuntime;
+  runtime?: ExtensionRuntime & { reload?: () => void };
   clipboard?: ClipboardWriter;
   settingsStore?: SettingsStore;
 }
@@ -274,9 +276,30 @@ function AppContent({
             >
               Status
             </button>
+            <button
+              type="button"
+              aria-current={page === "estimation" ? "page" : undefined}
+              onClick={() => navigate("estimation")}
+            >
+              Estimation
+            </button>
           </nav>
         ) : null}
         <div className="topbar-actions">
+          <button
+            className="settings-button"
+            type="button"
+            title="Reload Power View to apply the latest installed build"
+            onClick={() => {
+              if ("reload" in runtime && typeof runtime.reload === "function") {
+                runtime.reload();
+              } else {
+                window.location.reload();
+              }
+            }}
+          >
+            ↻ Update app
+          </button>
           <button
             className="icon-button"
             type="button"
@@ -473,6 +496,25 @@ function AppContent({
                   →
                 </span>
               </button>
+              <button
+                className="tool-card tool-card-gantt"
+                type="button"
+                onClick={() => navigate("estimation")}
+              >
+                <span className="tool-icon" aria-hidden="true">
+                  E
+                </span>
+                <span className="tool-card-copy">
+                  <small>RELEASE PREPARATION</small>
+                  <strong>Estimation board</strong>
+                  <span>
+                    Estimate client scope, clarify requirements, and prepare QA handoffs.
+                  </span>
+                </span>
+                <span className="tool-arrow" aria-hidden="true">
+                  →
+                </span>
+              </button>
             </div>
             <button
               className="text-button"
@@ -570,6 +612,22 @@ function AppContent({
               issues={readySchedule.issues}
               loadedAt={readySchedule.loadedAt}
               truncated={readySchedule.truncated}
+            />
+          </section>
+        ) : null}
+
+        {page === "estimation" && authenticated && readySchedule ? (
+          <section className="page-frame tool-page tool-page-wide">
+            <button
+              className="back-button"
+              type="button"
+              onClick={() => navigate("chooser")}
+            >
+              ← Workspace
+            </button>
+            <EstimationBoard
+              key={`${readySchedule.jiraBaseUrl}:${readySchedule.board.id}`}
+              workspace={readySchedule}
             />
           </section>
         ) : null}

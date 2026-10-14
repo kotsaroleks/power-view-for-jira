@@ -1,0 +1,220 @@
+.estimation-workspace {
+  display: grid;
+  gap: 20px;
+}
+.estimation-intro,
+.estimation-detail-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.estimation-intro h1 {
+  margin: 8px 0;
+}
+.estimation-local-note,
+.estimation-hint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+.estimation-import {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  align-items: end;
+  gap: 18px;
+  background: var(--color-white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+}
+.estimation-field {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.estimation-field input,
+.estimation-field textarea,
+.estimation-summary input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--color-white);
+  color: var(--text-primary);
+  font: inherit;
+}
+.estimation-field textarea {
+  resize: vertical;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.estimation-import-actions {
+  display: grid;
+  gap: 12px;
+}
+.estimation-file {
+  font-size: 12px;
+  display: grid;
+  gap: 8px;
+}
+.estimation-file input {
+  max-width: 220px;
+}
+.estimation-summary {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.estimation-summary strong {
+  font-size: 24px;
+  margin-right: 5px;
+}
+.estimation-summary label {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.estimation-columns {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(220px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  align-items: start;
+}
+.estimation-column {
+  background: #f3f5f8;
+  border-radius: 14px;
+  padding: 14px;
+  min-height: 300px;
+  border-top: 3px solid #8798b5;
+}
+.estimation-stage-1 {
+  border-color: #d9a340;
+}
+.estimation-stage-2 {
+  border-color: #8f75cd;
+}
+.estimation-stage-3 {
+  border-color: #398dbe;
+}
+.estimation-stage-4 {
+  border-color: #2b9c75;
+}
+.estimation-column h2 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  margin: 0;
+}
+.estimation-column h2 > span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.estimation-column h2 small {
+  margin-left: auto;
+  border-radius: 6px;
+  background: #e3e8ef;
+  padding: 3px 6px;
+}
+.estimation-column > p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-height: 32px;
+  line-height: 1.5;
+}
+.estimation-card {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--color-white);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgb(9 30 66 / 4%);
+}
+.estimation-card:hover,
+.estimation-card[aria-pressed="true"] {
+  border-color: #3977da;
+}
+.estimation-card strong {
+  font-size: 12px;
+  color: #326abd;
+}
+.estimation-card span {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.estimation-card small {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.estimation-empty {
+  padding: 20px 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+.estimation-detail {
+  background: var(--color-white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+.estimation-detail h2 {
+  font-size: 18px;
+}
+.estimation-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+.estimation-detail fieldset {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+}
+.estimation-detail fieldset:disabled {
+  opacity: 0.6;
+}
+.estimation-detail legend {
+  font-weight: 600;
+  padding: 0 8px;
+}
+.estimation-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+@media (max-width: 900px) {
+  .estimation-import,
+  .estimation-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .estimation-summary label {
+    margin-left: 0;
+  }
+  .estimation-intro,
+  .estimation-detail-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+}

@@ -64,7 +64,8 @@ The extension is loaded unpacked, so Chrome cannot silently auto-update it. The
 so you know when to pull and rebuild — it doesn't replace the manual workflow:
 
 1. `git pull && pnpm build`
-2. Click **Update** (the reload icon) for Power View for Jira on `chrome://extensions`.
+2. Click **↻ Update app** in the Power View workspace header. Alternatively, click
+   **Update** (the reload icon) for Power View for Jira on `chrome://extensions`.
 
 That reloads the unpacked extension in place — no delete or reinstall.
 
@@ -113,3 +114,21 @@ The supplied `POWER_VIEW_FOR_JIRA_SDD.md` is the baseline implementation specifi
 The editing beta intentionally adds a tightly allowlisted browser-session write path. The
 build produces `dist/power-view-for-jira-0.1.0.zip` and a matching SHA-256 file. Store
 signing and publication remain manual owner actions.
+
+## Estimation board
+
+Open **Estimation** from the workspace to prepare a client's release scope. Paste Jira
+keys or upload CSV/TXT/TSV lists. Loaded workspace issues supply summaries and Jira links;
+keys outside the loaded scope remain visible with an explicit missing-details label.
+
+The Tech Lead records a positive estimate in developer days, subtask decomposition,
+optional product questions and answers, and final scope. Confirming scope unlocks QA
+preparation: QA Lead, environment, conditions, test plan, and test data. QA submission
+then enables **Mark ready for development**. Technical changes reopen scope confirmation
+and QA submission; QA changes reopen QA submission and readiness.
+
+This first version stores one release draft per Jira instance and board on the current
+device. **Export handoff** produces a JSON file that another lead can upload on the same
+board to continue; replacing existing issue drafts requires confirmation. This is a manual
+file handoff, not live collaboration. Estimates, decomposition, and readiness are local
+preparation records: no Jira subtasks are created and no Jira status is changed.
