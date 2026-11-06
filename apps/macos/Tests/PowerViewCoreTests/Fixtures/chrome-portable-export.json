@@ -1,0 +1,82 @@
+{
+  "kind": "power-view-board-configuration",
+  "version": 1,
+  "exportedAt": "2026-10-20T10:00:00.000Z",
+  "board": {
+    "jiraBaseUrl": "https://example.atlassian.net",
+    "projectKey": "POWER",
+    "boardId": "7",
+    "boardName": "Audit Delivery 7"
+  },
+  "configuration": {
+    "setup": {
+      "jiraBaseUrl": "https://example.atlassian.net",
+      "project": {
+        "id": "10000",
+        "key": "POWER",
+        "name": "Power View audit"
+      },
+      "jql": "project = \"POWER\" ORDER BY Rank ASC",
+      "board": {
+        "id": "7",
+        "name": "Audit Delivery 7",
+        "type": "scrum",
+        "projectKeys": ["POWER"]
+      },
+      "fieldMapping": {
+        "startDateFieldId": "customfield_10010",
+        "endDateFieldId": "duedate"
+      },
+      "reporting": {
+        "completedStatusIds": ["10002"],
+        "completedStatusNames": ["Done"]
+      },
+      "defaultDurations": {
+        "subtask": 1,
+        "task": 3,
+        "bug": 3,
+        "story": 5,
+        "epic": 10,
+        "unknown": 3
+      },
+      "nonWorkingDays": [0, 6],
+      "updatedAt": "2026-10-20T09:00:00.000Z"
+    },
+    "ganttFilters": {
+      "search": "release",
+      "statuses": [],
+      "statusCategories": [],
+      "assignees": [],
+      "issueTypes": [],
+      "priorities": [],
+      "labels": [],
+      "dateFilters": [],
+      "riskFilters": [],
+      "logic": "and",
+      "includeDescendants": false,
+      "excludeDone": true
+    },
+    "ganttViewPreferences": {
+      "zoom": "week",
+      "sortBy": "startDate",
+      "sortDirection": "desc"
+    },
+    "ganttBoardState": {
+      "dependencies": [
+        {
+          "id": "POWER-1:POWER-2:FS",
+          "predecessorIssueKey": "POWER-1",
+          "successorIssueKey": "POWER-2",
+          "type": "FS",
+          "lagWorkingDays": 1
+        }
+      ],
+      "reconciledDates": {
+        "POWER-1": {
+          "startDate": "2026-10-20",
+          "dueDate": "2026-10-22"
+        }
+      }
+    }
+  }
+}

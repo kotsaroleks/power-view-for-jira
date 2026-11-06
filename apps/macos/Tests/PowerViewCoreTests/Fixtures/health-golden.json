@@ -1,0 +1,362 @@
+[
+  {
+    "issues": [
+      {
+        "id": "1",
+        "key": "APP-1",
+        "summary": "One",
+        "status": {
+          "id": "done",
+          "name": "Done",
+          "category": "done"
+        },
+        "storyPoints": 3,
+        "assignee": {
+          "accountId": "ada",
+          "displayName": "Ada"
+        },
+        "resolvedAt": "2026-08-03T12:00:00.000Z",
+        "sprints": [
+          {
+            "id": "7",
+            "name": "Sprint 7",
+            "state": "active",
+            "boardId": "1"
+          }
+        ]
+      },
+      {
+        "id": "2",
+        "key": "APP-2",
+        "summary": "Two",
+        "status": {
+          "id": "open",
+          "name": "Open",
+          "category": "to-do"
+        },
+        "storyPoints": 5,
+        "sprints": [
+          {
+            "id": "7",
+            "name": "Sprint 7",
+            "state": "active",
+            "boardId": "1"
+          }
+        ]
+      },
+      {
+        "id": "3",
+        "key": "APP-3",
+        "summary": "Three",
+        "status": {
+          "id": "review",
+          "name": "Review",
+          "category": "in-progress"
+        },
+        "assignee": {
+          "accountId": "bob",
+          "displayName": "Bob"
+        },
+        "sprints": [
+          {
+            "id": "8",
+            "name": "Next",
+            "state": "future",
+            "boardId": "1"
+          }
+        ]
+      },
+      {
+        "id": "4",
+        "key": "APP-4",
+        "summary": "Four",
+        "status": {
+          "name": "Mystery",
+          "category": "unknown"
+        }
+      }
+    ],
+    "sprint": {
+      "id": "7",
+      "name": "Sprint 7",
+      "state": "active",
+      "boardId": "1"
+    },
+    "blockedIDs": ["2"],
+    "options": {
+      "now": "2026-08-05T00:00:00.000Z",
+      "sprintDataAvailable": true,
+      "completedStatusIds": ["done"],
+      "completedStatusNames": ["Done"],
+      "preferredBoardId": "1"
+    },
+    "expectedBoard": {
+      "total": 4,
+      "open": 3,
+      "done": 1,
+      "recentDone": 1,
+      "unassignedOpen": 2,
+      "statuses": {
+        "total": 4,
+        "toDo": 1,
+        "inProgress": 1,
+        "done": 1,
+        "unknown": 1
+      },
+      "planning": {
+        "totalOpen": 3,
+        "currentSprint": 1,
+        "futureSprint": 1,
+        "unscheduled": 1
+      },
+      "activeSprints": [
+        {
+          "id": "7",
+          "name": "Sprint 7",
+          "state": "active",
+          "boardId": "1"
+        }
+      ]
+    },
+    "expectedSprint": {
+      "sprint": {
+        "id": "7",
+        "name": "Sprint 7",
+        "state": "active",
+        "boardId": "1"
+      },
+      "issues": {
+        "total": 3,
+        "done": 1,
+        "inProgress": 0,
+        "notStarted": 1,
+        "unknown": 1
+      },
+      "storyPoints": {
+        "total": 8,
+        "done": 3,
+        "inProgress": 0,
+        "notStarted": 5,
+        "unknown": 0
+      },
+      "storyPointsCoverage": 0.6666666666666666,
+      "people": [
+        {
+          "key": "ada",
+          "name": "Ada",
+          "issues": {
+            "total": 1,
+            "done": 1,
+            "inProgress": 0,
+            "notStarted": 0,
+            "unknown": 0
+          },
+          "storyPoints": {
+            "total": 3,
+            "done": 3,
+            "inProgress": 0,
+            "notStarted": 0,
+            "unknown": 0
+          }
+        },
+        {
+          "key": "__unassigned__",
+          "name": "Unassigned",
+          "issues": {
+            "total": 2,
+            "done": 0,
+            "inProgress": 0,
+            "notStarted": 1,
+            "unknown": 1
+          },
+          "storyPoints": {
+            "total": 5,
+            "done": 0,
+            "inProgress": 0,
+            "notStarted": 5,
+            "unknown": 0
+          }
+        }
+      ],
+      "unassigned": 2,
+      "blocked": 1
+    }
+  },
+  {
+    "issues": [
+      {
+        "id": "1",
+        "key": "APP-1",
+        "summary": "One",
+        "status": {
+          "id": "done",
+          "name": "Done",
+          "category": "done"
+        },
+        "storyPoints": 3,
+        "assignee": {
+          "accountId": "ada",
+          "displayName": "Ada"
+        },
+        "resolvedAt": "2026-08-03T12:00:00.000Z",
+        "sprints": [
+          {
+            "id": "7",
+            "name": "Sprint 7",
+            "state": "active",
+            "boardId": "1"
+          }
+        ]
+      },
+      {
+        "id": "2",
+        "key": "APP-2",
+        "summary": "Two",
+        "status": {
+          "id": "open",
+          "name": "Open",
+          "category": "to-do"
+        },
+        "storyPoints": 5,
+        "sprints": [
+          {
+            "id": "7",
+            "name": "Sprint 7",
+            "state": "active",
+            "boardId": "1"
+          }
+        ]
+      },
+      {
+        "id": "3",
+        "key": "APP-3",
+        "summary": "Three",
+        "status": {
+          "id": "review",
+          "name": "Review",
+          "category": "in-progress"
+        },
+        "assignee": {
+          "accountId": "bob",
+          "displayName": "Bob"
+        },
+        "sprints": [
+          {
+            "id": "8",
+            "name": "Next",
+            "state": "future",
+            "boardId": "1"
+          }
+        ]
+      },
+      {
+        "id": "4",
+        "key": "APP-4",
+        "summary": "Four",
+        "status": {
+          "name": "Mystery",
+          "category": "unknown"
+        }
+      }
+    ],
+    "sprint": {
+      "id": "7",
+      "name": "Sprint 7",
+      "state": "active",
+      "boardId": "1"
+    },
+    "blockedIDs": ["2"],
+    "options": {
+      "now": "2026-08-05T00:00:00.000Z",
+      "sprintDataAvailable": false,
+      "completedStatusIds": ["done"],
+      "completedStatusNames": ["Done"],
+      "preferredBoardId": "1"
+    },
+    "expectedBoard": {
+      "total": 4,
+      "open": 3,
+      "done": 1,
+      "recentDone": 1,
+      "unassignedOpen": 2,
+      "statuses": {
+        "total": 4,
+        "toDo": 1,
+        "inProgress": 1,
+        "done": 1,
+        "unknown": 1
+      },
+      "activeSprints": [
+        {
+          "id": "7",
+          "name": "Sprint 7",
+          "state": "active",
+          "boardId": "1"
+        }
+      ]
+    },
+    "expectedSprint": {
+      "sprint": {
+        "id": "7",
+        "name": "Sprint 7",
+        "state": "active",
+        "boardId": "1"
+      },
+      "issues": {
+        "total": 3,
+        "done": 1,
+        "inProgress": 0,
+        "notStarted": 1,
+        "unknown": 1
+      },
+      "storyPoints": {
+        "total": 8,
+        "done": 3,
+        "inProgress": 0,
+        "notStarted": 5,
+        "unknown": 0
+      },
+      "storyPointsCoverage": 0.6666666666666666,
+      "people": [
+        {
+          "key": "ada",
+          "name": "Ada",
+          "issues": {
+            "total": 1,
+            "done": 1,
+            "inProgress": 0,
+            "notStarted": 0,
+            "unknown": 0
+          },
+          "storyPoints": {
+            "total": 3,
+            "done": 3,
+            "inProgress": 0,
+            "notStarted": 0,
+            "unknown": 0
+          }
+        },
+        {
+          "key": "__unassigned__",
+          "name": "Unassigned",
+          "issues": {
+            "total": 2,
+            "done": 0,
+            "inProgress": 0,
+            "notStarted": 1,
+            "unknown": 1
+          },
+          "storyPoints": {
+            "total": 5,
+            "done": 0,
+            "inProgress": 0,
+            "notStarted": 5,
+            "unknown": 0
+          }
+        }
+      ],
+      "unassigned": 2,
+      "blocked": 1
+    }
+  }
+]

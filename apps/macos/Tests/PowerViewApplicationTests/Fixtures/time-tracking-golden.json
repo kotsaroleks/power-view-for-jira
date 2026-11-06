@@ -1,0 +1,1769 @@
+{
+  "weekly": [
+    {
+      "name": "collapsed priority with pins and own time",
+      "logged": ["TEST-2"],
+      "pins": ["TEST-3"],
+      "priorities": ["TEST-1"],
+      "expanded": [],
+      "search": "",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "Epic",
+          "hierarchyLevel": 1
+        },
+        {
+          "id": "2",
+          "key": "TEST-2",
+          "summary": "Story assigned",
+          "parentKey": "TEST-1",
+          "assigneeId": "fixture",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "3",
+          "key": "TEST-3",
+          "summary": "Other story",
+          "parentKey": "TEST-1",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "4",
+          "key": "TEST-4",
+          "summary": "Subtask",
+          "parentKey": "TEST-2",
+          "assigneeId": "other",
+          "hierarchyLevel": -1
+        },
+        {
+          "id": "5",
+          "key": "TEST-5",
+          "summary": "Orphan",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "6",
+          "key": "TEST-6",
+          "summary": "Cycle one",
+          "parentKey": "TEST-7",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "7",
+          "key": "TEST-7",
+          "summary": "Cycle two",
+          "parentKey": "TEST-6",
+          "hierarchyLevel": 0
+        }
+      ],
+      "expected": [
+        {
+          "key": "TEST-3",
+          "group": 0,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-2",
+          "group": 1,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-1",
+          "group": 2,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-4",
+          "group": 2,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-5",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": true,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-6",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": true,
+          "parentHeading": null
+        }
+      ]
+    },
+    {
+      "name": "expanded hierarchy",
+      "logged": ["TEST-2"],
+      "pins": [],
+      "priorities": ["TEST-1"],
+      "expanded": ["TEST-1"],
+      "search": "",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "Epic",
+          "hierarchyLevel": 1
+        },
+        {
+          "id": "2",
+          "key": "TEST-2",
+          "summary": "Story assigned",
+          "parentKey": "TEST-1",
+          "assigneeId": "fixture",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "3",
+          "key": "TEST-3",
+          "summary": "Other story",
+          "parentKey": "TEST-1",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "4",
+          "key": "TEST-4",
+          "summary": "Subtask",
+          "parentKey": "TEST-2",
+          "assigneeId": "other",
+          "hierarchyLevel": -1
+        },
+        {
+          "id": "5",
+          "key": "TEST-5",
+          "summary": "Orphan",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "6",
+          "key": "TEST-6",
+          "summary": "Cycle one",
+          "parentKey": "TEST-7",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "7",
+          "key": "TEST-7",
+          "summary": "Cycle two",
+          "parentKey": "TEST-6",
+          "hierarchyLevel": 0
+        }
+      ],
+      "expected": [
+        {
+          "key": "TEST-2",
+          "group": 1,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-1",
+          "group": 2,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-3",
+          "group": 2,
+          "depth": 1,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-4",
+          "group": 2,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-5",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": true,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-6",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": true,
+          "parentHeading": null
+        }
+      ]
+    },
+    {
+      "name": "search reaches collapsed descendants",
+      "logged": [],
+      "pins": [],
+      "priorities": ["TEST-1"],
+      "expanded": [],
+      "search": "Subtask",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "Epic",
+          "hierarchyLevel": 1
+        },
+        {
+          "id": "2",
+          "key": "TEST-2",
+          "summary": "Story assigned",
+          "parentKey": "TEST-1",
+          "assigneeId": "fixture",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "3",
+          "key": "TEST-3",
+          "summary": "Other story",
+          "parentKey": "TEST-1",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "4",
+          "key": "TEST-4",
+          "summary": "Subtask",
+          "parentKey": "TEST-2",
+          "assigneeId": "other",
+          "hierarchyLevel": -1
+        },
+        {
+          "id": "5",
+          "key": "TEST-5",
+          "summary": "Orphan",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "6",
+          "key": "TEST-6",
+          "summary": "Cycle one",
+          "parentKey": "TEST-7",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "7",
+          "key": "TEST-7",
+          "summary": "Cycle two",
+          "parentKey": "TEST-6",
+          "hierarchyLevel": 0
+        }
+      ],
+      "expected": [
+        {
+          "key": "TEST-4",
+          "group": 2,
+          "depth": 2,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": null
+        }
+      ]
+    },
+    {
+      "name": "cycle remains reachable beside valid roots",
+      "logged": [],
+      "pins": [],
+      "priorities": [],
+      "expanded": [],
+      "search": "",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "Epic",
+          "hierarchyLevel": 1
+        },
+        {
+          "id": "2",
+          "key": "TEST-2",
+          "summary": "Story assigned",
+          "parentKey": "TEST-1",
+          "assigneeId": "fixture",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "3",
+          "key": "TEST-3",
+          "summary": "Other story",
+          "parentKey": "TEST-1",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "4",
+          "key": "TEST-4",
+          "summary": "Subtask",
+          "parentKey": "TEST-2",
+          "assigneeId": "other",
+          "hierarchyLevel": -1
+        },
+        {
+          "id": "5",
+          "key": "TEST-5",
+          "summary": "Orphan",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "6",
+          "key": "TEST-6",
+          "summary": "Cycle one",
+          "parentKey": "TEST-7",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "7",
+          "key": "TEST-7",
+          "summary": "Cycle two",
+          "parentKey": "TEST-6",
+          "hierarchyLevel": 0
+        }
+      ],
+      "expected": [
+        {
+          "key": "TEST-2",
+          "group": 3,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-1",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-4",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": "TEST-2"
+        },
+        {
+          "key": "TEST-5",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": true,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-6",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": true,
+          "parentHeading": null
+        }
+      ]
+    },
+    {
+      "name": "other group carries context of logged parent",
+      "logged": ["TEST-1", "TEST-2"],
+      "pins": [],
+      "priorities": [],
+      "expanded": [],
+      "search": "",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "Epic",
+          "hierarchyLevel": 1
+        },
+        {
+          "id": "2",
+          "key": "TEST-2",
+          "summary": "Story assigned",
+          "parentKey": "TEST-1",
+          "assigneeId": "fixture",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "3",
+          "key": "TEST-3",
+          "summary": "Other story",
+          "parentKey": "TEST-1",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "4",
+          "key": "TEST-4",
+          "summary": "Subtask",
+          "parentKey": "TEST-2",
+          "assigneeId": "other",
+          "hierarchyLevel": -1
+        },
+        {
+          "id": "5",
+          "key": "TEST-5",
+          "summary": "Orphan",
+          "assigneeId": "other",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "6",
+          "key": "TEST-6",
+          "summary": "Cycle one",
+          "parentKey": "TEST-7",
+          "hierarchyLevel": 0
+        },
+        {
+          "id": "7",
+          "key": "TEST-7",
+          "summary": "Cycle two",
+          "parentKey": "TEST-6",
+          "hierarchyLevel": 0
+        }
+      ],
+      "expected": [
+        {
+          "key": "TEST-1",
+          "group": 1,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-2",
+          "group": 1,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": false,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-3",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": "TEST-1"
+        },
+        {
+          "key": "TEST-4",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": false,
+          "parentHeading": "TEST-2"
+        },
+        {
+          "key": "TEST-5",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": false,
+          "withoutParent": true,
+          "parentHeading": null
+        },
+        {
+          "key": "TEST-6",
+          "group": 4,
+          "depth": 0,
+          "hasChildren": true,
+          "withoutParent": true,
+          "parentHeading": null
+        }
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "input": {
+        "name": "week with duplicate off and worked off date",
+        "weekStart": "2026-11-02",
+        "periodMode": "week",
+        "users": [
+          {
+            "userId": "fixture",
+            "displayName": "Fixture User"
+          },
+          {
+            "userId": "other",
+            "displayName": "Other User"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "1",
+            "userId": "fixture",
+            "issueKey": "TEST-2",
+            "day": "2026-11-03",
+            "timeSpentSeconds": 3661
+          },
+          {
+            "id": "2",
+            "userId": "other",
+            "issueKey": "TEST-3",
+            "day": "2026-11-04",
+            "timeSpentSeconds": 5400
+          }
+        ],
+        "dayOffs": [
+          {
+            "userId": "fixture",
+            "date": "2026-11-03"
+          },
+          {
+            "userId": "fixture",
+            "date": "2026-11-03"
+          },
+          {
+            "userId": "other",
+            "date": "2026-11-07"
+          }
+        ]
+      },
+      "expected": {
+        "days": [
+          "2026-11-02",
+          "2026-11-03",
+          "2026-11-04",
+          "2026-11-05",
+          "2026-11-06",
+          "2026-11-07",
+          "2026-11-08"
+        ],
+        "employees": [
+          {
+            "user": {
+              "userId": "fixture",
+              "displayName": "Fixture User"
+            },
+            "days": [
+              {
+                "date": "2026-11-02",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-03",
+                "loggedSeconds": 3661,
+                "worklogCount": 1,
+                "dayOff": true,
+                "conflict": true
+              },
+              {
+                "date": "2026-11-04",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-05",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-06",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-07",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-08",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              }
+            ],
+            "issues": [
+              {
+                "issueKey": "TEST-2",
+                "days": [
+                  {
+                    "date": "2026-11-02",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-03",
+                    "loggedSeconds": 3661,
+                    "worklogCount": 1,
+                    "dayOff": true,
+                    "conflict": true
+                  },
+                  {
+                    "date": "2026-11-04",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-05",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-06",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-07",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-08",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  }
+                ],
+                "loggedSeconds": 3661
+              }
+            ],
+            "loggedSeconds": 3661,
+            "expectedSeconds": 115200,
+            "utilizationPercent": 3.177951388888889,
+            "overtimeSeconds": 0,
+            "missingSeconds": 111539
+          },
+          {
+            "user": {
+              "userId": "other",
+              "displayName": "Other User"
+            },
+            "days": [
+              {
+                "date": "2026-11-02",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-03",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-04",
+                "loggedSeconds": 5400,
+                "worklogCount": 1,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-05",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-06",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-07",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": true,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-08",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              }
+            ],
+            "issues": [
+              {
+                "issueKey": "TEST-3",
+                "days": [
+                  {
+                    "date": "2026-11-02",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-03",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-04",
+                    "loggedSeconds": 5400,
+                    "worklogCount": 1,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-05",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-06",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-07",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": true,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-08",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  }
+                ],
+                "loggedSeconds": 5400
+              }
+            ],
+            "loggedSeconds": 5400,
+            "expectedSeconds": 144000,
+            "utilizationPercent": 3.75,
+            "overtimeSeconds": 0,
+            "missingSeconds": 138600
+          }
+        ],
+        "team": {
+          "loggedSeconds": 9061,
+          "expectedSeconds": 259200,
+          "utilizationPercent": 3.4957561728395063,
+          "overtimeSeconds": 0,
+          "missingSeconds": 250139,
+          "days": [
+            {
+              "date": "2026-11-02",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-03",
+              "loggedSeconds": 3661,
+              "conflictCount": 1
+            },
+            {
+              "date": "2026-11-04",
+              "loggedSeconds": 5400,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-05",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-06",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-07",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-08",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "input": {
+        "name": "month ratio of sums",
+        "weekStart": "2026-11-01",
+        "periodMode": "month",
+        "users": [
+          {
+            "userId": "fixture",
+            "displayName": "Fixture User"
+          },
+          {
+            "userId": "other",
+            "displayName": "Other User"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "3",
+            "userId": "fixture",
+            "issueKey": "TEST-2",
+            "day": "2026-11-30",
+            "timeSpentSeconds": 7200
+          }
+        ],
+        "dayOffs": [
+          {
+            "userId": "other",
+            "date": "2026-11-02"
+          }
+        ]
+      },
+      "expected": {
+        "days": [
+          "2026-11-01",
+          "2026-11-02",
+          "2026-11-03",
+          "2026-11-04",
+          "2026-11-05",
+          "2026-11-06",
+          "2026-11-07",
+          "2026-11-08",
+          "2026-11-09",
+          "2026-11-10",
+          "2026-11-11",
+          "2026-11-12",
+          "2026-11-13",
+          "2026-11-14",
+          "2026-11-15",
+          "2026-11-16",
+          "2026-11-17",
+          "2026-11-18",
+          "2026-11-19",
+          "2026-11-20",
+          "2026-11-21",
+          "2026-11-22",
+          "2026-11-23",
+          "2026-11-24",
+          "2026-11-25",
+          "2026-11-26",
+          "2026-11-27",
+          "2026-11-28",
+          "2026-11-29",
+          "2026-11-30"
+        ],
+        "employees": [
+          {
+            "user": {
+              "userId": "fixture",
+              "displayName": "Fixture User"
+            },
+            "days": [
+              {
+                "date": "2026-11-01",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-02",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-03",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-04",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-05",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-06",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-07",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-08",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-09",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-10",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-11",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-12",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-13",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-14",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-15",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-16",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-17",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-18",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-19",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-20",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-21",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-22",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-23",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-24",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-25",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-26",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-27",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-28",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-29",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-30",
+                "loggedSeconds": 7200,
+                "worklogCount": 1,
+                "dayOff": false,
+                "conflict": false
+              }
+            ],
+            "issues": [
+              {
+                "issueKey": "TEST-2",
+                "days": [
+                  {
+                    "date": "2026-11-01",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-02",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-03",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-04",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-05",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-06",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-07",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-08",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-09",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-10",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-11",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-12",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-13",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-14",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-15",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-16",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-17",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-18",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-19",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-20",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-21",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-22",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-23",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-24",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-25",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-26",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-27",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-28",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-29",
+                    "loggedSeconds": 0,
+                    "worklogCount": 0,
+                    "dayOff": false,
+                    "conflict": false
+                  },
+                  {
+                    "date": "2026-11-30",
+                    "loggedSeconds": 7200,
+                    "worklogCount": 1,
+                    "dayOff": false,
+                    "conflict": false
+                  }
+                ],
+                "loggedSeconds": 7200
+              }
+            ],
+            "loggedSeconds": 7200,
+            "expectedSeconds": 604800,
+            "utilizationPercent": 1.1904761904761905,
+            "overtimeSeconds": 0,
+            "missingSeconds": 597600
+          },
+          {
+            "user": {
+              "userId": "other",
+              "displayName": "Other User"
+            },
+            "days": [
+              {
+                "date": "2026-11-01",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-02",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": true,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-03",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-04",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-05",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-06",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-07",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-08",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-09",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-10",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-11",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-12",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-13",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-14",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-15",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-16",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-17",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-18",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-19",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-20",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-21",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-22",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-23",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-24",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-25",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-26",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-27",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-28",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-29",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              },
+              {
+                "date": "2026-11-30",
+                "loggedSeconds": 0,
+                "worklogCount": 0,
+                "dayOff": false,
+                "conflict": false
+              }
+            ],
+            "issues": [],
+            "loggedSeconds": 0,
+            "expectedSeconds": 576000,
+            "utilizationPercent": 0,
+            "overtimeSeconds": 0,
+            "missingSeconds": 576000
+          }
+        ],
+        "team": {
+          "loggedSeconds": 7200,
+          "expectedSeconds": 1180800,
+          "utilizationPercent": 0.6097560975609756,
+          "overtimeSeconds": 0,
+          "missingSeconds": 1173600,
+          "days": [
+            {
+              "date": "2026-11-01",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-02",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-03",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-04",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-05",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-06",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-07",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-08",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-09",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-10",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-11",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-12",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-13",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-14",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-15",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-16",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-17",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-18",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-19",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-20",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-21",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-22",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-23",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-24",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-25",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-26",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-27",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-28",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-29",
+              "loggedSeconds": 0,
+              "conflictCount": 0
+            },
+            {
+              "date": "2026-11-30",
+              "loggedSeconds": 7200,
+              "conflictCount": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "zone": "Europe/Kyiv",
+      "days": ["2026-11-04"],
+      "expected": null
+    },
+    {
+      "zone": "Europe/Berlin",
+      "days": ["2026-11-04"],
+      "expected": null
+    },
+    {
+      "zone": "America/New_York",
+      "days": ["2026-10-26", "2026-11-02"],
+      "expected": "Your Jira profile uses America/New_York (−7h to −6h relative to Europe/Kyiv during this period; expected: ±1h). Worklog dates may differ from Kyiv. Check your time zone in Jira profile settings."
+    },
+    {
+      "zone": "Asia/Kathmandu",
+      "days": ["2026-03-28", "2026-03-30"],
+      "expected": "Your Jira profile uses Asia/Kathmandu (+2h 45m to +3h 45m relative to Europe/Kyiv during this period; expected: ±1h). Worklog dates may differ from Kyiv. Check your time zone in Jira profile settings."
+    }
+  ]
+}

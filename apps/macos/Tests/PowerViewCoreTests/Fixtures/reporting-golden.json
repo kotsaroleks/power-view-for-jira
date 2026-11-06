@@ -1,0 +1,3591 @@
+{
+  "cases": [
+    {
+      "name": "daily-team",
+      "input": {
+        "issues": [
+          {
+            "id": "1",
+            "key": "APP-1",
+            "browseUrl": "https://jira.example.test/browse/APP-1",
+            "summary": "Issue 1",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 3,
+            "originalEstimateSeconds": 28800,
+            "timeSpentSeconds": 72000,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "2",
+            "key": "APP-2",
+            "browseUrl": "https://jira.example.test/browse/APP-2",
+            "summary": "Issue 2",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "assignee": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "storyPoints": 5,
+            "originalEstimateSeconds": 57600,
+            "timeSpentSeconds": 3600,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "3",
+            "key": "APP-3",
+            "browseUrl": "https://jira.example.test/browse/APP-3",
+            "summary": "Issue 3",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "4",
+            "key": "APP-4",
+            "browseUrl": "https://jira.example.test/browse/APP-4",
+            "summary": "Issue 4",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 0,
+            "originalEstimateSeconds": 0,
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          }
+        ],
+        "changes": [
+          {
+            "id": "old",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "w1",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-03T05:00:00.000Z",
+            "timeSpentSeconds": 3600
+          },
+          {
+            "id": "w2",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "author": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "startedAt": "2026-08-03T12:00:00.000Z",
+            "timeSpentSeconds": 7200
+          },
+          {
+            "id": "outside",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-04T05:00:00.000Z",
+            "timeSpentSeconds": 900
+          }
+        ],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-04T05:00:00.000Z",
+          "dataCutoff": "2026-08-04T05:00:00.000Z"
+        },
+        "type": "daily",
+        "scope": {
+          "kind": "team"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 4,
+          "completedIssues": 2,
+          "incompleteIssues": 2,
+          "createdIssues": 1,
+          "completedDuringPeriod": 1,
+          "reopenedDuringPeriod": 1,
+          "totalTimeSpentSeconds": 75600,
+          "worklogSeconds": 10800,
+          "unassignedIssues": 1
+        },
+        "people": [
+          {
+            "user": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "assignedIssues": [
+              {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              {
+                "id": "4",
+                "key": "APP-4",
+                "browseUrl": "https://jira.example.test/browse/APP-4",
+                "summary": "Issue 4",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 0,
+                "originalEstimateSeconds": 0,
+                "timeSpentSeconds": 0,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": [],
+            "changes": [
+              {
+                "id": "a",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T06:00:00.000Z",
+                "actor": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                }
+              },
+              {
+                "id": "b",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-removed",
+                "occurredAt": "2026-08-03T07:00:00.000Z"
+              },
+              {
+                "id": "c",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T08:00:00.000Z"
+              },
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              }
+            ],
+            "authoredWorklogs": [
+              {
+                "id": "w2",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "author": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "startedAt": "2026-08-03T12:00:00.000Z",
+                "timeSpentSeconds": 7200
+              }
+            ],
+            "worklogSeconds": 7200
+          },
+          {
+            "user": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "assignedIssues": [
+              {
+                "id": "2",
+                "key": "APP-2",
+                "browseUrl": "https://jira.example.test/browse/APP-2",
+                "summary": "Issue 2",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "open",
+                  "name": "Open"
+                },
+                "assignee": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                },
+                "storyPoints": 5,
+                "originalEstimateSeconds": 57600,
+                "timeSpentSeconds": 3600,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": ["APP-2"],
+            "changes": [
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              },
+              {
+                "id": "e",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "type": "issue-reopened",
+                "occurredAt": "2026-08-03T10:00:00.000Z"
+              }
+            ],
+            "authoredWorklogs": [],
+            "worklogSeconds": 0
+          },
+          {
+            "user": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "assignedIssues": [],
+            "createdIssues": [],
+            "completedIssues": [],
+            "reopenedIssues": [],
+            "changes": [],
+            "authoredWorklogs": [
+              {
+                "id": "w1",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "author": {
+                  "id": "writer",
+                  "displayName": "Contributor"
+                },
+                "startedAt": "2026-08-03T05:00:00.000Z",
+                "timeSpentSeconds": 3600
+              }
+            ],
+            "worklogSeconds": 3600
+          }
+        ],
+        "unassigned": {
+          "issues": [
+            {
+              "id": "3",
+              "key": "APP-3",
+              "browseUrl": "https://jira.example.test/browse/APP-3",
+              "summary": "Issue 3",
+              "issueType": {
+                "id": "1",
+                "name": "Story"
+              },
+              "status": {
+                "id": "open",
+                "name": "Open"
+              },
+              "timeSpentSeconds": 0,
+              "sprintIds": ["7"]
+            }
+          ],
+          "changes": [
+            {
+              "id": "f",
+              "issueId": "3",
+              "issueKey": "APP-3",
+              "type": "issue-created",
+              "occurredAt": "2026-08-03T11:00:00.000Z"
+            }
+          ]
+        },
+        "activity": [
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "weekly-team",
+      "input": {
+        "issues": [
+          {
+            "id": "1",
+            "key": "APP-1",
+            "browseUrl": "https://jira.example.test/browse/APP-1",
+            "summary": "Issue 1",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 3,
+            "originalEstimateSeconds": 28800,
+            "timeSpentSeconds": 72000,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "2",
+            "key": "APP-2",
+            "browseUrl": "https://jira.example.test/browse/APP-2",
+            "summary": "Issue 2",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "assignee": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "storyPoints": 5,
+            "originalEstimateSeconds": 57600,
+            "timeSpentSeconds": 3600,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "3",
+            "key": "APP-3",
+            "browseUrl": "https://jira.example.test/browse/APP-3",
+            "summary": "Issue 3",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "4",
+            "key": "APP-4",
+            "browseUrl": "https://jira.example.test/browse/APP-4",
+            "summary": "Issue 4",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 0,
+            "originalEstimateSeconds": 0,
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          }
+        ],
+        "changes": [
+          {
+            "id": "old",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "w1",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-03T05:00:00.000Z",
+            "timeSpentSeconds": 3600
+          },
+          {
+            "id": "w2",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "author": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "startedAt": "2026-08-03T12:00:00.000Z",
+            "timeSpentSeconds": 7200
+          },
+          {
+            "id": "outside",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-04T05:00:00.000Z",
+            "timeSpentSeconds": 900
+          }
+        ],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-10T05:00:00.000Z",
+          "dataCutoff": "2026-08-05T10:00:00.000Z"
+        },
+        "type": "weekly",
+        "scope": {
+          "kind": "team"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 4,
+          "completedIssues": 2,
+          "incompleteIssues": 2,
+          "createdIssues": 1,
+          "completedDuringPeriod": 2,
+          "reopenedDuringPeriod": 1,
+          "totalTimeSpentSeconds": 75600,
+          "worklogSeconds": 11700,
+          "unassignedIssues": 1
+        },
+        "people": [
+          {
+            "user": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "assignedIssues": [
+              {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              {
+                "id": "4",
+                "key": "APP-4",
+                "browseUrl": "https://jira.example.test/browse/APP-4",
+                "summary": "Issue 4",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 0,
+                "originalEstimateSeconds": 0,
+                "timeSpentSeconds": 0,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": [],
+            "changes": [
+              {
+                "id": "a",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T06:00:00.000Z",
+                "actor": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                }
+              },
+              {
+                "id": "b",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-removed",
+                "occurredAt": "2026-08-03T07:00:00.000Z"
+              },
+              {
+                "id": "c",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T08:00:00.000Z"
+              },
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              }
+            ],
+            "authoredWorklogs": [
+              {
+                "id": "w2",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "author": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "startedAt": "2026-08-03T12:00:00.000Z",
+                "timeSpentSeconds": 7200
+              }
+            ],
+            "worklogSeconds": 7200
+          },
+          {
+            "user": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "assignedIssues": [
+              {
+                "id": "2",
+                "key": "APP-2",
+                "browseUrl": "https://jira.example.test/browse/APP-2",
+                "summary": "Issue 2",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "open",
+                  "name": "Open"
+                },
+                "assignee": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                },
+                "storyPoints": 5,
+                "originalEstimateSeconds": 57600,
+                "timeSpentSeconds": 3600,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1", "APP-2"],
+            "reopenedIssues": ["APP-2"],
+            "changes": [
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              },
+              {
+                "id": "e",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "type": "issue-reopened",
+                "occurredAt": "2026-08-03T10:00:00.000Z"
+              },
+              {
+                "id": "end",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-04T05:00:00.000Z"
+              }
+            ],
+            "authoredWorklogs": [],
+            "worklogSeconds": 0
+          },
+          {
+            "user": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "assignedIssues": [],
+            "createdIssues": [],
+            "completedIssues": [],
+            "reopenedIssues": [],
+            "changes": [],
+            "authoredWorklogs": [
+              {
+                "id": "w1",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "author": {
+                  "id": "writer",
+                  "displayName": "Contributor"
+                },
+                "startedAt": "2026-08-03T05:00:00.000Z",
+                "timeSpentSeconds": 3600
+              },
+              {
+                "id": "outside",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "author": {
+                  "id": "writer",
+                  "displayName": "Contributor"
+                },
+                "startedAt": "2026-08-04T05:00:00.000Z",
+                "timeSpentSeconds": 900
+              }
+            ],
+            "worklogSeconds": 4500
+          }
+        ],
+        "unassigned": {
+          "issues": [
+            {
+              "id": "3",
+              "key": "APP-3",
+              "browseUrl": "https://jira.example.test/browse/APP-3",
+              "summary": "Issue 3",
+              "issueType": {
+                "id": "1",
+                "name": "Story"
+              },
+              "status": {
+                "id": "open",
+                "name": "Open"
+              },
+              "timeSpentSeconds": 0,
+              "sprintIds": ["7"]
+            }
+          ],
+          "changes": [
+            {
+              "id": "f",
+              "issueId": "3",
+              "issueKey": "APP-3",
+              "type": "issue-created",
+              "occurredAt": "2026-08-03T11:00:00.000Z"
+            }
+          ]
+        },
+        "activity": [
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "sprint-issue-count",
+      "input": {
+        "issues": [
+          {
+            "id": "1",
+            "key": "APP-1",
+            "browseUrl": "https://jira.example.test/browse/APP-1",
+            "summary": "Issue 1",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 3,
+            "originalEstimateSeconds": 28800,
+            "timeSpentSeconds": 72000,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "2",
+            "key": "APP-2",
+            "browseUrl": "https://jira.example.test/browse/APP-2",
+            "summary": "Issue 2",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "assignee": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "storyPoints": 5,
+            "originalEstimateSeconds": 57600,
+            "timeSpentSeconds": 3600,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "3",
+            "key": "APP-3",
+            "browseUrl": "https://jira.example.test/browse/APP-3",
+            "summary": "Issue 3",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "4",
+            "key": "APP-4",
+            "browseUrl": "https://jira.example.test/browse/APP-4",
+            "summary": "Issue 4",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 0,
+            "originalEstimateSeconds": 0,
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          }
+        ],
+        "changes": [
+          {
+            "id": "old",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "w1",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-03T05:00:00.000Z",
+            "timeSpentSeconds": 3600
+          },
+          {
+            "id": "w2",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "author": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "startedAt": "2026-08-03T12:00:00.000Z",
+            "timeSpentSeconds": 7200
+          },
+          {
+            "id": "outside",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-04T05:00:00.000Z",
+            "timeSpentSeconds": 900
+          }
+        ],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-04T05:00:00.000Z",
+          "dataCutoff": "2026-08-04T05:00:00.000Z"
+        },
+        "type": "sprint",
+        "scope": {
+          "kind": "team"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "mode": "issue-count",
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 4,
+          "completedIssues": 2,
+          "incompleteIssues": 2,
+          "createdIssues": 1,
+          "completedDuringPeriod": 1,
+          "reopenedDuringPeriod": 1,
+          "totalTimeSpentSeconds": 75600,
+          "worklogSeconds": 10800,
+          "unassignedIssues": 1
+        },
+        "people": [
+          {
+            "user": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "assignedIssues": [
+              {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              {
+                "id": "4",
+                "key": "APP-4",
+                "browseUrl": "https://jira.example.test/browse/APP-4",
+                "summary": "Issue 4",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 0,
+                "originalEstimateSeconds": 0,
+                "timeSpentSeconds": 0,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": [],
+            "changes": [
+              {
+                "id": "a",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T06:00:00.000Z",
+                "actor": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                }
+              },
+              {
+                "id": "b",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-removed",
+                "occurredAt": "2026-08-03T07:00:00.000Z"
+              },
+              {
+                "id": "c",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T08:00:00.000Z"
+              },
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              }
+            ],
+            "authoredWorklogs": [
+              {
+                "id": "w2",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "author": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "startedAt": "2026-08-03T12:00:00.000Z",
+                "timeSpentSeconds": 7200
+              }
+            ],
+            "worklogSeconds": 7200
+          },
+          {
+            "user": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "assignedIssues": [
+              {
+                "id": "2",
+                "key": "APP-2",
+                "browseUrl": "https://jira.example.test/browse/APP-2",
+                "summary": "Issue 2",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "open",
+                  "name": "Open"
+                },
+                "assignee": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                },
+                "storyPoints": 5,
+                "originalEstimateSeconds": 57600,
+                "timeSpentSeconds": 3600,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": ["APP-2"],
+            "changes": [
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              },
+              {
+                "id": "e",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "type": "issue-reopened",
+                "occurredAt": "2026-08-03T10:00:00.000Z"
+              }
+            ],
+            "authoredWorklogs": [],
+            "worklogSeconds": 0
+          },
+          {
+            "user": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "assignedIssues": [],
+            "createdIssues": [],
+            "completedIssues": [],
+            "reopenedIssues": [],
+            "changes": [],
+            "authoredWorklogs": [
+              {
+                "id": "w1",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "author": {
+                  "id": "writer",
+                  "displayName": "Contributor"
+                },
+                "startedAt": "2026-08-03T05:00:00.000Z",
+                "timeSpentSeconds": 3600
+              }
+            ],
+            "worklogSeconds": 3600
+          }
+        ],
+        "unassigned": {
+          "issues": [
+            {
+              "id": "3",
+              "key": "APP-3",
+              "browseUrl": "https://jira.example.test/browse/APP-3",
+              "summary": "Issue 3",
+              "issueType": {
+                "id": "1",
+                "name": "Story"
+              },
+              "status": {
+                "id": "open",
+                "name": "Open"
+              },
+              "timeSpentSeconds": 0,
+              "sprintIds": ["7"]
+            }
+          ],
+          "changes": [
+            {
+              "id": "f",
+              "issueId": "3",
+              "issueKey": "APP-3",
+              "type": "issue-created",
+              "occurredAt": "2026-08-03T11:00:00.000Z"
+            }
+          ]
+        },
+        "activity": [
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          }
+        ],
+        "sprint": {
+          "progressMode": "issue-count",
+          "completion": {
+            "percentage": 50,
+            "numerator": 2,
+            "denominator": 4,
+            "unit": "issues",
+            "estimatedIssueCount": 4,
+            "unestimatedIssueCount": 0
+          },
+          "timeUtilization": {
+            "percentage": 87.5,
+            "numerator": 75600,
+            "denominator": 86400,
+            "unit": "seconds",
+            "estimatedIssueCount": 2,
+            "unestimatedIssueCount": 2
+          },
+          "addedAfterStart": [
+            {
+              "issue": {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              "events": [
+                {
+                  "id": "a",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-added",
+                  "occurredAt": "2026-08-03T06:00:00.000Z",
+                  "actor": {
+                    "id": "ada",
+                    "displayName": "Ada"
+                  }
+                },
+                {
+                  "id": "c",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-added",
+                  "occurredAt": "2026-08-03T08:00:00.000Z"
+                }
+              ]
+            }
+          ],
+          "removedAfterStart": [
+            {
+              "issue": {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              "events": [
+                {
+                  "id": "b",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-removed",
+                  "occurredAt": "2026-08-03T07:00:00.000Z"
+                }
+              ]
+            }
+          ],
+          "unestimated": {
+            "total": 2,
+            "completed": 1,
+            "incomplete": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "sprint-story-points",
+      "input": {
+        "issues": [
+          {
+            "id": "1",
+            "key": "APP-1",
+            "browseUrl": "https://jira.example.test/browse/APP-1",
+            "summary": "Issue 1",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 3,
+            "originalEstimateSeconds": 28800,
+            "timeSpentSeconds": 72000,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "2",
+            "key": "APP-2",
+            "browseUrl": "https://jira.example.test/browse/APP-2",
+            "summary": "Issue 2",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "assignee": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "storyPoints": 5,
+            "originalEstimateSeconds": 57600,
+            "timeSpentSeconds": 3600,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "3",
+            "key": "APP-3",
+            "browseUrl": "https://jira.example.test/browse/APP-3",
+            "summary": "Issue 3",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "4",
+            "key": "APP-4",
+            "browseUrl": "https://jira.example.test/browse/APP-4",
+            "summary": "Issue 4",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 0,
+            "originalEstimateSeconds": 0,
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          }
+        ],
+        "changes": [
+          {
+            "id": "old",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "w1",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-03T05:00:00.000Z",
+            "timeSpentSeconds": 3600
+          },
+          {
+            "id": "w2",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "author": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "startedAt": "2026-08-03T12:00:00.000Z",
+            "timeSpentSeconds": 7200
+          },
+          {
+            "id": "outside",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-04T05:00:00.000Z",
+            "timeSpentSeconds": 900
+          }
+        ],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-04T05:00:00.000Z",
+          "dataCutoff": "2026-08-04T05:00:00.000Z"
+        },
+        "type": "sprint",
+        "scope": {
+          "kind": "team"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "mode": "story-points",
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 4,
+          "completedIssues": 2,
+          "incompleteIssues": 2,
+          "createdIssues": 1,
+          "completedDuringPeriod": 1,
+          "reopenedDuringPeriod": 1,
+          "totalTimeSpentSeconds": 75600,
+          "worklogSeconds": 10800,
+          "unassignedIssues": 1
+        },
+        "people": [
+          {
+            "user": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "assignedIssues": [
+              {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              {
+                "id": "4",
+                "key": "APP-4",
+                "browseUrl": "https://jira.example.test/browse/APP-4",
+                "summary": "Issue 4",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 0,
+                "originalEstimateSeconds": 0,
+                "timeSpentSeconds": 0,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": [],
+            "changes": [
+              {
+                "id": "a",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T06:00:00.000Z",
+                "actor": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                }
+              },
+              {
+                "id": "b",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-removed",
+                "occurredAt": "2026-08-03T07:00:00.000Z"
+              },
+              {
+                "id": "c",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T08:00:00.000Z"
+              },
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              }
+            ],
+            "authoredWorklogs": [
+              {
+                "id": "w2",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "author": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "startedAt": "2026-08-03T12:00:00.000Z",
+                "timeSpentSeconds": 7200
+              }
+            ],
+            "worklogSeconds": 7200
+          },
+          {
+            "user": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "assignedIssues": [
+              {
+                "id": "2",
+                "key": "APP-2",
+                "browseUrl": "https://jira.example.test/browse/APP-2",
+                "summary": "Issue 2",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "open",
+                  "name": "Open"
+                },
+                "assignee": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                },
+                "storyPoints": 5,
+                "originalEstimateSeconds": 57600,
+                "timeSpentSeconds": 3600,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": ["APP-2"],
+            "changes": [
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              },
+              {
+                "id": "e",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "type": "issue-reopened",
+                "occurredAt": "2026-08-03T10:00:00.000Z"
+              }
+            ],
+            "authoredWorklogs": [],
+            "worklogSeconds": 0
+          },
+          {
+            "user": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "assignedIssues": [],
+            "createdIssues": [],
+            "completedIssues": [],
+            "reopenedIssues": [],
+            "changes": [],
+            "authoredWorklogs": [
+              {
+                "id": "w1",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "author": {
+                  "id": "writer",
+                  "displayName": "Contributor"
+                },
+                "startedAt": "2026-08-03T05:00:00.000Z",
+                "timeSpentSeconds": 3600
+              }
+            ],
+            "worklogSeconds": 3600
+          }
+        ],
+        "unassigned": {
+          "issues": [
+            {
+              "id": "3",
+              "key": "APP-3",
+              "browseUrl": "https://jira.example.test/browse/APP-3",
+              "summary": "Issue 3",
+              "issueType": {
+                "id": "1",
+                "name": "Story"
+              },
+              "status": {
+                "id": "open",
+                "name": "Open"
+              },
+              "timeSpentSeconds": 0,
+              "sprintIds": ["7"]
+            }
+          ],
+          "changes": [
+            {
+              "id": "f",
+              "issueId": "3",
+              "issueKey": "APP-3",
+              "type": "issue-created",
+              "occurredAt": "2026-08-03T11:00:00.000Z"
+            }
+          ]
+        },
+        "activity": [
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          }
+        ],
+        "sprint": {
+          "progressMode": "story-points",
+          "completion": {
+            "percentage": 37.5,
+            "numerator": 3,
+            "denominator": 8,
+            "unit": "story-points",
+            "estimatedIssueCount": 3,
+            "unestimatedIssueCount": 1
+          },
+          "timeUtilization": {
+            "percentage": 87.5,
+            "numerator": 75600,
+            "denominator": 86400,
+            "unit": "seconds",
+            "estimatedIssueCount": 2,
+            "unestimatedIssueCount": 2
+          },
+          "addedAfterStart": [
+            {
+              "issue": {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              "events": [
+                {
+                  "id": "a",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-added",
+                  "occurredAt": "2026-08-03T06:00:00.000Z",
+                  "actor": {
+                    "id": "ada",
+                    "displayName": "Ada"
+                  }
+                },
+                {
+                  "id": "c",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-added",
+                  "occurredAt": "2026-08-03T08:00:00.000Z"
+                }
+              ]
+            }
+          ],
+          "removedAfterStart": [
+            {
+              "issue": {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              "events": [
+                {
+                  "id": "b",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-removed",
+                  "occurredAt": "2026-08-03T07:00:00.000Z"
+                }
+              ]
+            }
+          ],
+          "unestimated": {
+            "total": 1,
+            "completed": 0,
+            "incomplete": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "sprint-original-estimate",
+      "input": {
+        "issues": [
+          {
+            "id": "1",
+            "key": "APP-1",
+            "browseUrl": "https://jira.example.test/browse/APP-1",
+            "summary": "Issue 1",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 3,
+            "originalEstimateSeconds": 28800,
+            "timeSpentSeconds": 72000,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "2",
+            "key": "APP-2",
+            "browseUrl": "https://jira.example.test/browse/APP-2",
+            "summary": "Issue 2",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "assignee": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "storyPoints": 5,
+            "originalEstimateSeconds": 57600,
+            "timeSpentSeconds": 3600,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "3",
+            "key": "APP-3",
+            "browseUrl": "https://jira.example.test/browse/APP-3",
+            "summary": "Issue 3",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "4",
+            "key": "APP-4",
+            "browseUrl": "https://jira.example.test/browse/APP-4",
+            "summary": "Issue 4",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 0,
+            "originalEstimateSeconds": 0,
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          }
+        ],
+        "changes": [
+          {
+            "id": "old",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "w1",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-03T05:00:00.000Z",
+            "timeSpentSeconds": 3600
+          },
+          {
+            "id": "w2",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "author": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "startedAt": "2026-08-03T12:00:00.000Z",
+            "timeSpentSeconds": 7200
+          },
+          {
+            "id": "outside",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-04T05:00:00.000Z",
+            "timeSpentSeconds": 900
+          }
+        ],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-04T05:00:00.000Z",
+          "dataCutoff": "2026-08-04T05:00:00.000Z"
+        },
+        "type": "sprint",
+        "scope": {
+          "kind": "team"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "mode": "original-estimate",
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 4,
+          "completedIssues": 2,
+          "incompleteIssues": 2,
+          "createdIssues": 1,
+          "completedDuringPeriod": 1,
+          "reopenedDuringPeriod": 1,
+          "totalTimeSpentSeconds": 75600,
+          "worklogSeconds": 10800,
+          "unassignedIssues": 1
+        },
+        "people": [
+          {
+            "user": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "assignedIssues": [
+              {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              {
+                "id": "4",
+                "key": "APP-4",
+                "browseUrl": "https://jira.example.test/browse/APP-4",
+                "summary": "Issue 4",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 0,
+                "originalEstimateSeconds": 0,
+                "timeSpentSeconds": 0,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": [],
+            "changes": [
+              {
+                "id": "a",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T06:00:00.000Z",
+                "actor": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                }
+              },
+              {
+                "id": "b",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-removed",
+                "occurredAt": "2026-08-03T07:00:00.000Z"
+              },
+              {
+                "id": "c",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T08:00:00.000Z"
+              },
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              }
+            ],
+            "authoredWorklogs": [
+              {
+                "id": "w2",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "author": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "startedAt": "2026-08-03T12:00:00.000Z",
+                "timeSpentSeconds": 7200
+              }
+            ],
+            "worklogSeconds": 7200
+          },
+          {
+            "user": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "assignedIssues": [
+              {
+                "id": "2",
+                "key": "APP-2",
+                "browseUrl": "https://jira.example.test/browse/APP-2",
+                "summary": "Issue 2",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "open",
+                  "name": "Open"
+                },
+                "assignee": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                },
+                "storyPoints": 5,
+                "originalEstimateSeconds": 57600,
+                "timeSpentSeconds": 3600,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": ["APP-2"],
+            "changes": [
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              },
+              {
+                "id": "e",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "type": "issue-reopened",
+                "occurredAt": "2026-08-03T10:00:00.000Z"
+              }
+            ],
+            "authoredWorklogs": [],
+            "worklogSeconds": 0
+          },
+          {
+            "user": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "assignedIssues": [],
+            "createdIssues": [],
+            "completedIssues": [],
+            "reopenedIssues": [],
+            "changes": [],
+            "authoredWorklogs": [
+              {
+                "id": "w1",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "author": {
+                  "id": "writer",
+                  "displayName": "Contributor"
+                },
+                "startedAt": "2026-08-03T05:00:00.000Z",
+                "timeSpentSeconds": 3600
+              }
+            ],
+            "worklogSeconds": 3600
+          }
+        ],
+        "unassigned": {
+          "issues": [
+            {
+              "id": "3",
+              "key": "APP-3",
+              "browseUrl": "https://jira.example.test/browse/APP-3",
+              "summary": "Issue 3",
+              "issueType": {
+                "id": "1",
+                "name": "Story"
+              },
+              "status": {
+                "id": "open",
+                "name": "Open"
+              },
+              "timeSpentSeconds": 0,
+              "sprintIds": ["7"]
+            }
+          ],
+          "changes": [
+            {
+              "id": "f",
+              "issueId": "3",
+              "issueKey": "APP-3",
+              "type": "issue-created",
+              "occurredAt": "2026-08-03T11:00:00.000Z"
+            }
+          ]
+        },
+        "activity": [
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          }
+        ],
+        "sprint": {
+          "progressMode": "original-estimate",
+          "completion": {
+            "percentage": 33.33333333333333,
+            "numerator": 28800,
+            "denominator": 86400,
+            "unit": "seconds",
+            "estimatedIssueCount": 2,
+            "unestimatedIssueCount": 2
+          },
+          "timeUtilization": {
+            "percentage": 87.5,
+            "numerator": 75600,
+            "denominator": 86400,
+            "unit": "seconds",
+            "estimatedIssueCount": 2,
+            "unestimatedIssueCount": 2
+          },
+          "addedAfterStart": [
+            {
+              "issue": {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              "events": [
+                {
+                  "id": "a",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-added",
+                  "occurredAt": "2026-08-03T06:00:00.000Z",
+                  "actor": {
+                    "id": "ada",
+                    "displayName": "Ada"
+                  }
+                },
+                {
+                  "id": "c",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-added",
+                  "occurredAt": "2026-08-03T08:00:00.000Z"
+                }
+              ]
+            }
+          ],
+          "removedAfterStart": [
+            {
+              "issue": {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              "events": [
+                {
+                  "id": "b",
+                  "issueId": "1",
+                  "issueKey": "APP-1",
+                  "type": "sprint-removed",
+                  "occurredAt": "2026-08-03T07:00:00.000Z"
+                }
+              ]
+            }
+          ],
+          "unestimated": {
+            "total": 2,
+            "completed": 1,
+            "incomplete": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "individual",
+      "input": {
+        "issues": [
+          {
+            "id": "1",
+            "key": "APP-1",
+            "browseUrl": "https://jira.example.test/browse/APP-1",
+            "summary": "Issue 1",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 3,
+            "originalEstimateSeconds": 28800,
+            "timeSpentSeconds": 72000,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "2",
+            "key": "APP-2",
+            "browseUrl": "https://jira.example.test/browse/APP-2",
+            "summary": "Issue 2",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "assignee": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "storyPoints": 5,
+            "originalEstimateSeconds": 57600,
+            "timeSpentSeconds": 3600,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "3",
+            "key": "APP-3",
+            "browseUrl": "https://jira.example.test/browse/APP-3",
+            "summary": "Issue 3",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "4",
+            "key": "APP-4",
+            "browseUrl": "https://jira.example.test/browse/APP-4",
+            "summary": "Issue 4",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 0,
+            "originalEstimateSeconds": 0,
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          }
+        ],
+        "changes": [
+          {
+            "id": "old",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "w1",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-03T05:00:00.000Z",
+            "timeSpentSeconds": 3600
+          },
+          {
+            "id": "w2",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "author": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "startedAt": "2026-08-03T12:00:00.000Z",
+            "timeSpentSeconds": 7200
+          },
+          {
+            "id": "outside",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-04T05:00:00.000Z",
+            "timeSpentSeconds": 900
+          }
+        ],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-04T05:00:00.000Z",
+          "dataCutoff": "2026-08-04T05:00:00.000Z"
+        },
+        "type": "daily",
+        "scope": {
+          "kind": "assignee",
+          "userId": "ada"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 2,
+          "completedIssues": 2,
+          "incompleteIssues": 0,
+          "createdIssues": 0,
+          "completedDuringPeriod": 1,
+          "reopenedDuringPeriod": 0,
+          "totalTimeSpentSeconds": 72000,
+          "worklogSeconds": 7200,
+          "unassignedIssues": 0
+        },
+        "people": [
+          {
+            "user": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "assignedIssues": [
+              {
+                "id": "1",
+                "key": "APP-1",
+                "browseUrl": "https://jira.example.test/browse/APP-1",
+                "summary": "Issue 1",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 3,
+                "originalEstimateSeconds": 28800,
+                "timeSpentSeconds": 72000,
+                "sprintIds": ["7"]
+              },
+              {
+                "id": "4",
+                "key": "APP-4",
+                "browseUrl": "https://jira.example.test/browse/APP-4",
+                "summary": "Issue 4",
+                "issueType": {
+                  "id": "1",
+                  "name": "Story"
+                },
+                "status": {
+                  "id": "done",
+                  "name": "Done"
+                },
+                "assignee": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "storyPoints": 0,
+                "originalEstimateSeconds": 0,
+                "timeSpentSeconds": 0,
+                "sprintIds": ["7"]
+              }
+            ],
+            "createdIssues": [],
+            "completedIssues": ["APP-1"],
+            "reopenedIssues": [],
+            "changes": [
+              {
+                "id": "a",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T06:00:00.000Z",
+                "actor": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                }
+              },
+              {
+                "id": "b",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-removed",
+                "occurredAt": "2026-08-03T07:00:00.000Z"
+              },
+              {
+                "id": "c",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "sprint-added",
+                "occurredAt": "2026-08-03T08:00:00.000Z"
+              },
+              {
+                "id": "d",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "type": "issue-completed",
+                "occurredAt": "2026-08-03T09:00:00.000Z",
+                "actor": {
+                  "id": "bob",
+                  "displayName": "Bob"
+                }
+              }
+            ],
+            "authoredWorklogs": [
+              {
+                "id": "w2",
+                "issueId": "2",
+                "issueKey": "APP-2",
+                "author": {
+                  "id": "ada",
+                  "displayName": "Ada"
+                },
+                "startedAt": "2026-08-03T12:00:00.000Z",
+                "timeSpentSeconds": 7200
+              }
+            ],
+            "worklogSeconds": 7200
+          }
+        ],
+        "unassigned": {
+          "issues": [],
+          "changes": []
+        },
+        "activity": [
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "contributor",
+      "input": {
+        "issues": [
+          {
+            "id": "1",
+            "key": "APP-1",
+            "browseUrl": "https://jira.example.test/browse/APP-1",
+            "summary": "Issue 1",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 3,
+            "originalEstimateSeconds": 28800,
+            "timeSpentSeconds": 72000,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "2",
+            "key": "APP-2",
+            "browseUrl": "https://jira.example.test/browse/APP-2",
+            "summary": "Issue 2",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "assignee": {
+              "id": "bob",
+              "displayName": "Bob"
+            },
+            "storyPoints": 5,
+            "originalEstimateSeconds": 57600,
+            "timeSpentSeconds": 3600,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "3",
+            "key": "APP-3",
+            "browseUrl": "https://jira.example.test/browse/APP-3",
+            "summary": "Issue 3",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "open",
+              "name": "Open"
+            },
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          },
+          {
+            "id": "4",
+            "key": "APP-4",
+            "browseUrl": "https://jira.example.test/browse/APP-4",
+            "summary": "Issue 4",
+            "issueType": {
+              "id": "1",
+              "name": "Story"
+            },
+            "status": {
+              "id": "done",
+              "name": "Done"
+            },
+            "assignee": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "storyPoints": 0,
+            "originalEstimateSeconds": 0,
+            "timeSpentSeconds": 0,
+            "sprintIds": ["7"]
+          }
+        ],
+        "changes": [
+          {
+            "id": "old",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "a",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T06:00:00.000Z",
+            "actor": {
+              "id": "ada",
+              "displayName": "Ada"
+            }
+          },
+          {
+            "id": "b",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-removed",
+            "occurredAt": "2026-08-03T07:00:00.000Z"
+          },
+          {
+            "id": "c",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "sprint-added",
+            "occurredAt": "2026-08-03T08:00:00.000Z"
+          },
+          {
+            "id": "d",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-03T09:00:00.000Z",
+            "actor": {
+              "id": "bob",
+              "displayName": "Bob"
+            }
+          },
+          {
+            "id": "e",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-reopened",
+            "occurredAt": "2026-08-03T10:00:00.000Z"
+          },
+          {
+            "id": "f",
+            "issueId": "3",
+            "issueKey": "APP-3",
+            "type": "issue-created",
+            "occurredAt": "2026-08-03T11:00:00.000Z"
+          },
+          {
+            "id": "end",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "type": "issue-completed",
+            "occurredAt": "2026-08-04T05:00:00.000Z"
+          }
+        ],
+        "worklogs": [
+          {
+            "id": "w1",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-03T05:00:00.000Z",
+            "timeSpentSeconds": 3600
+          },
+          {
+            "id": "w2",
+            "issueId": "2",
+            "issueKey": "APP-2",
+            "author": {
+              "id": "ada",
+              "displayName": "Ada"
+            },
+            "startedAt": "2026-08-03T12:00:00.000Z",
+            "timeSpentSeconds": 7200
+          },
+          {
+            "id": "outside",
+            "issueId": "1",
+            "issueKey": "APP-1",
+            "author": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "startedAt": "2026-08-04T05:00:00.000Z",
+            "timeSpentSeconds": 900
+          }
+        ],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-04T05:00:00.000Z",
+          "dataCutoff": "2026-08-04T05:00:00.000Z"
+        },
+        "type": "daily",
+        "scope": {
+          "kind": "assignee",
+          "userId": "writer"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 0,
+          "completedIssues": 0,
+          "incompleteIssues": 0,
+          "createdIssues": 0,
+          "completedDuringPeriod": 0,
+          "reopenedDuringPeriod": 0,
+          "totalTimeSpentSeconds": 0,
+          "worklogSeconds": 3600,
+          "unassignedIssues": 0
+        },
+        "people": [
+          {
+            "user": {
+              "id": "writer",
+              "displayName": "Contributor"
+            },
+            "assignedIssues": [],
+            "createdIssues": [],
+            "completedIssues": [],
+            "reopenedIssues": [],
+            "changes": [],
+            "authoredWorklogs": [
+              {
+                "id": "w1",
+                "issueId": "1",
+                "issueKey": "APP-1",
+                "author": {
+                  "id": "writer",
+                  "displayName": "Contributor"
+                },
+                "startedAt": "2026-08-03T05:00:00.000Z",
+                "timeSpentSeconds": 3600
+              }
+            ],
+            "worklogSeconds": 3600
+          }
+        ],
+        "unassigned": {
+          "issues": [],
+          "changes": []
+        },
+        "activity": []
+      }
+    },
+    {
+      "name": "empty",
+      "input": {
+        "issues": [],
+        "changes": [],
+        "worklogs": [],
+        "period": {
+          "timeZone": "Europe/Kyiv",
+          "start": "2026-08-03T05:00:00.000Z",
+          "end": "2026-08-04T05:00:00.000Z",
+          "dataCutoff": "2026-08-04T05:00:00.000Z"
+        },
+        "type": "sprint",
+        "scope": {
+          "kind": "team"
+        },
+        "statusMapping": {
+          "schemaVersion": 1,
+          "jiraBaseUrl": "https://jira.example.test",
+          "boardId": "1",
+          "completedStatusIds": ["done"],
+          "completedStatusNames": ["Done"],
+          "updatedAt": "2026-08-03T10:00:00.000Z"
+        }
+      },
+      "mode": "original-estimate",
+      "expected": {
+        "executiveSummary": {
+          "totalIssues": 0,
+          "completedIssues": 0,
+          "incompleteIssues": 0,
+          "createdIssues": 0,
+          "completedDuringPeriod": 0,
+          "reopenedDuringPeriod": 0,
+          "totalTimeSpentSeconds": 0,
+          "worklogSeconds": 0,
+          "unassignedIssues": 0
+        },
+        "people": [],
+        "unassigned": {
+          "issues": [],
+          "changes": []
+        },
+        "activity": [],
+        "sprint": {
+          "progressMode": "original-estimate",
+          "completion": {
+            "percentage": null,
+            "numerator": 0,
+            "denominator": 0,
+            "unit": "seconds",
+            "estimatedIssueCount": 0,
+            "unestimatedIssueCount": 0
+          },
+          "timeUtilization": {
+            "percentage": null,
+            "numerator": 0,
+            "denominator": 0,
+            "unit": "seconds",
+            "estimatedIssueCount": 0,
+            "unestimatedIssueCount": 0
+          },
+          "addedAfterStart": [],
+          "removedAfterStart": [],
+          "unestimated": {
+            "total": 0,
+            "completed": 0,
+            "incomplete": 0
+          }
+        }
+      }
+    }
+  ],
+  "periods": [
+    {
+      "date": "2026-03-29",
+      "type": "daily",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-03-28T06:00:00.000Z",
+        "end": "2026-03-29T05:00:00.000Z",
+        "dataCutoff": "2026-03-29T05:00:00.000Z"
+      }
+    },
+    {
+      "date": "2026-03-29",
+      "type": "weekly",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-03-23T06:00:00.000Z",
+        "end": "2026-03-30T05:00:00.000Z",
+        "dataCutoff": "2026-03-30T05:00:00.000Z"
+      }
+    },
+    {
+      "date": "2026-03-30",
+      "type": "daily",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-03-29T05:00:00.000Z",
+        "end": "2026-03-30T05:00:00.000Z",
+        "dataCutoff": "2026-03-30T05:00:00.000Z"
+      }
+    },
+    {
+      "date": "2026-03-30",
+      "type": "weekly",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-03-30T05:00:00.000Z",
+        "end": "2026-04-06T05:00:00.000Z",
+        "dataCutoff": "2026-04-06T05:00:00.000Z"
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "type": "daily",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-10-24T05:00:00.000Z",
+        "end": "2026-10-25T06:00:00.000Z",
+        "dataCutoff": "2026-10-25T06:00:00.000Z"
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "type": "weekly",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-10-19T05:00:00.000Z",
+        "end": "2026-10-26T06:00:00.000Z",
+        "dataCutoff": "2026-10-26T06:00:00.000Z"
+      }
+    },
+    {
+      "date": "2026-10-26",
+      "type": "daily",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-10-25T06:00:00.000Z",
+        "end": "2026-10-26T06:00:00.000Z",
+        "dataCutoff": "2026-10-26T06:00:00.000Z"
+      }
+    },
+    {
+      "date": "2026-10-26",
+      "type": "weekly",
+      "generatedAt": "2026-12-01T00:00:00.000Z",
+      "expected": {
+        "timeZone": "Europe/Kyiv",
+        "start": "2026-10-26T06:00:00.000Z",
+        "end": "2026-11-02T06:00:00.000Z",
+        "dataCutoff": "2026-11-02T06:00:00.000Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+[
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21",
+          "scheduleState": "confirmed"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22",
+          "scheduleState": "confirmed"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26",
+          "scheduleState": "confirmed"
+        }
+      ],
+      "boardState": {
+        "dependencies": [
+          {
+            "id": "a",
+            "predecessorIssueKey": "APP-1",
+            "successorIssueKey": "APP-2",
+            "type": "FS",
+            "lagWorkingDays": 0
+          },
+          {
+            "id": "b",
+            "predecessorIssueKey": "APP-2",
+            "successorIssueKey": "APP-3",
+            "type": "FS",
+            "lagWorkingDays": 0
+          }
+        ],
+        "reconciledDates": {
+          "APP-1": {
+            "startDate": "2026-10-19",
+            "dueDate": "2026-10-21"
+          }
+        }
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": []
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-23",
+          "end": "2026-10-27",
+          "scheduleState": "confirmed"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22",
+          "scheduleState": "confirmed"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26",
+          "scheduleState": "confirmed"
+        }
+      ],
+      "boardState": {
+        "dependencies": [
+          {
+            "id": "a",
+            "predecessorIssueKey": "APP-1",
+            "successorIssueKey": "APP-2",
+            "type": "FS",
+            "lagWorkingDays": 0
+          },
+          {
+            "id": "b",
+            "predecessorIssueKey": "APP-2",
+            "successorIssueKey": "APP-3",
+            "type": "FS",
+            "lagWorkingDays": 0
+          }
+        ],
+        "reconciledDates": {
+          "APP-1": {
+            "startDate": "2026-10-19",
+            "dueDate": "2026-10-21"
+          }
+        }
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "expectedDates": {
+          "startDate": "2026-10-19",
+          "dueDate": "2026-10-21"
+        },
+        "jiraDates": {
+          "startDate": "2026-10-23",
+          "dueDate": "2026-10-27"
+        },
+        "repairUpdates": [
+          {
+            "issueKey": "APP-2",
+            "startDate": "2026-10-28",
+            "dueDate": "2026-10-30",
+            "source": "cascade"
+          },
+          {
+            "issueKey": "APP-3",
+            "startDate": "2026-11-02",
+            "dueDate": "2026-11-03",
+            "source": "cascade"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,1624 @@
+[
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "default",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "default",
+      "direction": "desc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "startDate",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "startDate",
+      "direction": "desc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "endDate",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "endDate",
+      "direction": "desc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "name",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "name",
+      "direction": "desc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "status",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "status",
+      "direction": "desc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "assignee",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "assignee",
+      "direction": "desc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "issueKey",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-4",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "issueKey",
+      "direction": "desc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-4",
+        "depth": 0
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      },
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-10",
+        "depth": 1
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "default",
+      "direction": "asc",
+      "collapsed": ["APP-1"],
+      "query": "APP-2",
+      "hideDone": false
+    },
+    "expected": []
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "default",
+      "direction": "asc",
+      "collapsed": [],
+      "query": " APP-2 ",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-2",
+        "depth": 1
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "default",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "alex",
+      "hideDone": false
+    },
+    "expected": [
+      {
+        "id": "APP-10",
+        "depth": 1
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "default",
+      "direction": "asc",
+      "collapsed": [],
+      "query": "",
+      "hideDone": true
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-2",
+        "depth": 1
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "id": "APP-1",
+          "issueKey": "APP-1",
+          "name": "Zulu",
+          "start": "2026-10-22",
+          "end": "2026-10-23",
+          "statusName": "Review",
+          "statusCategory": "in-progress",
+          "assigneeName": "Bea",
+          "depth": 0
+        },
+        {
+          "id": "APP-10",
+          "issueKey": "APP-10",
+          "parentId": "APP-1",
+          "name": "Same",
+          "start": "2026-10-21",
+          "end": "2026-10-24",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "assigneeName": "Alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-2",
+          "issueKey": "APP-2",
+          "parentId": "APP-1",
+          "name": "same",
+          "start": "2026-10-20",
+          "end": "2026-10-25",
+          "statusName": "To Do",
+          "statusCategory": "to-do",
+          "assigneeName": "alex",
+          "depth": 1
+        },
+        {
+          "id": "APP-3",
+          "issueKey": "APP-3",
+          "name": "Alpha",
+          "start": "",
+          "end": "",
+          "statusName": "",
+          "statusCategory": "unknown",
+          "assigneeName": "",
+          "depth": 0
+        },
+        {
+          "id": "APP-4",
+          "issueKey": "APP-4",
+          "name": "Beta",
+          "start": "2026-10-19",
+          "end": "2026-10-26",
+          "statusName": "Done",
+          "statusCategory": "done",
+          "depth": 0
+        }
+      ],
+      "sortBy": "default",
+      "direction": "asc",
+      "collapsed": ["APP-1"],
+      "query": "",
+      "hideDone": true
+    },
+    "expected": [
+      {
+        "id": "APP-1",
+        "depth": 0
+      },
+      {
+        "id": "APP-3",
+        "depth": 0
+      }
+    ]
+  }
+]

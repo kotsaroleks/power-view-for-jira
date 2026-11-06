@@ -1,0 +1,553 @@
+[
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "startDate": "2026-10-23",
+        "originalEstimateSeconds": 57600
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-23",
+        "end": "2026-10-26",
+        "state": "planned",
+        "startSource": "jira",
+        "endSource": "default-duration",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "dueDate": "2026-10-26",
+        "originalEstimateSeconds": 57600
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-23",
+        "end": "2026-10-26",
+        "state": "forecast",
+        "startSource": "today",
+        "endSource": "jira",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        }
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-19",
+        "end": "2026-10-19",
+        "state": "unscheduled",
+        "startSource": "today",
+        "endSource": "default-duration",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "startDate": "2026-10-22",
+        "dueDate": "2026-10-21",
+        "originalEstimateSeconds": 57600
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-22",
+        "end": "2026-10-23",
+        "state": "planned",
+        "startSource": "jira",
+        "endSource": "corrected",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": ["END_BEFORE_START"]
+      }
+    ]
+  },
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "startDate": "2026-10-22",
+        "dueDate": "2026-10-22",
+        "originalEstimateSeconds": 0
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-22",
+        "end": "2026-10-22",
+        "state": "milestone",
+        "startSource": "jira",
+        "endSource": "jira",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "startDate": "2026-10-01",
+        "dueDate": "2026-10-30"
+      },
+      {
+        "id": "id-APP-2",
+        "key": "APP-2",
+        "browseUrl": "https://jira.example.test/browse/APP-2",
+        "summary": "APP-2",
+        "issueType": {
+          "id": "2",
+          "name": "Subtask",
+          "subtask": true
+        },
+        "status": {
+          "name": "Done",
+          "category": "done"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "parentKey": "APP-1",
+        "startDate": "2026-10-19",
+        "dueDate": "2026-10-22"
+      },
+      {
+        "id": "id-APP-3",
+        "key": "APP-3",
+        "browseUrl": "https://jira.example.test/browse/APP-3",
+        "summary": "APP-3",
+        "issueType": {
+          "id": "2",
+          "name": "Subtask",
+          "subtask": true
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "parentKey": "APP-1",
+        "startDate": "2026-10-20",
+        "dueDate": "2026-10-26"
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-19",
+        "end": "2026-10-26",
+        "state": "rollup",
+        "startSource": "children",
+        "endSource": "children",
+        "progress": 50,
+        "progressSource": "subtasks",
+        "warnings": ["PARENT_DATE_MISMATCH"]
+      },
+      {
+        "key": "APP-2",
+        "start": "2026-10-19",
+        "end": "2026-10-22",
+        "state": "confirmed",
+        "startSource": "jira",
+        "endSource": "jira",
+        "progress": 100,
+        "progressSource": "status",
+        "warnings": []
+      },
+      {
+        "key": "APP-3",
+        "start": "2026-10-20",
+        "end": "2026-10-26",
+        "state": "confirmed",
+        "startSource": "jira",
+        "endSource": "jira",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "parentKey": "APP-2",
+        "startDate": "2026-10-19"
+      },
+      {
+        "id": "id-APP-2",
+        "key": "APP-2",
+        "browseUrl": "https://jira.example.test/browse/APP-2",
+        "summary": "APP-2",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "parentKey": "APP-1",
+        "dueDate": "2026-10-21"
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-19",
+        "end": "2026-10-21",
+        "state": "planned",
+        "startSource": "jira",
+        "endSource": "default-duration",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": ["HIERARCHY_CYCLE"]
+      },
+      {
+        "key": "APP-2",
+        "start": "2026-10-19",
+        "end": "2026-10-21",
+        "state": "forecast",
+        "startSource": "today",
+        "endSource": "jira",
+        "progress": 0,
+        "progressSource": "status",
+        "warnings": ["HIERARCHY_CYCLE"]
+      }
+    ]
+  },
+  {
+    "issues": [
+      {
+        "id": "id-APP-1",
+        "key": "APP-1",
+        "browseUrl": "https://jira.example.test/browse/APP-1",
+        "summary": "APP-1",
+        "issueType": {
+          "id": "1",
+          "name": "Task",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "category": "to-do"
+        },
+        "project": {
+          "id": "100",
+          "key": "APP",
+          "name": "Test"
+        },
+        "labels": [],
+        "components": [],
+        "fixVersions": [],
+        "issueLinks": [],
+        "rawFieldPresence": {
+          "hasStartDate": false,
+          "hasDueDate": false,
+          "hasParent": false,
+          "hasEpic": false
+        },
+        "startDate": "invalid",
+        "dueDate": "2026-10-21",
+        "progress": {
+          "percentage": 27.6,
+          "source": "jira-progress"
+        }
+      }
+    ],
+    "options": {
+      "today": "2026-10-19"
+    },
+    "expected": [
+      {
+        "key": "APP-1",
+        "start": "2026-10-19",
+        "end": "2026-10-21",
+        "state": "forecast",
+        "startSource": "today",
+        "endSource": "jira",
+        "progress": 28,
+        "progressSource": "jira-progress",
+        "warnings": ["INVALID_START_DATE"]
+      }
+    ]
+  }
+]

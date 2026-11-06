@@ -1,0 +1,280 @@
+{
+  "issues": [
+    {
+      "id": "id-APP-1",
+      "key": "APP-1",
+      "browseUrl": "https://jira.example.test/browse/APP-1",
+      "summary": "APP-1",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "To Do",
+        "category": "to-do"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [
+        {
+          "typeName": "Fixture",
+          "linkedIssueKey": "APP-2",
+          "semanticType": "blocks",
+          "direction": "outward"
+        }
+      ],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    },
+    {
+      "id": "id-APP-2",
+      "key": "APP-2",
+      "browseUrl": "https://jira.example.test/browse/APP-2",
+      "summary": "APP-2",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "To Do",
+        "category": "to-do"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    },
+    {
+      "id": "id-APP-3",
+      "key": "APP-3",
+      "browseUrl": "https://jira.example.test/browse/APP-3",
+      "summary": "APP-3",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "Done",
+        "category": "done"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [
+        {
+          "typeName": "Fixture",
+          "linkedIssueKey": "APP-4",
+          "semanticType": "blocks",
+          "direction": "outward"
+        }
+      ],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    },
+    {
+      "id": "id-APP-4",
+      "key": "APP-4",
+      "browseUrl": "https://jira.example.test/browse/APP-4",
+      "summary": "APP-4",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "To Do",
+        "category": "to-do"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    },
+    {
+      "id": "id-APP-5",
+      "key": "APP-5",
+      "browseUrl": "https://jira.example.test/browse/APP-5",
+      "summary": "APP-5",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "On Hold",
+        "category": "to-do"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    },
+    {
+      "id": "id-APP-6",
+      "key": "APP-6",
+      "browseUrl": "https://jira.example.test/browse/APP-6",
+      "summary": "APP-6",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "To Do",
+        "category": "to-do"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [
+        {
+          "typeName": "Fixture",
+          "linkedIssueKey": "APP-1",
+          "semanticType": "depends-on",
+          "direction": "outward"
+        }
+      ],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    },
+    {
+      "id": "id-APP-7",
+      "key": "APP-7",
+      "browseUrl": "https://jira.example.test/browse/APP-7",
+      "summary": "APP-7",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "To Do",
+        "category": "to-do"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [
+        {
+          "typeName": "Fixture",
+          "linkedIssueKey": "APP-3",
+          "semanticType": "finish-to-finish",
+          "direction": "outward"
+        }
+      ],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    },
+    {
+      "id": "id-APP-8",
+      "key": "APP-8",
+      "browseUrl": "https://jira.example.test/browse/APP-8",
+      "summary": "APP-8",
+      "issueType": {
+        "id": "1",
+        "name": "Task",
+        "subtask": false
+      },
+      "status": {
+        "name": "To Do",
+        "category": "to-do"
+      },
+      "project": {
+        "id": "100",
+        "key": "APP",
+        "name": "Test"
+      },
+      "labels": [],
+      "components": [],
+      "fixVersions": [],
+      "issueLinks": [
+        {
+          "typeName": "Fixture",
+          "linkedIssueKey": "OUTSIDE-1",
+          "semanticType": "is-blocked-by",
+          "direction": "inward"
+        }
+      ],
+      "rawFieldPresence": {
+        "hasStartDate": false,
+        "hasDueDate": false,
+        "hasParent": false,
+        "hasEpic": false
+      }
+    }
+  ],
+  "expected": ["id-APP-2", "id-APP-5", "id-APP-6"]
+}

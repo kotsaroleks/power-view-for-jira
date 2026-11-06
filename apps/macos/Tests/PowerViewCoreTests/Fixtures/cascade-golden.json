@@ -1,0 +1,506 @@
+[
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "FS",
+          "lagWorkingDays": 0
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-28",
+        "dueDate": "2026-10-30",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-11-02",
+        "dueDate": "2026-11-03",
+        "source": "cascade"
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "FS",
+          "lagWorkingDays": 2
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-30",
+        "dueDate": "2026-11-03",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-11-04",
+        "dueDate": "2026-11-05",
+        "source": "cascade"
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "SS",
+          "lagWorkingDays": 0
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-10-28",
+        "dueDate": "2026-10-29",
+        "source": "cascade"
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "SS",
+          "lagWorkingDays": 2
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-27",
+        "dueDate": "2026-10-29",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-10-30",
+        "dueDate": "2026-11-02",
+        "source": "cascade"
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "FF",
+          "lagWorkingDays": 0
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-10-28",
+        "dueDate": "2026-10-29",
+        "source": "cascade"
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "FF",
+          "lagWorkingDays": 2
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-27",
+        "dueDate": "2026-10-29",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-10-30",
+        "dueDate": "2026-11-02",
+        "source": "cascade"
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "SF",
+          "lagWorkingDays": 0
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-21",
+        "dueDate": "2026-10-23",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-10-26",
+        "dueDate": "2026-10-27",
+        "source": "cascade"
+      }
+    ]
+  },
+  {
+    "input": {
+      "tasks": [
+        {
+          "issueKey": "APP-1",
+          "start": "2026-10-19",
+          "end": "2026-10-21"
+        },
+        {
+          "issueKey": "APP-2",
+          "start": "2026-10-20",
+          "end": "2026-10-22"
+        },
+        {
+          "issueKey": "APP-3",
+          "start": "2026-10-23",
+          "end": "2026-10-26"
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "a",
+          "predecessorIssueKey": "APP-1",
+          "successorIssueKey": "APP-2",
+          "type": "SF",
+          "lagWorkingDays": 2
+        },
+        {
+          "id": "b",
+          "predecessorIssueKey": "APP-2",
+          "successorIssueKey": "APP-3",
+          "type": "FS",
+          "lagWorkingDays": 0
+        }
+      ],
+      "changedIssueKey": "APP-1",
+      "changedDates": {
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27"
+      },
+      "nonWorkingDays": [0, 6]
+    },
+    "expected": [
+      {
+        "issueKey": "APP-1",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "direct"
+      },
+      {
+        "issueKey": "APP-2",
+        "startDate": "2026-10-23",
+        "dueDate": "2026-10-27",
+        "source": "cascade"
+      },
+      {
+        "issueKey": "APP-3",
+        "startDate": "2026-10-28",
+        "dueDate": "2026-10-29",
+        "source": "cascade"
+      }
+    ]
+  }
+]
