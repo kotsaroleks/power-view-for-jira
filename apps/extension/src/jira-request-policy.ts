@@ -1,4 +1,9 @@
-import type { JiraTransportRequest } from "@power-view/extension-messaging";
+import { isValidJiraTimestamp } from "@power-view/domain";
+import {
+  POWER_VIEW_TEAM_CONTEXT_QUERY,
+  POWER_VIEW_MY_TEAMS_QUERY,
+  type JiraTransportRequest,
+} from "@power-view/extension-messaging";
 
 const ALLOWED_READ_ROUTES = new Map<string, ReadonlySet<string>>([
   ["/rest/api/2/myself", new Set()],
@@ -156,15 +161,158 @@ function validBulkChangelogBody(value: unknown): boolean {
   );
 }
 
+function validTimesheetSearchBody(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(value, ["jql", "fields", "maxResults", "nextPageToken"]) &&
+    typeof value.jql === "string" &&
+    value.jql.trim().length > 0 &&
+    value.jql.length <= 10_000 &&
+    Array.isArray(value.fields) &&
+    (JSON.stringify(value.fields) === JSON.stringify(["summary", "project"]) ||
+      JSON.stringify(value.fields) ===
+        JSON.stringify(["summary", "project", "issuetype", "assignee", "parent"])) &&
+    value.maxResults === 100 &&
+    (value.nextPageToken === undefined ||
+      (typeof value.nextPageToken === "string" &&
+        value.nextPageToken.length > 0 &&
+        value.nextPageToken.length <= 4096))
+  );
+}
+function validPlainAdf(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(value, ["type", "version", "content"]) &&
+    value.type === "doc" &&
+    value.version === 1 &&
+    Array.isArray(value.content) &&
+    value.content.length <= 2000 &&
+    JSON.stringify(value).length <= 32_000 &&
+    value.content.every(
+      (paragraph: unknown) =>
+        isRecord(paragraph) &&
+        hasOnlyKeys(paragraph, ["type", "content"]) &&
+        paragraph.type === "paragraph" &&
+        Array.isArray(paragraph.content) &&
+        paragraph.content.length <= 1 &&
+        paragraph.content.every(
+          (part: unknown) =>
+            isRecord(part) &&
+            hasOnlyKeys(part, ["type", "text"]) &&
+            part.type === "text" &&
+            typeof part.text === "string" &&
+            part.text.length > 0,
+        ),
+    )
+  );
+}
+function validWorklogBody(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(value, ["started", "timeSpentSeconds", "comment"]) &&
+    typeof value.started === "string" &&
+    isValidJiraTimestamp(value.started) &&
+    value.started.includes("T") &&
+    typeof value.timeSpentSeconds === "number" &&
+    Number.isInteger(value.timeSpentSeconds) &&
+    value.timeSpentSeconds > 0 &&
+    value.timeSpentSeconds <= 2_147_483_647 &&
+    (value.comment === undefined || validPlainAdf(value.comment))
+  );
+}
+const CLOUD_WORKLOG_PATH = new RegExp(
+  `^/rest/api/3/issue/${ISSUE_KEY_PATTERN}/worklog(?:/\\d{1,32})?$`,
+);
+
+const TEAM_PATH =
+  /^\/gateway\/api\/public\/teams\/v1\/org\/[A-Za-z0-9-]{1,128}\/teams\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/;
+const teamMembersPath = (path: string) =>
+  path.endsWith("/members") && TEAM_PATH.test(path.slice(0, -8));
+function validTeamsGraphRequest(request: JiraTransportRequest): boolean {
+  if (request.method !== "POST" || request.path !== "/gateway/api/graphql") return false;
+  const body = request.body;
+  if (
+    !isRecord(body) ||
+    !hasOnlyKeys(body, ["operationName", "query", "variables"]) ||
+    !isRecord(body.variables)
+  )
+    return false;
+  const variables = body.variables;
+  if (
+    body.operationName === "PowerViewTenantContext" &&
+    body.query === POWER_VIEW_TEAM_CONTEXT_QUERY
+  ) {
+    try {
+      return (
+        hasOnlyKeys(variables, ["hostNames"]) &&
+        Array.isArray(variables.hostNames) &&
+        variables.hostNames.length === 1 &&
+        variables.hostNames[0] === new URL(request.baseUrl).hostname
+      );
+    } catch {
+      return false;
+    }
+  }
+  return (
+    body.operationName === "PowerViewMyTeams" &&
+    body.query === POWER_VIEW_MY_TEAMS_QUERY &&
+    hasOnlyKeys(variables, ["organizationId", "siteId", "memberId", "after"]) &&
+    typeof variables.organizationId === "string" &&
+    /^ari:cloud:platform::org\/[A-Za-z0-9-]{1,128}$/.test(variables.organizationId) &&
+    typeof variables.siteId === "string" &&
+    /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(
+      variables.siteId,
+    ) &&
+    typeof variables.memberId === "string" &&
+    variables.memberId.length > 0 &&
+    variables.memberId.length <= 255 &&
+    (variables.after == null ||
+      (typeof variables.after === "string" &&
+        variables.after.length > 0 &&
+        variables.after.length <= 2048))
+  );
+}
+function validTeamMembersBody(body: unknown): boolean {
+  return (
+    isRecord(body) &&
+    hasOnlyKeys(body, ["first", "after"]) &&
+    Number.isInteger(body.first) &&
+    Number(body.first) >= 1 &&
+    Number(body.first) <= 100 &&
+    (body.after === undefined ||
+      (typeof body.after === "string" &&
+        body.after.length > 0 &&
+        body.after.length <= 2048))
+  );
+}
+
 function allowedQueryParameters(
   request: JiraTransportRequest,
 ): ReadonlySet<string> | undefined {
   if (request.method === "POST" && request.path === "/rest/api/3/changelog/bulkfetch") {
     return new Set();
   }
+  if (CLOUD_WORKLOG_PATH.test(request.path) && request.method !== "GET")
+    return new Set(["adjustEstimate"]);
   if (request.method !== "GET") {
     return new Set();
   }
+  if (TEAM_PATH.test(request.path)) return new Set();
+  if (
+    request.path === "/rest/api/3/user" &&
+    typeof request.query?.accountId === "string" &&
+    request.query.accountId.length > 0 &&
+    request.query.accountId.length <= 255
+  )
+    return new Set(["accountId"]);
+  if (
+    new RegExp(`^/rest/api/3/issue/${ISSUE_KEY_PATTERN}/worklog/\\d{1,32}$`).test(
+      request.path,
+    )
+  )
+    return new Set();
+  if (new RegExp(`^/rest/api/3/issue/${ISSUE_KEY_PATTERN}$`).test(request.path))
+    return new Set(["fields"]);
 
   const exactRoute = ALLOWED_READ_ROUTES.get(request.path);
   if (exactRoute) {
@@ -239,6 +387,14 @@ function allowedQueryParameters(
 }
 
 function validMutationRequest(request: JiraTransportRequest): boolean {
+  if (CLOUD_WORKLOG_PATH.test(request.path)) {
+    if (request.query?.adjustEstimate !== "leave") return false;
+    const detail = /\/\d+$/.test(request.path);
+    if (request.method === "POST" && !detail) return validWorklogBody(request.body);
+    if (request.method === "PUT" && detail) return validWorklogBody(request.body);
+    if (request.method === "DELETE" && detail) return request.body === undefined;
+    return false;
+  }
   const issuePath = new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}$`);
   const assigneePath = new RegExp(`^/rest/api/[23]/issue/${ISSUE_KEY_PATTERN}/assignee$`);
   const transitionsPath = new RegExp(
@@ -299,10 +455,19 @@ export function validatedJiraRequestUrl(
       ? request.body === undefined && allowedQuery !== undefined
       : request.method === "POST" && request.path === "/rest/api/3/changelog/bulkfetch"
         ? validBulkChangelogBody(request.body)
-        : validMutationRequest(request);
+        : request.method === "POST" && request.path === "/rest/api/3/search/jql"
+          ? validTimesheetSearchBody(request.body)
+          : request.method === "POST" && teamMembersPath(request.path)
+            ? validTeamMembersBody(request.body)
+            : request.path === "/gateway/api/graphql"
+              ? validTeamsGraphRequest(request)
+              : validMutationRequest(request);
 
   if (
     !requestIsAllowed ||
+    (request.method === "GET" &&
+      new RegExp(`^/rest/api/3/issue/${ISSUE_KEY_PATTERN}$`).test(request.path) &&
+      request.query?.fields !== "summary,project") ||
     requestBaseUrl !== normalizedActiveBaseUrl ||
     allowedQuery === undefined ||
     Object.keys(request.query ?? {}).some((parameter) => !allowedQuery.has(parameter))
@@ -334,4 +499,15 @@ export function sanitizedJiraRequestHeaders(
           "X-Atlassian-Token": "no-check",
         }),
   };
+}
+
+export function isJiraReadRequest(request: JiraTransportRequest): boolean {
+  return (
+    request.method === "GET" ||
+    (request.method === "POST" && request.path === "/rest/api/3/search/jql") ||
+    (request.method === "POST" &&
+      teamMembersPath(request.path) &&
+      validTeamMembersBody(request.body)) ||
+    validTeamsGraphRequest(request)
+  );
 }

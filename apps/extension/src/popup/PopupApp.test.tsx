@@ -83,3 +83,37 @@ describe("PopupApp", () => {
     expect(screen.getByRole("button", { name: "Open Power View" })).toBeDisabled();
   });
 });
+
+it("does not offer Grant access for a broken receiver when host access is already granted", async () => {
+  const runtime: ExtensionRuntime = {
+    sendMessage: vi.fn().mockImplementation((message: { requestId: string }) =>
+      Promise.resolve({
+        type: "ERROR",
+        requestId: message.requestId,
+        ok: false,
+        error: {
+          code: "HOST_PERMISSION_MISSING",
+          message: "Power View does not have access to this Jira site.",
+          retryable: true,
+        },
+      }),
+    ),
+  };
+  render(
+    <PopupApp
+      runtime={runtime}
+      containsHostPermission={vi.fn().mockResolvedValue(true)}
+      getActiveTabUrl={vi
+        .fn()
+        .mockResolvedValue("https://example.atlassian.net/browse/POWER-42")}
+      updatePanelProps={{ getCheckResult: vi.fn().mockResolvedValue(undefined) }}
+    />,
+  );
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Jira access is already granted",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Grant site access" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Detect again" })).toBeEnabled();
+});

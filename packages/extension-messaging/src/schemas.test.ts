@@ -4,6 +4,7 @@ import {
   extensionRequestSchema,
   extensionResponseSchema,
   jiraPageContextSchema,
+  jiraTransportRequestSchema,
 } from "./schemas";
 
 const context = {
@@ -17,6 +18,30 @@ const context = {
 } as const;
 
 describe("extension message schemas", () => {
+  it("supports selected-team gateway reads without opening arbitrary gateway routes", () => {
+    const team =
+      "/gateway/api/public/teams/v1/org/org-1/teams/57c307db-71ea-47d7-8899-ce00b8fc62dd";
+    const request = { baseUrl: context.baseUrl, method: "GET" };
+    expect(jiraTransportRequestSchema.safeParse({ ...request, path: team }).success).toBe(
+      true,
+    );
+    expect(
+      jiraTransportRequestSchema.safeParse({
+        ...request,
+        method: "POST",
+        path: `${team}/members`,
+        body: { first: 50 },
+      }).success,
+    ).toBe(true);
+    for (const path of [
+      `${team}/members/add`,
+      "/gateway/api/graphql/other",
+      `${team}/../admin`,
+    ])
+      expect(jiraTransportRequestSchema.safeParse({ ...request, path }).success).toBe(
+        false,
+      );
+  });
   it("accepts a strict context update", () => {
     expect(
       extensionRequestSchema.safeParse({

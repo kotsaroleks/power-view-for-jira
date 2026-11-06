@@ -20,6 +20,13 @@ export {
   type RuntimeJiraTransportOptions,
 } from "./RuntimeJiraTransport";
 export type { JiraTransport } from "./JiraTransport";
+export { CloudTeamsClient } from "./CloudTeamsClient";
+export type {
+  CloudTeam,
+  CloudTeamMember,
+  CloudTeamSummary,
+  TeamsApi,
+} from "./CloudTeamsClient";
 export type {
   GetBoardIssuesRequest,
   GetBoardsRequest,
@@ -76,3 +83,20 @@ export {
   type RawJiraServerInfo,
   type RawJiraUser,
 } from "./schemas";
+export {
+  CloudTimesheetClient,
+  WorklogConflictError,
+  WorklogIdentityError,
+  UnknownWorklogOutcomeError,
+  plainTextComment,
+  worklogVersion,
+} from "./TimesheetClient";
+export type {
+  WorklogPickerIssue,
+  WorklogBoard,
+  TimesheetApi,
+  TimesheetIssue,
+  TimesheetWorklog,
+  TimesheetUser,
+  WorklogInput,
+} from "./TimesheetClient";

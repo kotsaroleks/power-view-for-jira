@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import react from "@vitejs/plugin-react";
-import { copyFile, mkdir, readdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 
@@ -16,7 +16,11 @@ const copyManifest = (): Plugin => ({
   name: "copy-extension-manifest",
   async closeBundle() {
     await mkdir(dirname(manifestOutput), { recursive: true });
-    await copyFile(manifestSource, manifestOutput);
+    const manifest = JSON.parse(await readFile(manifestSource, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    await writeFile(manifestOutput, JSON.stringify(manifest, null, 2) + "\n");
   },
 });
 

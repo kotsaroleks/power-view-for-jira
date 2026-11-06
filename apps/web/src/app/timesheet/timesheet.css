@@ -1,0 +1,822 @@
+.timesheet-page {
+  width: calc(100% - 40px);
+  margin: 0 auto;
+  padding: 12px 0 28px;
+  max-width: 1680px;
+}
+.timesheet {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: #172b4d;
+  font-size: 13px;
+}
+.timesheet-heading,
+.timesheet-toolbar,
+.timesheet-meta,
+.timesheet-coverage,
+.timesheet-loading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.timesheet-toolbar,
+.timesheet-meta {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.timesheet-heading {
+  justify-content: space-between;
+}
+.timesheet-heading > div {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.timesheet-heading h1 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: -0.6px;
+  line-height: 1.25;
+}
+.timesheet-heading span,
+.timesheet-muted,
+.timesheet-diagnostics {
+  color: #53627b;
+  font-size: 13px;
+}
+.timesheet-toolbar label,
+.timesheet-meta label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.timesheet input:not([type="checkbox"]),
+.timesheet select,
+.timesheet textarea {
+  border: 1px solid #c8d2e0;
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: #fff;
+  color: #172b4d;
+  max-width: 100%;
+  font: inherit;
+}
+.timesheet .primary-button,
+.timesheet .secondary-button {
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.timesheet button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.timesheet-meta {
+  font-size: 13px;
+  align-items: flex-start;
+}
+.timesheet summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.timesheet-filter-body {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ccd7e6;
+  background: #fff;
+  border-radius: 8px;
+  max-width: 800px;
+}
+.timesheet-projects {
+  display: grid;
+  gap: 5px;
+  max-height: 180px;
+  overflow: auto;
+}
+.timesheet-check {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.timesheet-coverage {
+  background: #f4f7fc;
+  border: 1px solid #e0e7f1;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.timesheet-coverage strong {
+  font-size: 16px;
+  white-space: nowrap;
+}
+.timesheet-coverage > span:last-child {
+  flex: 1;
+  min-width: 220px;
+}
+.timesheet-alert {
+  background: #fff7e5;
+  border: 1px solid #e9c777;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.timesheet-save-status {
+  padding: 10px;
+  background: #e5f6ee;
+  border: 1px solid #b7dfcc;
+  border-radius: 6px;
+}
+.timesheet-draft-status {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--accent-tint-strong);
+  border-radius: 6px;
+  background: var(--accent-softer);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.timesheet-visible-total {
+  margin: 0;
+  font-size: 13px;
+}
+.timesheet-table-scroll {
+  max-width: 100%;
+  min-width: 0;
+  overflow: auto;
+  max-height: calc(100vh - 290px);
+  min-height: 250px;
+  border: 1px solid #dce3ed;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 8px #172b4d05;
+}
+.timesheet-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.timesheet-table caption {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #6b778c;
+  background: #fff;
+}
+.timesheet-table th,
+.timesheet-table td {
+  padding: 7px 9px;
+  min-width: 86px;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+.timesheet-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f7f9fc;
+  color: #52627b;
+  font-size: 12px;
+  font-weight: 600;
+  height: 38px;
+}
+.timesheet-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 230px;
+  width: 280px;
+  max-width: 320px;
+  text-align: left;
+}
+.timesheet-table thead th:first-child {
+  z-index: 3;
+}
+.timesheet-table th span {
+  display: block;
+  font-weight: 400;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.timesheet-table .timesheet-weekend {
+  background: #f8f9fc;
+}
+.timesheet-table td button {
+  width: 100%;
+  min-height: 30px;
+  border: 0;
+  background: #edf3ff;
+  color: #1749a0;
+  border-radius: 5px;
+  padding: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  font: inherit;
+}
+.timesheet-table td button:hover {
+  background: #dbe8ff;
+}
+.timesheet-table tfoot td,
+.timesheet-table tfoot th {
+  font-weight: 700;
+  background: #edf2f9;
+}
+.timesheet-details {
+  padding: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+}
+.timesheet-details header,
+.timesheet-details li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.timesheet-details h2 {
+  font-size: 17px;
+  margin: 0;
+}
+.timesheet-details li {
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+.timesheet-details li > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.timesheet-details ul {
+  padding: 0;
+  list-style: none;
+}
+.worklog-comment {
+  white-space: pre-wrap;
+  flex-basis: 100%;
+  margin: 0;
+}
+.timesheet-empty {
+  padding: 22px;
+  text-align: center;
+  border: 1px dashed #bdcce0;
+  border-radius: 8px;
+  background: #fff;
+}
+.timesheet-empty h2 {
+  font-size: 18px;
+}
+.timesheet-diagnostics dd {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.timesheet-diagnostics dt {
+  font-weight: 700;
+}
+.timesheet :focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+.worklog-inline-panel {
+  width: 100%;
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid #bccbe0;
+  border-radius: 12px;
+  color: #172b4d;
+  background: #fff;
+  overflow: auto;
+}
+.worklog-inline-panel header,
+.worklog-inline-panel footer {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+.worklog-inline-panel header h2 {
+  font-size: 22px;
+  margin: 0;
+}
+.worklog-inline-panel footer {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.worklog-inline-panel fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.worklog-inline-panel label {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+.worklog-inline-panel input[type="checkbox"] {
+  width: auto;
+}
+.worklog-inline-panel label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: flex-start;
+}
+.worklog-inline-panel textarea {
+  width: 100%;
+  resize: vertical;
+}
+.worklog-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+.worklog-fields input {
+  min-width: 0;
+  width: 100%;
+}
+.worklog-issue-results {
+  list-style: none;
+  padding: 0;
+  max-height: 200px;
+  overflow: auto;
+}
+.worklog-issue-results button {
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid #d3deec;
+  background: #f7faff;
+  color: #172b4d;
+  cursor: pointer;
+}
+@media (max-width: 700px) {
+  .timesheet-page {
+    width: calc(100% - 20px);
+  }
+  .timesheet-toolbar {
+    gap: 6px;
+  }
+  .timesheet-heading > div {
+    display: grid;
+    gap: 4px;
+  }
+  .timesheet-table th:first-child {
+    min-width: 180px;
+  }
+  .worklog-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.worklog-picker {
+  display: grid;
+  gap: 0.65rem;
+}
+.worklog-picker select {
+  width: 100%;
+  min-width: 0;
+}
+.worklog-favorites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.worklog-favorites > span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+}
+.worklog-favorites .secondary-button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekly-task-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.weekly-task-controls details {
+  flex-basis: 100%;
+}
+.weekly-task-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 12px 4px 0;
+}
+.weekly-task-controls > span,
+.weekly-entry-help {
+  font-size: 13px;
+  color: #53627b;
+  margin: 0;
+}
+.weekly-time-cell {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 75px;
+}
+.timesheet .weekly-time-cell input {
+  width: 100%;
+  min-width: 55px;
+  padding: 8px 18px 8px 5px;
+  text-align: center;
+  border-color: transparent;
+  background: transparent;
+}
+.timesheet .weekly-time-cell input:hover {
+  border-color: #c8d2e0;
+}
+.timesheet .weekly-time-cell input:focus {
+  outline: 2px solid #0c66e4;
+  background: #fff;
+}
+.timesheet-table .weekly-cell-details {
+  position: absolute;
+  top: 5px;
+  right: 0;
+  width: 18px;
+  min-height: 24px;
+  padding: 0;
+}
+.weekly-time-cell > span {
+  font-size: 11px;
+}
+.weekly-cell-error {
+  display: block;
+  flex-basis: 100%;
+  width: 190px;
+  min-width: 190px;
+  padding: 8px;
+  color: #ae2a19;
+  background: #fff4f2;
+  border: 1px solid #e2483d;
+  border-radius: 4px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.weekly-time-cell > .weekly-cell-error {
+  font-size: 12px;
+}
+.timesheet-table .weekly-cell-error button {
+  margin-top: 6px;
+  white-space: normal;
+}
+.timesheet-table .weekly-pin {
+  display: inline-block;
+  min-height: 25px;
+  width: 27px;
+  padding: 0;
+  margin-right: 5px;
+}
+.timesheet-table th.timesheet-today {
+  background: #e9f2ff;
+  color: #0055cc;
+}
+
+.timesheet-table .weekly-group th {
+  background: #f5f7fb;
+  color: #53627b;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-align: left;
+}
+
+.weekly-setup-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.weekly-entry-help p {
+  max-width: 700px;
+}
+
+/* Quiet, consistent controls keep the grid as the main working surface. */
+.timesheet-toolbar {
+  gap: 8px;
+  font-size: 13px;
+}
+.timesheet-toolbar strong {
+  margin: 0 4px;
+  font-size: 13px;
+}
+.weekly-setup-row {
+  padding: 0;
+}
+.weekly-task-controls select {
+  min-width: 170px;
+}
+.timesheet-meta summary,
+.weekly-entry-help summary {
+  color: #53627b;
+  font-size: 12px;
+}
+.timesheet-table tbody th[scope="row"] {
+  line-height: 1.4;
+  vertical-align: middle;
+}
+.timesheet-table tbody th[scope="row"] > a {
+  color: #0055cc;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.timesheet-table tbody th[scope="row"] > a:hover {
+  text-decoration: underline;
+}
+.timesheet-table tbody th[scope="row"] > span {
+  color: #344563;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+}
+.timesheet-table tbody th[scope="row"] > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 26px;
+  margin: 5px 4px 0 0;
+  padding: 3px 7px;
+  border: 1px solid #dce3ed;
+  border-radius: 5px;
+  background: #fff;
+  color: #42526e;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.timesheet-table tbody th[scope="row"] > button:hover:not(:disabled) {
+  background: #eef4ff;
+  border-color: #b4c8e8;
+  color: #0055cc;
+}
+.timesheet-table tbody th[scope="row"] > .weekly-pin {
+  width: 26px;
+  min-height: 26px;
+  margin: 0 6px 0 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #7a869a;
+  font-size: 17px;
+  vertical-align: middle;
+}
+.timesheet-table tbody th[scope="row"] > .weekly-pin[aria-pressed="true"] {
+  background: #e9f2ff;
+  color: #0055cc;
+}
+.timesheet-table tbody th[scope="row"] > .text-button {
+  border-color: transparent;
+  background: transparent;
+  color: #0055cc;
+}
+.timesheet-table tbody tr:not(.weekly-group):hover > th,
+.timesheet-table tbody tr:not(.weekly-group):hover > td:not(.timesheet-weekend) {
+  background: #fbfcff;
+}
+.timesheet-table td button {
+  background: #f0f5ff;
+  font-size: 12px;
+}
+.timesheet-table .weekly-cell-details {
+  color: #6b778c;
+  background: transparent;
+}
+.timesheet .weekly-time-cell input::placeholder {
+  color: var(--text-secondary);
+}
+.timesheet .weekly-time-cell input:focus {
+  border-radius: 5px;
+  box-shadow: 0 0 0 3px #0c66e414;
+}
+.worklog-inline-panel {
+  border-color: #dce3ed;
+  border-radius: 10px;
+}
+.worklog-inline-panel header h2 {
+  font-size: 18px;
+}
+@media (max-width: 1280px) {
+  .timesheet-page {
+    width: calc(100% - 32px);
+  }
+  .timesheet-table th:first-child {
+    min-width: 215px;
+    width: 250px;
+  }
+  .timesheet-table th,
+  .timesheet-table td {
+    padding: 6px 7px;
+    min-width: 76px;
+  }
+}
+
+.timesheet-coverage-help {
+  position: relative;
+  margin-left: auto;
+}
+.timesheet-coverage-help summary {
+  color: #53627b;
+  padding: 2px 0;
+}
+.timesheet-coverage-help p {
+  max-width: 360px;
+  margin: 6px 0;
+}
+
+.timesheet-day-off-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: fit-content;
+  margin: 6px auto 0;
+  color: #6b778c;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.timesheet-day-off-toggle input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: #0c66e4;
+  cursor: pointer;
+}
+.timesheet-table th .timesheet-day-off-toggle span {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+  color: inherit;
+}
+.timesheet-day-off-toggle input:focus-visible {
+  outline: 2px solid #0c66e4;
+  outline-offset: 3px;
+}
+.timesheet-day-off-toggle:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.timesheet-day-off-toggle input:disabled {
+  cursor: not-allowed;
+}
+.timesheet-table th.timesheet-day-off,
+.timesheet-table td.timesheet-day-off {
+  background: #f0f5fc;
+}
+.timesheet-table th.timesheet-day-off {
+  color: #42526e;
+}
+.timesheet-table .timesheet-day-off .timesheet-day-off-toggle {
+  color: #0055cc;
+}
+.timesheet-table tbody tr:not(.weekly-group):hover > td.timesheet-day-off {
+  background: #e9f0fb;
+}
+
+.timesheet-day-off-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: #53627b;
+  font-size: 11px;
+}
+.timesheet-day-off-status .text-button {
+  min-height: 22px;
+  padding: 0 3px;
+  font-size: 11px;
+}
+.timesheet-day-off-status [role="alert"] {
+  color: #ae2a19;
+}
+.timesheet-table .timesheet-day-off-toggle span {
+  display: inline;
+  font-size: 10px;
+}
+
+@media (max-width: 700px) {
+  .timesheet-page {
+    width: calc(100% - 20px);
+  }
+  .timesheet-table th:first-child {
+    min-width: 180px;
+    width: 180px;
+    max-width: 180px;
+  }
+  .timesheet-toolbar label,
+  .timesheet-meta label {
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .timesheet-heading span {
+    overflow-wrap: anywhere;
+  }
+  .timesheet-coverage strong {
+    white-space: normal;
+  }
+}
+
+/* Native modal stays above the application header and table scroll containers. */
+.worklog-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #dce3ed;
+  border-radius: 14px;
+  color: #172b4d;
+  background: #fff;
+  box-shadow: 0 16px 64px #091e4240;
+}
+.worklog-dialog::backdrop {
+  background: #091e426b;
+}
+.worklog-dialog .timesheet-details,
+.worklog-dialog .worklog-inline-panel {
+  width: 100%;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  border-radius: inherit;
+}
+.worklog-dialog .worklog-comment,
+.worklog-dialog h2 {
+  overflow-wrap: anywhere;
+}
+.worklog-dialog :focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+.timesheet-table .weekly-cell-details:hover,
+.timesheet-table .weekly-cell-details:focus-visible {
+  background: #dbe8ff;
+  color: #0055cc;
+}
+.worklog-details-tooltip {
+  position: fixed;
+  z-index: 100;
+  width: 260px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: #172b4d;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 4px 12px #091e4240;
+  transform: translate(-50%, -100%);
+}
+.worklog-details-tooltip[data-placement="bottom"] {
+  transform: translate(-50%, 0);
+}
+.worklog-details-tooltip strong,
+.worklog-details-tooltip small {
+  display: block;
+}
+.worklog-details-tooltip strong {
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+.worklog-details-tooltip small {
+  margin-top: 4px;
+  color: #c7d6ed;
+}
+@media (max-width: 600px) {
+  .worklog-dialog {
+    max-height: calc(100dvh - 24px);
+  }
+  .worklog-dialog .timesheet-details,
+  .worklog-dialog .worklog-inline-panel {
+    padding: 16px;
+  }
+  .worklog-dialog .timesheet-details li {
+    align-items: flex-start;
+  }
+}

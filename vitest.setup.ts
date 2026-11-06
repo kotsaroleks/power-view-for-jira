@@ -45,3 +45,18 @@ if (typeof window !== "undefined" && typeof window.PointerEvent === "undefined")
   window.PointerEvent = PointerEventPolyfill as unknown as typeof PointerEvent;
   globalThis.PointerEvent = window.PointerEvent;
 }
+
+// jsdom does not implement native dialog lifecycle. Real Chrome handles the
+// top layer, inert background and focus trap; unit tests exercise our handlers.
+if (typeof HTMLDialogElement !== "undefined") {
+  if (typeof HTMLDialogElement.prototype.showModal !== "function") {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute("open", "");
+    };
+  }
+  if (typeof HTMLDialogElement.prototype.close !== "function") {
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute("open");
+    };
+  }
+}

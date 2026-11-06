@@ -110,3 +110,20 @@ describe("UpdatePanel", () => {
     expect(openChromeExtensionsPage).toHaveBeenCalled();
   });
 });
+
+it("shows Safari app update instructions without checking Chrome updates", () => {
+  vi.stubGlobal("chrome", {
+    runtime: { getURL: () => "safari-web-extension://own-host/" },
+  });
+  const getCheckResult = vi.fn();
+  try {
+    render(<UpdatePanel getCheckResult={getCheckResult} />);
+    expect(screen.getByText(/Safari updates are installed/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Reload extension" }),
+    ).not.toBeInTheDocument();
+    expect(getCheckResult).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

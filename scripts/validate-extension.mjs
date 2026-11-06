@@ -56,6 +56,12 @@ if (JSON.stringify(actualPermissions) !== JSON.stringify(requiredPermissions)) {
   throw new Error("The production permission set is missing or unexpectedly broad.");
 }
 
+if (manifest.oauth2) {
+  throw new Error(
+    "The extension must not include the removed Google OAuth configuration.",
+  );
+}
+
 if (manifest.host_permissions?.length > 0) {
   throw new Error("Jira hosts must not be included in mandatory host permissions.");
 }

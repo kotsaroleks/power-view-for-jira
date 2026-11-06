@@ -1,3 +1,4 @@
+import { isJiraReadRequest } from "../jira-request-policy";
 import type {
   DiagnosticsSnapshot,
   JiraPageContext,
@@ -75,10 +76,13 @@ function requireTrustedExtensionSender(sender: MessageSenderContext): void {
     senderUrl = undefined;
   }
 
+  const extensionUrl = new URL(chrome.runtime.getURL("/"));
   if (
     !senderUrl ||
-    senderUrl.protocol !== "chrome-extension:" ||
-    senderUrl.hostname !== chrome.runtime.id
+    senderUrl.protocol !== extensionUrl.protocol ||
+    senderUrl.host !== extensionUrl.host ||
+    senderUrl.username !== "" ||
+    senderUrl.password !== ""
   ) {
     throw operationError({
       code: "PERMISSION_DENIED",
@@ -161,12 +165,14 @@ async function refreshContext(tabId?: number): Promise<JiraPageContext> {
     });
   }
 
-  let rawResponse: unknown;
-  try {
-    rawResponse = await chrome.tabs.sendMessage(tab.id, {
+  const requestContext = () =>
+    chrome.tabs.sendMessage(tab.id!, {
       type: "CONTEXT_GET",
       requestId: crypto.randomUUID(),
     });
+  let rawResponse: unknown;
+  try {
+    rawResponse = await requestContext();
   } catch {
     const originPattern = (() => {
       try {
@@ -175,17 +181,38 @@ async function refreshContext(tabId?: number): Promise<JiraPageContext> {
         return undefined;
       }
     })();
-
-    throw operationError({
-      code: originPattern ? "HOST_PERMISSION_MISSING" : "JIRA_NOT_DETECTED",
-      message: originPattern
-        ? "Power View does not have access to this Jira site."
-        : "Power View could not detect Jira on the active page.",
-      details: originPattern
-        ? "Grant access to the exact Jira host, then retry detection."
-        : "Open a Jira Cloud page or enter a custom Jira URL.",
-      retryable: true,
-    });
+    if (!originPattern) {
+      throw operationError({
+        code: "JIRA_NOT_DETECTED",
+        message: "Power View could not detect Jira on the active page.",
+        retryable: true,
+      });
+    }
+    const granted = await chrome.permissions.contains({ origins: [originPattern] });
+    if (!granted) {
+      throw operationError({
+        code: "HOST_PERMISSION_MISSING",
+        message: "Power View does not have access to this Jira site.",
+        details: "Grant access to the exact Jira host, then retry detection.",
+        retryable: true,
+      });
+    }
+    // An extension update/reload can leave an open Jira tab without a live
+    // receiver. Repair the bridge using existing permission; never re-prompt.
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: [CONTENT_SCRIPT_FILE],
+      });
+      rawResponse = await requestContext();
+    } catch {
+      throw operationError({
+        code: "JIRA_NOT_DETECTED",
+        message:
+          "Jira access is already granted. Reload the Jira tab, then detect again.",
+        retryable: true,
+      });
+    }
   }
 
   const response = extensionResponseSchema.safeParse(rawResponse);
@@ -560,7 +587,7 @@ async function executeJiraMainWorldBridge(
   if (result.kind === "http-error") {
     const retryable = result.status === 429 || result.status >= 500;
     throw new JiraRequestExecutionError(
-      jiraStatusError(result.status, retryable, request.path),
+      jiraStatusError(result.status, retryable, request.path, result.rejectedFields),
       Date.now() - startedAt,
       0,
       "jira-main-world",
@@ -665,28 +692,23 @@ async function executeJiraRequest(
 
   try {
     let storedContext = await requireActiveJiraContextWithPermission();
-    if (request.method !== "GET") {
+    if (!isJiraReadRequest(request)) {
       await refreshContext(storedContext.tabId);
       storedContext = await requireActiveJiraContextWithPermission({ fresh: true });
     }
-    const result =
-      request.method === "GET"
-        ? await executeWithJiraPageFallback(
-            () =>
-              jiraRequestHandler.execute(
-                requestId,
-                request,
-                storedContext.context.baseUrl,
-              ),
-            () =>
-              executeJiraPageBridge(requestId, request, storedContext, {
-                allowUncertainFallback: true,
-              }),
-          )
-        : // Run mutations in Jira's own page context from the outset. Retrying a
-          // content-script write through another bridge can duplicate a change
-          // when the first request reached Jira but its response was lost.
-          await executeJiraMainWorldBridge(request, storedContext);
+    const result = isJiraReadRequest(request)
+      ? await executeWithJiraPageFallback(
+          () =>
+            jiraRequestHandler.execute(requestId, request, storedContext.context.baseUrl),
+          () =>
+            executeJiraPageBridge(requestId, request, storedContext, {
+              allowUncertainFallback: true,
+            }),
+        )
+      : // Run mutations in Jira's own page context from the outset. Retrying a
+        // content-script write through another bridge can duplicate a change
+        // when the first request reached Jira but its response was lost.
+        await executeJiraMainWorldBridge(request, storedContext);
 
     await diagnosticsStore.recordRequest(
       {

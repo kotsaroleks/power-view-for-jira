@@ -1,0 +1,15 @@
+{
+  "name": "@power-view/desktop",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "main": "../../dist/desktop/main.mjs",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "vite build --config vite.config.ts",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^42.0.0"
+  }
+}

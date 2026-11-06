@@ -74,6 +74,7 @@ async function loadAllIssues(
 ): Promise<{ issues: ReportingIssueSnapshot[]; truncated: boolean }> {
   const issues: ReportingIssueSnapshot[] = [];
   const seen = new Set<string>();
+  const cursors = new Set<string>();
   let cursor: string | number | undefined;
   let truncated = false;
   let hasMore = true;
@@ -102,6 +103,15 @@ async function loadAllIssues(
     onLoaded?.(issues.length);
     cursor = page.nextCursor;
     if (page.truncated) truncated = true;
+    if (!page.isLast && issues.length >= MAX_REPORT_ISSUES) truncated = true;
+    if (!page.isLast && !truncated) {
+      const token = JSON.stringify(cursor);
+      if (cursor === undefined || cursors.has(token))
+        throw new Error(
+          "Jira issue pagination was incomplete or repeated. Refresh the report to retry.",
+        );
+      cursors.add(token);
+    }
     hasMore = !page.isLast && cursor !== undefined && issues.length < MAX_REPORT_ISSUES;
   }
   return { issues, truncated };

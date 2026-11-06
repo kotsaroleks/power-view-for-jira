@@ -70,6 +70,68 @@ function clientFixture() {
 }
 
 describe("generateReport workspace scope", () => {
+  const request = {
+    type: "daily",
+    boardId: "7",
+    jql,
+    localDate: "2026-08-04",
+    scope: { kind: "team" },
+    language: "uk",
+    statusMapping,
+  } as const;
+
+  it.each(["missing", "repeated"])(
+    "rejects %s pagination instead of claiming completeness or looping",
+    async (failure) => {
+      const client = clientFixture();
+      client.getBoardIssues.mockResolvedValue({
+        values: [issue("1")],
+        startAt: 0,
+        maxResults: 100,
+        total: 2,
+        isLast: false,
+        ...(failure === "repeated" ? { nextCursor: "same" } : {}),
+      });
+      await expect(
+        generateReport({
+          client: client as unknown as JiraClient,
+          baseUrl: "https://example.atlassian.net",
+          deploymentType: "cloud",
+          request,
+        }),
+      ).rejects.toThrow("pagination was incomplete or repeated");
+      expect(client.getBoardIssues.mock.calls.length).toBeLessThanOrEqual(2);
+      expect(client.getIssueWorklogs).not.toHaveBeenCalled();
+    },
+  );
+
+  it("marks a report truncated when the limit lands exactly on a page boundary", async () => {
+    const client = clientFixture();
+    let page = 0;
+    client.getBoardIssues.mockImplementation(() => {
+      const start = page++ * 100;
+      return Promise.resolve({
+        values: Array.from({ length: 100 }, (_, index) =>
+          issue(String(start + index + 1)),
+        ),
+        startAt: start,
+        maxResults: 100,
+        total: 5100,
+        isLast: false,
+        nextCursor: String(page),
+      });
+    });
+    const snapshot = await generateReport({
+      client: client as unknown as JiraClient,
+      baseUrl: "https://example.atlassian.net",
+      deploymentType: "cloud",
+      request,
+    });
+    expect(snapshot.issues).toHaveLength(5000);
+    expect(snapshot.completeness.complete).toBe(false);
+    expect(client.getBoardIssues).toHaveBeenCalledTimes(50);
+  });
+
   it("passes the saved board JQL to Daily and Weekly issue pagination", async () => {
     const client = clientFixture();
 

@@ -64,6 +64,82 @@ function workspace(): WorkspaceContext {
 }
 
 describe("GanttV2Service", () => {
+  function storage() {
+    return {
+      getGanttBoardState: vi.fn().mockResolvedValue(undefined),
+      getGanttFilters: vi.fn().mockResolvedValue(undefined),
+      getGanttViewPreferences: vi.fn().mockResolvedValue(undefined),
+      saveGanttBoardState: vi.fn().mockResolvedValue(undefined),
+      saveGanttFilters: vi.fn().mockResolvedValue(undefined),
+      saveGanttViewPreferences: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  it("waits for saved dependencies before allowing edits", async () => {
+    const store = storage();
+    let finish!: (value: unknown) => void;
+    store.getGanttBoardState.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <GanttV2Service
+        workspace={workspace()}
+        settingsStore={store as unknown as SettingsStore}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Loading saved Gantt settings");
+    expect(screen.queryByRole("searchbox")).toBeNull();
+    finish(undefined);
+    await screen.findByRole("searchbox", { name: "Search tasks" });
+    expect(store.saveGanttBoardState).not.toHaveBeenCalled();
+  });
+
+  it("explains a settings read failure and retries without overwriting saved state", async () => {
+    const store = storage();
+    store.getGanttFilters.mockRejectedValueOnce(new Error("Storage unavailable"));
+    render(
+      <GanttV2Service
+        workspace={workspace()}
+        settingsStore={store as unknown as SettingsStore}
+      />,
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "preserve existing dependencies",
+    );
+    expect(screen.queryByRole("searchbox")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Retry settings" }));
+    await screen.findByRole("searchbox", { name: "Search tasks" });
+    expect(store.saveGanttFilters).not.toHaveBeenCalled();
+  });
+
+  it("retains a failed local change and retries storage without repeating Jira writes", async () => {
+    const store = storage();
+    store.saveGanttFilters.mockRejectedValueOnce(new Error("Storage full"));
+    const current = workspace();
+    const updateIssueDates = vi.spyOn(current.editing.client, "updateIssueDates");
+    render(
+      <GanttV2Service
+        workspace={current}
+        settingsStore={store as unknown as SettingsStore}
+      />,
+    );
+    const search = await screen.findByRole("searchbox", { name: "Search tasks" });
+    fireEvent.change(search, { target: { value: "release" } });
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be saved");
+    expect(search).toHaveValue("release");
+    fireEvent.click(screen.getByRole("button", { name: "Retry saving settings" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(store.saveGanttFilters).toHaveBeenLastCalledWith(
+      current.jiraBaseUrl,
+      "POWER:7",
+      expect.objectContaining({ search: "release" }),
+    );
+    expect(updateIssueDates).not.toHaveBeenCalled();
+  });
+
   it("loads and saves view state only under the active board key", async () => {
     const saveGanttFilters = vi.fn().mockResolvedValue(undefined);
     const saveGanttViewPreferences = vi.fn().mockResolvedValue(undefined);

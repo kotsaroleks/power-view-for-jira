@@ -16,6 +16,41 @@ function jsonResponse(data: unknown, status = 200, headers?: HeadersInit): Respo
 }
 
 describe("JiraRequestHandler", () => {
+  it("allows the board picker hierarchy search and reports policy failures accurately", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ issues: [], isLast: true }));
+    const handler = new JiraRequestHandler({ fetch: fetchMock, allowLocalhost: false });
+    const request = {
+      ...baseRequest,
+      method: "POST" as const,
+      path: "/rest/api/3/search/jql",
+      body: {
+        jql: "filter = 42 ORDER BY key ASC",
+        fields: ["summary", "project", "issuetype", "assignee", "parent"],
+        maxResults: 100,
+      },
+    };
+    await expect(
+      handler.execute("picker", request, baseRequest.baseUrl),
+    ).resolves.toMatchObject({ status: 200 });
+    await expect(
+      handler.execute(
+        "blocked-picker",
+        { ...request, body: { ...request.body, fields: ["*all"] } },
+        baseRequest.baseUrl,
+      ),
+    ).rejects.toMatchObject({
+      appError: {
+        code: "PERMISSION_DENIED",
+        message:
+          "The extension blocked a Jira request that did not pass its request policy.",
+        details: "POST /rest/api/3/search/jql. Reload the extension after updating it.",
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("uses the browser session and strips unsafe request headers", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ displayName: "Alex" }));
     const handler = new JiraRequestHandler({ fetch: fetchMock, allowLocalhost: false });
@@ -301,5 +336,52 @@ describe("JiraRequestHandler", () => {
       ),
     ).rejects.toMatchObject({ appError: { code: "NETWORK_ERROR" } });
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe("Timesheet request retry boundaries", () => {
+  it("retries the read-only POST search after a bounded Retry-After", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({}, 429, { "Retry-After": "0" }))
+      .mockResolvedValueOnce(jsonResponse({ issues: [], isLast: true }));
+    const handler = new JiraRequestHandler({ fetch: fetchMock, allowLocalhost: false });
+    const request = {
+      ...baseRequest,
+      method: "POST" as const,
+      path: "/rest/api/3/search/jql",
+      body: {
+        jql: "worklogAuthor = currentUser()",
+        fields: ["summary", "project"],
+        maxResults: 100,
+      },
+    };
+    expect(
+      (await handler.execute("timesheet-search", request, baseRequest.baseUrl))
+        .retryCount,
+    ).toBe(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+  it("does not retry a worklog POST on 429 or 500", async () => {
+    for (const status of [429, 500]) {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(jsonResponse({}, status, { "Retry-After": "0" }));
+      const handler = new JiraRequestHandler({ fetch: fetchMock, allowLocalhost: false });
+      await expect(
+        handler.execute(
+          `timesheet-write-${status}`,
+          {
+            ...baseRequest,
+            method: "POST",
+            path: "/rest/api/3/issue/PV-1/worklog",
+            query: { adjustEstimate: "leave" },
+            body: { started: "2026-10-29T09:00:00+0200", timeSpentSeconds: 5400 },
+          },
+          baseRequest.baseUrl,
+        ),
+      ).rejects.toThrow();
+      expect(fetchMock).toHaveBeenCalledOnce();
+    }
   });
 });

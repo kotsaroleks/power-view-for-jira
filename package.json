@@ -1,6 +1,6 @@
 {
   "name": "power-view-for-jira",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "A Chrome extension for advanced Jira planning views and explicit editing.",
@@ -10,6 +10,8 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
+    "build:desktop": "pnpm --filter @power-view/web build && pnpm --filter @power-view/desktop build && node scripts/prepare-desktop.mjs",
+    "desktop": "pnpm build:desktop && pnpm --filter @power-view/desktop start",
     "build": "pnpm clean && pnpm --filter @power-view/web build && pnpm --filter @power-view/extension build && pnpm validate:extension && pnpm package:extension",
     "clean": "node scripts/clean.mjs",
     "dev": "pnpm --parallel --filter @power-view/web --filter @power-view/extension dev",
@@ -23,7 +25,9 @@
     "test:e2e": "playwright test",
     "typecheck": "pnpm typecheck:root && pnpm -r --if-present typecheck",
     "typecheck:root": "tsc --noEmit",
-    "validate:extension": "node scripts/validate-extension.mjs"
+    "validate:extension": "node scripts/validate-extension.mjs",
+    "build:safari": "pnpm build && node scripts/prepare-safari.mjs",
+    "safari:project": "node scripts/create-safari-project.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import {
+  POWER_VIEW_TEAM_CONTEXT_QUERY,
+  POWER_VIEW_MY_TEAMS_QUERY,
+} from "@power-view/extension-messaging";
 
 import {
   sanitizedJiraRequestHeaders,
+  isJiraReadRequest,
   validatedJiraRequestUrl,
 } from "./jira-request-policy";
 
@@ -10,6 +15,105 @@ const request = {
   method: "GET" as const,
   path: "/rest/api/3/myself",
 };
+
+describe("Teams read boundary", () => {
+  it("allows only the two fixed GraphQL discovery queries, never arbitrary queries or mutations", () => {
+    const tenant = {
+      ...request,
+      method: "POST" as const,
+      path: "/gateway/api/graphql",
+      body: {
+        operationName: "PowerViewTenantContext",
+        query: POWER_VIEW_TEAM_CONTEXT_QUERY,
+        variables: { hostNames: ["example.atlassian.net"] },
+      },
+    };
+    const mine = {
+      ...tenant,
+      body: {
+        operationName: "PowerViewMyTeams",
+        query: POWER_VIEW_MY_TEAMS_QUERY,
+        variables: {
+          organizationId: "ari:cloud:platform::org/fixture-org",
+          siteId: "11111111-2222-3333-4444-555555555555",
+          memberId: "me",
+          after: null,
+        },
+      },
+    };
+    for (const valid of [tenant, mine]) {
+      expect(validatedJiraRequestUrl(valid, request.baseUrl, false).pathname).toBe(
+        "/gateway/api/graphql",
+      );
+      expect(isJiraReadRequest(valid)).toBe(true);
+    }
+    for (const bad of [
+      { ...tenant, body: { ...tenant.body, query: "mutation { createTeam { id } }" } },
+      {
+        ...tenant,
+        body: { ...tenant.body, variables: { hostNames: ["other.atlassian.net"] } },
+      },
+      {
+        ...mine,
+        body: { ...mine.body, variables: { ...mine.body.variables, memberId: "" } },
+      },
+      {
+        ...mine,
+        body: { ...mine.body, variables: { ...mine.body.variables, first: 1000 } },
+      },
+      {
+        ...mine,
+        body: {
+          ...mine.body,
+          query: `${POWER_VIEW_MY_TEAMS_QUERY} query Extra { me { name } }`,
+        },
+      },
+      { ...mine, query: { query: "anything" } },
+    ]) {
+      expect(() => validatedJiraRequestUrl(bad, request.baseUrl, false)).toThrow();
+      if (!("query" in bad)) expect(isJiraReadRequest(bad)).toBe(false);
+    }
+  });
+  const path =
+    "/gateway/api/public/teams/v1/org/org-123/teams/57c307db-71ea-47d7-8899-ce00b8fc62dd";
+  it("allows selected team and paginated member reads without allowing membership writes", () => {
+    expect(
+      validatedJiraRequestUrl({ ...request, path }, request.baseUrl, false).pathname,
+    ).toBe(path);
+    const members = {
+      ...request,
+      method: "POST" as const,
+      path: `${path}/members`,
+      body: { first: 100, after: "cursor" },
+    };
+    expect(validatedJiraRequestUrl(members, request.baseUrl, false).pathname).toBe(
+      `${path}/members`,
+    );
+    expect(isJiraReadRequest(members)).toBe(true);
+    for (const bad of [
+      { ...members, path: `${path}/members/add` },
+      { ...members, body: { first: 101 } },
+      { ...members, body: { first: 100, members: [{ accountId: "someone" }] } },
+      { ...members, query: { redirect: "elsewhere" } },
+      { ...members, method: "DELETE" as const },
+    ])
+      expect(() => validatedJiraRequestUrl(bad, request.baseUrl, false)).toThrow();
+    expect(
+      validatedJiraRequestUrl(
+        { ...request, path: "/rest/api/3/user", query: { accountId: "person" } },
+        request.baseUrl,
+        false,
+      ).searchParams.get("accountId"),
+    ).toBe("person");
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...request, path: "/rest/api/3/user" },
+        request.baseUrl,
+        false,
+      ),
+    ).toThrow();
+  });
+});
 
 describe("Jira request policy", () => {
   it("builds only an allowlisted same-instance URL", () => {
@@ -332,4 +436,145 @@ describe("priority production policy", () => {
       ).toThrow();
     },
   );
+});
+
+describe("Timesheet exact policies", () => {
+  const baseUrl = "https://example.atlassian.net";
+  const body = { started: "2026-10-29T09:00:00.000+0200", timeSpentSeconds: 5400 };
+  const write = {
+    baseUrl,
+    method: "POST" as const,
+    path: "/rest/api/3/issue/PV-1/worklog",
+    query: { adjustEstimate: "leave" },
+    body,
+  };
+  it("allows the declared CRUD operations with estimate unchanged", () => {
+    expect(validatedJiraRequestUrl(write, baseUrl, false).search).toBe(
+      "?adjustEstimate=leave",
+    );
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...write, method: "PUT", path: `${write.path}/10` },
+        baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        { baseUrl, method: "DELETE", path: `${write.path}/10`, query: write.query },
+        baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        { baseUrl, method: "GET", path: `${write.path}/10` },
+        baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+  });
+  it("rejects alternate authors, estimate changes, v2 mutations, unknown fields and malformed IDs", () => {
+    for (const request of [
+      { ...write, body: { ...body, author: { accountId: "other" } } },
+      { ...write, body: { ...body, visibility: { type: "group", value: "private" } } },
+      { ...write, query: { adjustEstimate: "auto" } },
+      { ...write, query: {} },
+      { ...write, path: write.path.replace("/3/", "/2/") },
+      { ...write, body: { ...body, timeSpentSeconds: 0 } },
+      { ...write, body: { ...body, timeSpentSeconds: 1.5 } },
+      { ...write, body: { ...body, started: "not-a-date" } },
+      { ...write, body: { ...body, started: "2026-02-30T09:00:00+0200" } },
+      { ...write, body: { ...body, started: "2026-10-29T24:00:00Z" } },
+      { ...write, method: "DELETE" as const, path: `${write.path}/abc`, body: undefined },
+    ])
+      expect(() => validatedJiraRequestUrl(request, baseUrl, false)).toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(write, "https://other.atlassian.net", false),
+    ).toThrow();
+  });
+  it("accepts only plain ADF descriptions and bounded minimal POST search", () => {
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...write,
+          body: {
+            ...body,
+            comment: {
+              type: "doc",
+              version: 1,
+              content: [{ type: "paragraph", content: [{ type: "text", text: "Work" }] }],
+            },
+          },
+        },
+        baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...write, body: { ...body, comment: "<script>" } },
+        baseUrl,
+        false,
+      ),
+    ).toThrow();
+    const search = {
+      baseUrl,
+      method: "POST" as const,
+      path: "/rest/api/3/search/jql",
+      body: {
+        jql: "worklogAuthor = currentUser()",
+        fields: ["summary", "project"],
+        maxResults: 100,
+      },
+    };
+    expect(() => validatedJiraRequestUrl(search, baseUrl, false)).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...search,
+          body: {
+            ...search.body,
+            fields: ["summary", "project", "issuetype", "assignee", "parent"],
+          },
+        },
+        baseUrl,
+        false,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        {
+          ...search,
+          body: {
+            ...search.body,
+            fields: [
+              "summary",
+              "project",
+              "issuetype",
+              "assignee",
+              "parent",
+              "description",
+            ],
+          },
+        },
+        baseUrl,
+        false,
+      ),
+    ).toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...search, body: { ...search.body, fields: ["*all"] } },
+        baseUrl,
+        false,
+      ),
+    ).toThrow();
+    expect(() =>
+      validatedJiraRequestUrl(
+        { ...search, body: { ...search.body, expand: "changelog" } },
+        baseUrl,
+        false,
+      ),
+    ).toThrow();
+  });
 });

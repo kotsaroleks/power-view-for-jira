@@ -7,6 +7,7 @@ export type JiraMainWorldFetchResult =
     }
   | {
       kind: "http-error";
+      rejectedFields?: string[];
       status: number;
       durationMs: number;
     }
@@ -25,12 +26,14 @@ export async function fetchJiraInMainWorld(
   timeoutMs: number,
 ): Promise<JiraMainWorldFetchResult> {
   // Chrome serializes this function into MAIN world, so the reader must be local.
-  async function readBoundedJiraResponse(response: Response): Promise<string> {
-    const limit = 20 * 1024 * 1024;
+  async function readBoundedJiraResponse(
+    response: Response,
+    limit = 20 * 1024 * 1024,
+  ): Promise<string> {
     const declared = Number(response.headers.get("Content-Length"));
     if (Number.isFinite(declared) && declared > limit) {
       await response.body?.cancel();
-      throw new Error("Jira response exceeds the 20 MiB limit.");
+      throw new Error("Jira response exceeds the allowed size.");
     }
     if (!response.body) return "";
     const reader = response.body.getReader();
@@ -44,7 +47,7 @@ export async function fetchJiraInMainWorld(
         size += value.byteLength;
         if (size > limit) {
           await reader.cancel();
-          throw new Error("Jira response exceeds the 20 MiB limit.");
+          throw new Error("Jira response exceeds the allowed size.");
         }
         parts.push(decoder.decode(value, { stream: true }));
       }
@@ -86,8 +89,34 @@ export async function fetchJiraInMainWorld(
       };
     }
     if (!response.ok) {
+      // Keep only known validation field names, never raw error bodies, cookies,
+      // echoed input, or server-provided messages in diagnostics.
+      let rejectedFields: string[] = [];
+      if (
+        response.status === 400 &&
+        /\/rest\/api\/3\/issue\/[^/]+\/worklog(?:\/\d+)?$/.test(new URL(url).pathname)
+      ) {
+        try {
+          const data: unknown = JSON.parse(
+            await readBoundedJiraResponse(response, 64 * 1024),
+          );
+          if (
+            data &&
+            typeof data === "object" &&
+            "errors" in data &&
+            data.errors &&
+            typeof data.errors === "object"
+          )
+            rejectedFields = Object.keys(data.errors).filter((key) =>
+              ["started", "timeSpent", "timeSpentSeconds", "comment"].includes(key),
+            );
+        } catch {
+          /* Retain the known HTTP status even if the error body is invalid. */
+        }
+      }
       return {
         kind: "http-error",
+        ...(rejectedFields.length ? { rejectedFields } : {}),
         status: response.status,
         durationMs: Date.now() - startedAt,
       };
@@ -152,10 +181,21 @@ export function parseJiraMainWorldFetchResult(
   if (
     value.kind === "http-error" &&
     isStatus(value.status) &&
-    hasOnlyKeys(value, ["kind", "status", "durationMs"])
+    (value.rejectedFields === undefined ||
+      (Array.isArray(value.rejectedFields) &&
+        value.rejectedFields.length <= 4 &&
+        value.rejectedFields.every(
+          (field) =>
+            typeof field === "string" &&
+            ["started", "timeSpent", "timeSpentSeconds", "comment"].includes(field),
+        ))) &&
+    hasOnlyKeys(value, ["kind", "status", "durationMs", "rejectedFields"])
   ) {
     return {
       kind: "http-error",
+      ...(value.rejectedFields === undefined
+        ? {}
+        : { rejectedFields: value.rejectedFields as string[] }),
       status: value.status,
       durationMs: value.durationMs,
     };

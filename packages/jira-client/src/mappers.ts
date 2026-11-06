@@ -28,8 +28,10 @@ export function mapJiraUser(rawUser: RawJiraUser): JiraUser {
 
   return {
     displayName: rawUser.displayName,
+    ...(rawUser.timeZone ? { timeZone: rawUser.timeZone } : {}),
     ...(rawUser.accountId ? { accountId: rawUser.accountId } : {}),
     ...(username ? { username } : {}),
+    ...(rawUser.key ? { key: rawUser.key } : {}),
     ...(rawUser.emailAddress ? { emailAddress: rawUser.emailAddress } : {}),
     ...(avatarUrl ? { avatarUrl } : {}),
   };

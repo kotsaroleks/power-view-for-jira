@@ -62,15 +62,21 @@ const sessionStorage = new MemoryStorageArea();
 const contextStore = new ContextStore(sessionStorage);
 
 const permissionsContains = vi.fn();
+const tabsSendMessage = vi.fn();
+const executeScript = vi.fn();
 const permissionRemovedListeners: Array<() => void> = [];
 const permissionAddedListeners: Array<() => void> = [];
 const fetchMock = vi.fn();
 
 vi.stubGlobal("chrome", {
-  runtime: { id: EXTENSION_ID, getManifest: () => ({ version: "0.1.0" }) },
+  runtime: {
+    id: EXTENSION_ID,
+    getURL: (path: string) => `chrome-extension://${EXTENSION_ID}/${path}`,
+    getManifest: () => ({ version: "0.1.0" }),
+  },
   storage: { session: sessionStorage },
   tabs: {
-    sendMessage: vi.fn(),
+    sendMessage: tabsSendMessage,
     get: vi.fn().mockResolvedValue({ id: TAB_ID, url: context.pageUrl }),
   },
   permissions: {
@@ -82,11 +88,12 @@ vi.stubGlobal("chrome", {
       addListener: (listener: () => void) => permissionAddedListeners.push(listener),
     },
   },
-  scripting: { executeScript: vi.fn() },
+  scripting: { executeScript },
 });
 
 vi.stubGlobal("fetch", fetchMock);
 
+let refreshContext: MessageHandlerDependencies["refreshContext"];
 let executeJiraRequest: MessageHandlerDependencies["executeJiraRequest"];
 let storeDetectedContext: MessageHandlerDependencies["storeDetectedContext"];
 
@@ -99,7 +106,7 @@ function jiraSuccessResponse(): Response {
 
 beforeAll(async () => {
   ({
-    platformOperations: { executeJiraRequest, storeDetectedContext },
+    platformOperations: { executeJiraRequest, storeDetectedContext, refreshContext },
   } = await import("./platform-operations"));
   await contextStore.save(TAB_ID, context);
 });
@@ -157,5 +164,47 @@ describe("requireActiveJiraContextWithPermission memoization", () => {
     ).rejects.toThrow();
 
     expect(permissionsContains).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("context recovery after extension reload", () => {
+  it("repairs a missing receiver using existing host permission", async () => {
+    tabsSendMessage
+      .mockReset()
+      .mockRejectedValueOnce(new Error("Receiving end does not exist"))
+      .mockResolvedValueOnce({
+        type: "CONTEXT_RESULT",
+        requestId: crypto.randomUUID(),
+        ok: true,
+        context,
+      });
+    executeScript.mockReset().mockResolvedValue([]);
+    expect(await refreshContext(TAB_ID, sender)).toEqual(context);
+    expect(chrome.scripting.executeScript).toHaveBeenCalledExactlyOnceWith({
+      target: { tabId: TAB_ID },
+      files: ["content/content-script.js"],
+    });
+    expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it("requests permission only when Chrome confirms it is missing", async () => {
+    permissionsContains.mockResolvedValue(false);
+    tabsSendMessage.mockReset().mockRejectedValue(new Error("No receiver"));
+    executeScript.mockReset();
+    await expect(refreshContext(TAB_ID, sender)).rejects.toMatchObject({
+      appError: { code: "HOST_PERMISSION_MISSING" },
+    });
+    expect(chrome.scripting.executeScript).not.toHaveBeenCalled();
+  });
+
+  it("asks for a tab reload when permitted recovery fails, without claiming missing permission", async () => {
+    tabsSendMessage.mockReset().mockRejectedValue(new Error("No receiver"));
+    executeScript.mockReset().mockRejectedValue(new Error("Cannot inject"));
+    await expect(refreshContext(TAB_ID, sender)).rejects.toMatchObject({
+      appError: {
+        code: "JIRA_NOT_DETECTED",
+        message: expect.stringContaining("already granted") as unknown,
+      },
+    });
   });
 });

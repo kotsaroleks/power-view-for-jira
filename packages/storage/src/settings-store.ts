@@ -12,6 +12,19 @@ import type { StorageArea } from "./context-store";
 const LEGACY_SETTINGS_KEY = "settings:v1";
 const SETTINGS_KEY = "settings:v2";
 const MAX_RECENT_JQL = 10;
+const SECTION_VISIBILITY_KEY = "app-sections:v1";
+const sectionVisibilitySchema = z.object({
+  reports: z.boolean().default(false),
+  timesheet: z.boolean().default(true),
+  gantt: z.boolean().default(true),
+  status: z.boolean().default(true),
+  estimation: z.boolean().default(false),
+});
+export type AppSectionVisibility = z.infer<typeof sectionVisibilitySchema>;
+export type AppSection = keyof AppSectionVisibility;
+export const DEFAULT_APP_SECTIONS: Readonly<AppSectionVisibility> = Object.freeze(
+  sectionVisibilitySchema.parse({}),
+);
 
 export interface GanttViewPreferences {
   zoom: "day" | "week" | "month";
@@ -431,6 +444,37 @@ export class SettingsStore {
   private writes: Promise<void> = Promise.resolve();
 
   constructor(private readonly storage: StorageArea) {}
+
+  private async readSectionVisibility(): Promise<AppSectionVisibility> {
+    const stored = await this.storage.get(SECTION_VISIBILITY_KEY);
+    const parsed = sectionVisibilitySchema.safeParse(
+      stored[SECTION_VISIBILITY_KEY] ?? {},
+    );
+    return parsed.success ? parsed.data : { ...DEFAULT_APP_SECTIONS };
+  }
+
+  async getSectionVisibility(): Promise<AppSectionVisibility> {
+    await this.writes;
+    return this.readSectionVisibility();
+  }
+
+  saveSectionVisibility(
+    section: AppSection,
+    enabled: boolean,
+  ): Promise<AppSectionVisibility> {
+    const key = sectionVisibilitySchema.keyof().parse(section);
+    const checked = z.boolean().parse(enabled);
+    const write = this.writes.then(async () => {
+      const value = { ...(await this.readSectionVisibility()), [key]: checked };
+      await this.storage.set({ [SECTION_VISIBILITY_KEY]: value });
+      return value;
+    });
+    this.writes = write.then(
+      () => undefined,
+      () => undefined,
+    );
+    return write;
+  }
 
   async getSetup(
     baseUrl: string,

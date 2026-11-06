@@ -2,6 +2,8 @@ import type { UpdateCheckResult } from "@power-view/update-checker";
 import { Button } from "@power-view/ui";
 import { useEffect, useState } from "react";
 
+import { isSafariExtension } from "../lib/browser-platform";
+
 import {
   defaultCheckForUpdateNow,
   defaultCopyUpdateCommand,
@@ -44,11 +46,15 @@ export function UpdatePanel({
   reloadExtension = defaultReloadExtension,
   copyUpdateCommand = defaultCopyUpdateCommand,
 }: UpdatePanelProps) {
+  const safari = isSafariExtension();
   const [checkResult, setCheckResult] = useState<UpdateCheckResult>();
   const [isChecking, setIsChecking] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
+    if (safari) {
+      return;
+    }
     let isCurrent = true;
     void getCheckResult().then((result) => {
       if (isCurrent) {
@@ -58,7 +64,7 @@ export function UpdatePanel({
     return () => {
       isCurrent = false;
     };
-  }, [getCheckResult]);
+  }, [getCheckResult, safari]);
 
   const handleCheckNow = async () => {
     setIsChecking(true);
@@ -74,6 +80,16 @@ export function UpdatePanel({
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
+
+  if (safari) {
+    return (
+      <details className="update-section">
+        <summary>Updates</summary>
+        <p>Safari updates are installed with the Power View for Jira macOS app.</p>
+        <p>For a local build, rebuild the Safari project and run it from Xcode.</p>
+      </details>
+    );
+  }
 
   return (
     <details className="update-section">

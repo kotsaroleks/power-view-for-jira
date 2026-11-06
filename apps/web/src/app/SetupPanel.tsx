@@ -56,6 +56,7 @@ export interface SetupPanelProps {
    * false when the user explicitly navigated here to review/edit an existing
    * setup, otherwise they'd get bounced straight back to where they came from. */
   autoContinue?: boolean;
+  active?: boolean;
 }
 
 /** @deprecated Use WorkspaceContext at a service boundary. */
@@ -199,6 +200,7 @@ export function SetupPanel({
   onSetupComplete,
   onQuickStart,
   autoContinue = true,
+  active = true,
 }: SetupPanelProps) {
   const client = useMemo(
     () =>
@@ -352,7 +354,7 @@ export function SetupPanel({
   }, [loadMetadata]);
 
   useEffect(() => {
-    if (loadState !== "ready") {
+    if (!active || loadState !== "ready") {
       return;
     }
 
@@ -381,7 +383,15 @@ export function SetupPanel({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [applyProjectPage, client, context.projectKey, loadState, pageStart, projectSearch]);
+  }, [
+    active,
+    applyProjectPage,
+    client,
+    context.projectKey,
+    loadState,
+    pageStart,
+    projectSearch,
+  ]);
 
   const invalidateIssuePreview = useCallback(() => {
     issueAbort.current?.abort();
@@ -1038,7 +1048,7 @@ export function SetupPanel({
     loadState !== "error" &&
     boardCatalogState !== "error" &&
     (loadState !== "ready" ||
-      boardCatalogState !== "ready" ||
+      (Boolean(selectedProjectKey) && boardCatalogState !== "ready") ||
       (isReturningBoard && issueLoadState !== "error"));
 
   // Only hide the form behind the preloader while we're still deciding whether to

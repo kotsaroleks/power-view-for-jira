@@ -6,6 +6,7 @@ export const rawJiraUserSchema = z
     name: z.string().min(1).optional(),
     key: z.string().min(1).optional(),
     displayName: z.string().min(1).max(512),
+    timeZone: z.string().min(1).max(128).nullable().optional(),
     emailAddress: z.email().optional(),
     active: z.boolean().optional(),
     avatarUrls: z.record(z.string(), z.url()).optional(),

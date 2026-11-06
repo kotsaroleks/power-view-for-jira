@@ -51,8 +51,16 @@ export function PopupApp({
       const response = await sendExtensionRequest(runtime, createContextRefreshRequest());
       if (response.type === "ERROR") {
         setContext(undefined);
-        setHasHostPermission(undefined);
-        setError(response.error.message);
+        const url = await getActiveTabUrl();
+        const granted = url
+          ? await checkHostPermission(normalizeHostPermissionPattern(url))
+          : undefined;
+        setHasHostPermission(granted);
+        setError(
+          granted
+            ? "Jira access is already granted. Reload the Jira tab, then detect again."
+            : response.error.message,
+        );
       } else if (response.type === "CONTEXT_RESULT") {
         setContext(response.context);
         setCustomJiraUrl(response.context.baseUrl);
@@ -70,7 +78,7 @@ export function PopupApp({
     } finally {
       setIsLoading(false);
     }
-  }, [checkHostPermission, runtime]);
+  }, [checkHostPermission, getActiveTabUrl, runtime]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -191,7 +199,9 @@ export function PopupApp({
         </section>
       ) : null}
 
-      {!isLoading && (!context || hasHostPermission === false) ? (
+      {!isLoading &&
+      hasHostPermission !== true &&
+      (!context || hasHostPermission === false) ? (
         <section className="permission-card" aria-labelledby="custom-jira-title">
           <h2 id="custom-jira-title">
             {context ? "Grant Jira access" : "Custom Jira site"}

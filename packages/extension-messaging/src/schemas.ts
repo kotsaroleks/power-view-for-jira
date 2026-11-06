@@ -108,7 +108,11 @@ export const jiraTransportRequestSchema = z
         (value) =>
           value.startsWith("/rest/api/") ||
           value.startsWith("/rest/agile/1.0/") ||
-          value.startsWith("/rest/software/1.0/"),
+          value.startsWith("/rest/software/1.0/") ||
+          value === "/gateway/api/graphql" ||
+          /^\/gateway\/api\/public\/teams\/v1\/org\/[A-Za-z0-9-]{1,128}\/teams\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}(?:\/members)?$/.test(
+            value,
+          ),
         "The Jira path is outside supported REST API families.",
       ),
     query: z.record(z.string().max(128), queryValueSchema).optional(),

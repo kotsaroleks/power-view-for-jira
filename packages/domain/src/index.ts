@@ -1,5 +1,5 @@
 export const PRODUCT_NAME = "Power View for Jira";
-export const PRODUCT_VERSION = "0.3.0";
+export const PRODUCT_VERSION = "0.3.2";
 
 export type { AppErrorCode, SerializableAppError } from "./errors";
 export type {
@@ -158,3 +158,16 @@ export type {
   UnestimatedBreakdown,
   UnassignedReportBlock,
 } from "./reporting";
+export { isValidJiraTimestamp } from "./jira-timestamp";
+export {
+  buildTimeReport,
+  type TimeReport,
+  type TimeReportInput,
+  type TimeReportUser,
+  type TimeReportWorklog,
+  type TimeReportDayOff,
+  type TimeReportMetrics,
+  type TimeReportDay,
+  type TimeReportIssue,
+  type TimeReportEmployee,
+} from "./time-report";

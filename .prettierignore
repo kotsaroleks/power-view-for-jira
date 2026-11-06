@@ -1,0 +1,9 @@
+node_modules/
+.pnpm-store/
+dist/
+.secrets/
+safari/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo

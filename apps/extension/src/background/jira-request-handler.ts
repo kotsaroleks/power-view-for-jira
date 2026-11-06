@@ -1,6 +1,7 @@
 import type { JiraTransportRequest } from "@power-view/extension-messaging";
 
 import {
+  isJiraReadRequest,
   sanitizedJiraRequestHeaders,
   validatedJiraRequestUrl,
 } from "../jira-request-policy";
@@ -172,7 +173,9 @@ export class JiraRequestHandler {
       throw new JiraRequestExecutionError(
         {
           code: "PERMISSION_DENIED",
-          message: "The Jira request used an unsafe base URL.",
+          message:
+            "The extension blocked a Jira request that did not pass its request policy.",
+          details: `${request.method} ${request.path}. Reload the extension after updating it.`,
           retryable: false,
         },
         this.now() - startedAt,
@@ -286,7 +289,7 @@ export class JiraRequestHandler {
             );
             const delay = headerDelay ?? jitteredDelay;
 
-            if (request.method === "GET" && delay <= this.maxAutomaticRetryDelayMs) {
+            if (isJiraReadRequest(request) && delay <= this.maxAutomaticRetryDelayMs) {
               retryCount += 1;
               await wait(delay, controller.signal);
               continue;

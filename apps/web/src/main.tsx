@@ -29,6 +29,12 @@ async function renderApplication(): Promise<void> {
     return;
   }
 
+  if (window.powerViewDesktop) {
+    const { DesktopApp } = await import("./app/DesktopApp");
+    root.render(<DesktopApp />);
+    return;
+  }
+
   const application = showGanttPreview
     ? React.createElement((await import("./app/gantt/DevGanttPreview")).DevGanttPreview)
     : React.createElement(App);

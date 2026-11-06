@@ -11,6 +11,18 @@ import {
 import { rawJiraIssueSchema } from "./schemas";
 
 describe("Jira response mappers", () => {
+  it("preserves the Jira profile time zone for personal worklog calendar dates", () => {
+    expect(
+      mapJiraUser({
+        accountId: "author",
+        displayName: "Author",
+        timeZone: "America/Los_Angeles",
+      }),
+    ).toMatchObject({ timeZone: "America/Los_Angeles" });
+    expect(mapJiraUser({ displayName: "Author", timeZone: null })).not.toHaveProperty(
+      "timeZone",
+    );
+  });
   it("normalizes Cloud users without requiring private email data", () => {
     expect(
       mapJiraUser({
@@ -30,6 +42,17 @@ describe("Jira response mappers", () => {
     expect(
       mapJiraUser({ displayName: "Fred Example", name: "fred", active: true }),
     ).toEqual({ displayName: "Fred Example", username: "fred" });
+  });
+
+  it("preserves the stable Data Center key when the username differs", () => {
+    expect(
+      mapJiraUser({
+        displayName: "Fred",
+        name: "new-name",
+        key: "JIRAUSER100",
+        active: true,
+      }),
+    ).toMatchObject({ username: "new-name", key: "JIRAUSER100" });
   });
 
   it("detects Cloud from the configured host and preserves safe server fields", () => {

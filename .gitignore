@@ -9,3 +9,6 @@ coverage/
 *.local
 .claude/
 *.tsbuildinfo
+
+# Generated Safari Xcode wrapper and local signing settings
+safari/

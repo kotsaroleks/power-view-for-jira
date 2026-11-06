@@ -179,7 +179,11 @@ class MemoryStorage implements StorageArea {
 }
 
 function setupRuntime(
-  options: { invalidJql?: boolean; delayedBoardMetadata?: boolean } = {},
+  options: {
+    invalidJql?: boolean;
+    delayedBoardMetadata?: boolean;
+    multipleProjects?: boolean;
+  } = {},
 ): ExtensionRuntime {
   return {
     sendMessage: vi.fn().mockImplementation((message: unknown) => {
@@ -228,7 +232,16 @@ function setupRuntime(
                     ? boardIssuePage
                     : path.endsWith("/search/jql")
                       ? issueSearchPage
-                      : projects;
+                      : options.multipleProjects
+                        ? {
+                            ...projects,
+                            values: [
+                              ...projects.values,
+                              { id: "10001", key: "OTHER", name: "Other project" },
+                            ],
+                            total: 2,
+                          }
+                        : projects;
         return Promise.resolve({
           type: "JIRA_RESPONSE",
           requestId: request.requestId,
@@ -431,4 +444,22 @@ describe("SetupPanel", () => {
       await screen.findByText("The status value is not valid for this project."),
     ).toBeInTheDocument();
   });
+});
+
+it("shows project selection when desktop context has no project and several projects exist", async () => {
+  render(
+    <SetupPanel
+      context={{
+        baseUrl: context.baseUrl,
+        pageUrl: context.baseUrl,
+        detectedAt: context.detectedAt,
+        deploymentType: "cloud",
+        detectionSources: ["user-input"],
+      }}
+      runtime={setupRuntime({ multipleProjects: true })}
+      settingsStore={new SettingsStore(new MemoryStorage())}
+    />,
+  );
+  expect(await screen.findByRole("combobox", { name: "Jira project" })).toHaveValue("");
+  expect(screen.queryByText("Preparing your workspace…")).not.toBeInTheDocument();
 });

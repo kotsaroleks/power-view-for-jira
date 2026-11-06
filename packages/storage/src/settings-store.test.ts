@@ -3,7 +3,7 @@ import { DEFAULT_DURATION_DAYS, DEFAULT_GANTT_FILTERS } from "@power-view/domain
 import { describe, expect, it } from "vitest";
 
 import type { StorageArea } from "./context-store";
-import { SettingsStore } from "./settings-store";
+import { DEFAULT_APP_SECTIONS, SettingsStore } from "./settings-store";
 
 class MemoryStorage implements StorageArea {
   private readonly values = new Map<string, unknown>();
@@ -52,6 +52,46 @@ function configuration(jql: string): SetupConfiguration {
 }
 
 describe("SettingsStore", () => {
+  it("keeps Reports and Estimation off on a clean installation and preserves independent switches", async () => {
+    const storage = new MemoryStorage();
+    const store = new SettingsStore(storage);
+    expect(await store.getSectionVisibility()).toEqual({
+      reports: false,
+      estimation: false,
+      timesheet: true,
+      gantt: true,
+      status: true,
+    });
+    await Promise.all([
+      store.saveSectionVisibility("reports", true),
+      store.saveSectionVisibility("estimation", true),
+    ]);
+    await store.saveSectionVisibility("gantt", false);
+    const reopened = new SettingsStore(storage);
+    expect(await reopened.getSectionVisibility()).toEqual({
+      reports: true,
+      estimation: true,
+      timesheet: true,
+      gantt: false,
+      status: true,
+    });
+    await reopened.saveSectionVisibility("reports", false);
+    expect((await reopened.getSectionVisibility()).estimation).toBe(true);
+  });
+
+  it("defaults missing or invalid section preferences without treating strings as enabled", async () => {
+    const storage = new MemoryStorage();
+    await storage.set({ "app-sections:v1": { reports: "true", estimation: "true" } });
+    expect(await new SettingsStore(storage).getSectionVisibility()).toEqual(
+      DEFAULT_APP_SECTIONS,
+    );
+    await storage.set({ "app-sections:v1": { reports: true } });
+    expect(await new SettingsStore(storage).getSectionVisibility()).toEqual({
+      ...DEFAULT_APP_SECTIONS,
+      reports: true,
+    });
+  });
+
   it("persists setup per Jira instance and project", async () => {
     const store = new SettingsStore(new MemoryStorage());
     await store.saveSetup(configuration('project = "POWER"'));

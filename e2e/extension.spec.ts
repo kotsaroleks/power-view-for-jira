@@ -179,6 +179,12 @@ test.describe("extension shell", () => {
     await expect(
       app.getByRole("button", { name: "Edit assignee for POWER-2", exact: true }),
     ).toHaveText("Fixture New User");
+    await expect(app.getByRole("button", { name: "Reports", exact: true })).toHaveCount(
+      0,
+    );
+    await app.getByRole("button", { name: "Settings", exact: true }).click();
+    await app.getByRole("switch", { name: "Reports", exact: true }).press("Space");
+    await expect(app.getByRole("switch", { name: "Reports", exact: true })).toBeChecked();
     await app.getByRole("button", { name: "Reports", exact: true }).click();
     await app
       .getByRole("combobox", { name: "Report type", exact: true })
@@ -190,6 +196,23 @@ test.describe("extension shell", () => {
     await expect(
       app.getByRole("button", { name: /WEEKLY · Power Delivery Board/ }),
     ).toBeVisible();
+    await app.getByRole("button", { name: "Timesheet", exact: true }).click();
+    await expect(
+      app.getByRole("heading", { name: "Timesheet", exact: true }),
+    ).toBeVisible();
+    await expect(
+      app.getByRole("heading", { name: "No worklogs found for this period and filters" }),
+    ).toBeVisible();
+    await app
+      .getByRole("combobox", { name: "Period", exact: true })
+      .selectOption("month");
+    await app.getByText(/Filters & time zone/).click();
+    await expect(app.getByRole("combobox", { name: "Time zone" })).toHaveValue(
+      "Europe/Kyiv",
+    );
+    await app.getByRole("button", { name: "Refresh", exact: true }).click();
+    await expect(app.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
+    expect(fixture.writes.map(({ method }) => method)).toEqual(["POST", "PUT", "PUT"]);
     expect(fixture.unexpected).toEqual([]);
   });
 });

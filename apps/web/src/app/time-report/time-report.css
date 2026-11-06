@@ -1,0 +1,293 @@
+.reports-service-tabs,
+.time-report-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-7);
+  background: var(--surface-subtle);
+}
+.reports-service-tabs {
+  margin-bottom: var(--space-5);
+}
+.reports-service-tabs button,
+.time-report-view-tabs button {
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--radius-5);
+  padding: 8px 18px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: var(--fw-4);
+  cursor: pointer;
+}
+.reports-service-tabs button[aria-selected="true"],
+.time-report-view-tabs button[aria-selected="true"],
+.time-report-view-tabs button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--color-white);
+  box-shadow: 0 2px 4px rgb(9 30 66 / 12%);
+}
+.time-report-period {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.time-report-period legend {
+  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--font-size-5);
+  font-weight: var(--fw-4);
+}
+.reports-service-tabs button:hover:not([aria-selected="true"]),
+.time-report-view-tabs
+  button:hover:not([aria-selected="true"]):not([aria-pressed="true"]) {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.time-report-panel .reporting-header p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-6);
+  line-height: 1.5;
+}
+.time-report-eyebrow {
+  color: var(--text-secondary);
+  font-size: var(--font-size-3);
+  font-weight: var(--fw-4);
+  letter-spacing: 0.08em;
+}
+.time-report-badge {
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  background: var(--accent-tint);
+  color: var(--accent-strong);
+  font-size: var(--font-size-4);
+  font-weight: var(--fw-4);
+}
+.time-report-notice {
+  margin: var(--space-5) var(--space-6) 0;
+  border: 1px solid var(--accent-tint-strong);
+  border-radius: var(--radius-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-softer);
+  color: var(--text-muted);
+  font-size: var(--font-size-5);
+  line-height: 1.6;
+}
+.time-report-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-4);
+  padding: var(--space-6);
+}
+.time-report-team-picker,
+.time-report-help,
+.time-report-actions {
+  grid-column: 1 / -1;
+}
+.time-report-form label,
+.time-report-view label {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-5);
+  font-weight: var(--fw-4);
+}
+.time-report-form input,
+.time-report-form select,
+.time-report-view select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-5);
+  padding: 10px 12px;
+  background: var(--color-white);
+  color: var(--text-primary);
+  font-size: var(--font-size-6);
+  font-weight: normal;
+}
+.time-report-form input::placeholder {
+  color: var(--text-subtle);
+}
+.time-report-form input:focus-visible,
+.time-report-form select:focus-visible,
+.time-report-view select:focus-visible,
+.reports-service-tabs button:focus-visible,
+.time-report-view button:focus-visible {
+  outline: 3px solid var(--accent-mid);
+  outline-offset: 2px;
+}
+.time-report-team-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+}
+.time-report-team-picker > p {
+  grid-column: 1 / -1;
+}
+.time-report-team-message {
+  margin: 0;
+  border-radius: var(--radius-5);
+  padding: var(--space-3);
+  font-size: var(--font-size-5);
+}
+.time-report-help {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-5);
+  line-height: 1.6;
+}
+.time-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.time-report-feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 var(--space-6) var(--space-6);
+  border-radius: var(--radius-5);
+  padding: var(--space-4);
+  background: var(--surface-tint-alt);
+  color: var(--text-muted);
+  font-size: var(--font-size-6);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.time-report-error {
+  display: block;
+  border: 1px solid var(--error-accent);
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+.time-report-team-title {
+  margin: 0;
+  border-top: 1px solid var(--border);
+  padding: var(--space-6) var(--space-6) 0;
+  font-size: var(--font-size-10);
+}
+.time-report-coverage,
+.time-report-panel [aria-label="Team membership warnings"] {
+  margin: var(--space-3) var(--space-6);
+  color: var(--text-secondary);
+  font-size: var(--font-size-5);
+  line-height: 1.6;
+}
+.time-report-view {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-6);
+}
+.time-report-view > p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-5);
+  line-height: 1.6;
+}
+.time-report-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.time-report-toolbar strong {
+  font-size: var(--font-size-6);
+  font-variant-numeric: tabular-nums;
+}
+.time-report-toolbar label {
+  margin-left: auto;
+  min-width: 180px;
+}
+.time-report-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-5);
+}
+.time-report-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-5);
+  font-variant-numeric: tabular-nums;
+}
+.time-report-scroll caption {
+  padding: var(--space-4);
+  text-align: left;
+  color: var(--text-primary);
+  font-weight: var(--fw-4);
+}
+.time-report-scroll th,
+.time-report-scroll td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+.time-report-scroll thead,
+.time-report-scroll tfoot {
+  background: var(--surface-tint-alt);
+  color: var(--text-muted);
+}
+.time-report-scroll tfoot {
+  font-weight: var(--fw-4);
+}
+.time-report-scroll tfoot th,
+.time-report-scroll tfoot td {
+  border-bottom: 0;
+  border-top: 1px solid var(--border);
+}
+.time-report-person {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: var(--fw-4);
+  cursor: pointer;
+}
+.time-report-scroll .time-report-conflict {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+.time-report-scroll .time-report-deficit {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+@media (max-width: 640px) {
+  .time-report-form {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-4);
+  }
+  .time-report-team-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .time-report-panel .reporting-header {
+    align-items: flex-start;
+    padding: var(--space-4);
+  }
+  .time-report-badge {
+    display: none;
+  }
+  .time-report-panel > .time-report-notice,
+  .time-report-feedback,
+  .time-report-coverage {
+    margin-right: var(--space-4);
+    margin-left: var(--space-4);
+  }
+  .time-report-view {
+    padding: var(--space-4);
+  }
+  .time-report-toolbar label {
+    width: 100%;
+    margin-left: 0;
+  }
+}

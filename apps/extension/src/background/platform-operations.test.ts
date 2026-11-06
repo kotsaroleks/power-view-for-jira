@@ -190,6 +190,48 @@ describe.each(Object.entries(mutationRequests))(
   },
 );
 
+describe("worklog validation errors", () => {
+  it("preserves rejected field information and never retries a refused write", async () => {
+    tabsSendMessage.mockResolvedValueOnce({
+      type: "CONTEXT_RESULT",
+      requestId: crypto.randomUUID(),
+      ok: true,
+      context,
+    });
+    scriptingExecuteScript.mockResolvedValueOnce([
+      {
+        result: {
+          kind: "http-error",
+          status: 400,
+          rejectedFields: ["started"],
+          durationMs: 5,
+        },
+      },
+    ]);
+    await expect(
+      executeJiraRequest(
+        crypto.randomUUID(),
+        {
+          baseUrl: context.baseUrl,
+          method: "POST",
+          path: "/rest/api/3/issue/POWER-42/worklog",
+          query: { adjustEstimate: "leave" },
+          body: { started: "2026-11-02T07:00:00.000+0000", timeSpentSeconds: 28800 },
+        },
+        sender,
+      ),
+    ).rejects.toMatchObject({
+      appError: {
+        httpStatus: 400,
+        retryable: false,
+        message:
+          "Jira rejected the worklog start date/time. Check these values before saving again.",
+      },
+    });
+    expect(scriptingExecuteScript).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("openPowerView", () => {
   const extensionSender = {
     tabId: TAB_ID,
@@ -219,5 +261,32 @@ describe("openPowerView", () => {
 
     expect(resultTabId).toBe(42);
     expect(tabsReload).not.toHaveBeenCalled();
+  });
+});
+
+describe("Safari extension sender verification", () => {
+  it("accepts Safari's own extension host even when runtime.id differs", async () => {
+    const originalGetURL = chrome.runtime.getURL;
+    chrome.runtime.getURL = (path: string) =>
+      `safari-web-extension://safari-host/${path}`;
+    try {
+      tabsQuery.mockResolvedValue([]);
+      tabsCreate.mockResolvedValue({ id: 42 });
+      await expect(
+        openPowerView(context, {
+          url: "safari-web-extension://safari-host/popup/index.html",
+        }),
+      ).resolves.toBe(42);
+      for (const url of [
+        "safari-web-extension://other-host/popup/index.html",
+        "chrome-extension://safari-host/popup/index.html",
+        "https://safari-host/popup/index.html",
+        "https://example.atlassian.net/browse/POWER-42",
+      ]) {
+        await expect(openPowerView(context, { url })).rejects.toThrow();
+      }
+    } finally {
+      chrome.runtime.getURL = originalGetURL;
+    }
   });
 });

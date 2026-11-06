@@ -1,3 +1,4 @@
+import { jiraStatusError } from "../jira-response-policy";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -42,6 +43,66 @@ describe("Jira main-world bridge", () => {
     );
   });
 
+  it("reports worklog validation fields without exposing the response body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          errors: {
+            started: "Echoed private date",
+            comment: "Echoed private comment",
+            authorization: "secret",
+          },
+          errorMessages: ["sensitive server details"],
+        }),
+        { status: 400 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchJiraInMainWorld(
+      "https://example.atlassian.net/rest/api/3/issue/PV-1/worklog",
+      "POST",
+      {},
+      "{}",
+      1000,
+    );
+    expect(result).toMatchObject({
+      kind: "http-error",
+      status: 400,
+      rejectedFields: ["started", "comment"],
+    });
+    expect(JSON.stringify(result)).not.toMatch(/Echoed|secret|sensitive/);
+    expect(parseJiraMainWorldFetchResult(result)).toEqual(result);
+    expect(
+      jiraStatusError(400, false, "/rest/api/3/issue/PV-1/worklog", [
+        "started",
+        "comment",
+      ]).message,
+    ).toContain("start date/time, description");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it("keeps a definitive rejection when its response body is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("invalid", { status: 400 })),
+    );
+    expect(
+      await fetchJiraInMainWorld(
+        "https://example.atlassian.net/rest/api/3/issue/PV-1/worklog",
+        "POST",
+        {},
+        "{}",
+        1000,
+      ),
+    ).toMatchObject({ kind: "http-error", status: 400 });
+    expect(
+      parseJiraMainWorldFetchResult({
+        kind: "http-error",
+        status: 400,
+        durationMs: 1,
+        rejectedFields: ["authorization"],
+      }),
+    ).toBeUndefined();
+  });
   it("returns only a typed failure when page fetch throws", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("private reason")));
 

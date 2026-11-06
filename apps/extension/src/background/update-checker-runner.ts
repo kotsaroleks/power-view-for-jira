@@ -1,6 +1,7 @@
 import { UpdateStore } from "@power-view/storage";
 import { checkForUpdate } from "@power-view/update-checker";
 
+import { isSafariExtension } from "../lib/browser-platform";
 import { getBuildInfo, type BuildInfo } from "../lib/build-info";
 
 const ALARM_NAME = "power-view-update-check";
@@ -35,6 +36,7 @@ async function updateBadge(status: Awaited<ReturnType<typeof checkForUpdate>>["s
 }
 
 export async function runUpdateCheck(): Promise<void> {
+  if (isSafariExtension()) return;
   if (typeof chrome.runtime.requestUpdateCheck === "function") {
     try {
       const update = await chrome.runtime.requestUpdateCheck();
@@ -85,6 +87,7 @@ export async function runUpdateCheck(): Promise<void> {
 }
 
 export function registerUpdateChecks(): void {
+  if (isSafariExtension()) return;
   void chrome.alarms.create(ALARM_NAME, { periodInMinutes: CHECK_PERIOD_MINUTES });
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_NAME) {

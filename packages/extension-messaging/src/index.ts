@@ -10,6 +10,10 @@ export {
   createRequestId,
 } from "./messages";
 export {
+  POWER_VIEW_TEAM_CONTEXT_QUERY,
+  POWER_VIEW_MY_TEAMS_QUERY,
+} from "./teams-queries";
+export {
   InvalidExtensionResponseError,
   sendExtensionRequest,
   type ExtensionRuntime,

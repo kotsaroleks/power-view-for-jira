@@ -4,6 +4,7 @@ export function jiraStatusError(
   status: number,
   retryable: boolean,
   path: string,
+  rejectedFields: string[] = [],
 ): SerializableAppError {
   if (status === 401) {
     return {
@@ -29,6 +30,42 @@ export function jiraStatusError(
       message: "Jira is temporarily rate limiting Power View.",
       details: "Wait for the Jira retry window, then try again.",
       retryable: true,
+      httpStatus: status,
+    };
+  }
+  if (
+    status === 404 &&
+    /^\/rest\/api\/3\/issue\/[^/]+(?:\/worklog(?:\/[^/]+)?)?$/.test(path)
+  ) {
+    return {
+      code: "INVALID_RESPONSE",
+      message: "The Jira issue or worklog is unavailable.",
+      details:
+        "It may have been removed, hidden by permissions, or the operation may be unavailable. Open the issue in Jira to check.",
+      retryable: false,
+      httpStatus: status,
+    };
+  }
+  if (status === 400 && /\/worklog(?:\/\d+)?$/.test(path)) {
+    const labels: Record<string, string> = {
+      started: "start date/time",
+      timeSpent: "duration",
+      timeSpentSeconds: "duration",
+      comment: "description",
+    };
+    const fields = [
+      ...new Set(
+        rejectedFields.flatMap((field) =>
+          Object.hasOwn(labels, field) ? [labels[field]!] : [],
+        ),
+      ),
+    ];
+    return {
+      code: "INVALID_RESPONSE",
+      message: fields.length
+        ? `Jira rejected the worklog ${fields.join(", ")}. Check these values before saving again.`
+        : "Jira rejected the worklog. Check the date, duration, description, and time tracking configuration.",
+      retryable: false,
       httpStatus: status,
     };
   }

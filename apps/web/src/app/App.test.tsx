@@ -1,6 +1,6 @@
 import type { ExtensionRuntime } from "@power-view/extension-messaging";
 import { SettingsStore, type StorageArea } from "@power-view/storage";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
@@ -81,6 +81,72 @@ function runtimeFor(
 }
 
 describe("App", () => {
+  it("hides optional sections by default, saves toggle changes, and restores them after reopening", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    const runtime = runtimeFor((path, requestId) => ({
+      type: "JIRA_RESPONSE",
+      requestId,
+      ok: true,
+      status: 200,
+      durationMs: 1,
+      retryCount: 0,
+      data: path.endsWith("/myself")
+        ? { accountId: "alex", displayName: "Alex" }
+        : path.endsWith("/serverInfo")
+          ? {
+              baseUrl: context.baseUrl,
+              deploymentType: "Cloud",
+              versionNumbers: [1001, 0, 0],
+            }
+          : path.endsWith("/field")
+            ? []
+            : { values: [], total: 0, startAt: 0, maxResults: 50, isLast: true },
+    }));
+    const view = render(<App runtime={runtime} settingsStore={store} />);
+    await screen.findByText("Connected as Alex");
+    const reports = screen.getByRole("switch", { name: "Reports" });
+    const estimation = screen.getByRole("switch", { name: "Estimation board" });
+    await waitFor(() => expect(reports).toBeEnabled());
+    expect(reports).not.toBeChecked();
+    expect(estimation).not.toBeChecked();
+    expect(screen.queryByRole("button", { name: "Reports" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Estimation" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Timesheet" })).toBeVisible();
+    fireEvent.click(reports);
+    await waitFor(() => expect(reports).toBeChecked());
+    expect(screen.getByRole("button", { name: "Reports" })).toBeVisible();
+    fireEvent.click(estimation);
+    await waitFor(() => expect(estimation).toBeChecked());
+    expect(screen.getByRole("button", { name: "Estimation" })).toBeVisible();
+    view.unmount();
+    render(<App runtime={runtime} settingsStore={store} />);
+    await screen.findByText("Connected as Alex");
+    const restored = screen.getByRole("switch", { name: "Reports" });
+    await waitFor(() => expect(restored).toBeChecked());
+    expect(screen.getByRole("switch", { name: "Estimation board" })).toBeChecked();
+    fireEvent.click(restored);
+    await waitFor(() => expect(restored).not.toBeChecked());
+    expect(screen.queryByRole("button", { name: "Reports" })).toBeNull();
+    expect(screen.getByRole("switch", { name: "Estimation board" })).toBeChecked();
+  });
+
+  it("retains the previous visibility and explains a failed settings write", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    vi.spyOn(store, "saveSectionVisibility").mockRejectedValue(
+      new Error("Unavailable storage"),
+    );
+    render(<App runtime={runtimeFor()} settingsStore={store} />);
+    const panel = screen.getByRole("region", { name: "App sections" });
+    const toggle = within(panel).getByRole("switch", { name: "Reports" });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    fireEvent.click(toggle);
+    expect(await within(panel).findByRole("alert")).toHaveTextContent(
+      "could not be saved",
+    );
+    expect(toggle).not.toBeChecked();
+    expect(toggle).toBeEnabled();
+  });
+
   it("reloads the extension from the workspace update button", async () => {
     const reload = vi.fn();
     render(<App runtime={{ ...runtimeFor(), reload }} />);
@@ -118,6 +184,43 @@ describe("App", () => {
     render(<App runtime={runtime} />);
 
     expect(await screen.findByText("Connected as Alex Rivera")).toBeInTheDocument();
+  });
+
+  it("opens the personal timesheet without selecting or loading a board", async () => {
+    const requests: string[] = [];
+    const runtime = runtimeFor((path, requestId) => {
+      requests.push(path);
+      const data = path.endsWith("/myself")
+        ? { accountId: "alex", displayName: "Alex" }
+        : path.endsWith("/serverInfo")
+          ? {
+              baseUrl: context.baseUrl,
+              deploymentType: "Cloud",
+              versionNumbers: [1001, 0, 0],
+            }
+          : path.endsWith("/search/jql")
+            ? { issues: [], isLast: true }
+            : path.endsWith("/field")
+              ? []
+              : { values: [], startAt: 0, maxResults: 50, total: 0, isLast: true };
+      return {
+        type: "JIRA_RESPONSE",
+        requestId,
+        ok: true,
+        status: 200,
+        durationMs: 1,
+        retryCount: 0,
+        data,
+      };
+    });
+    render(<App runtime={runtime} />);
+    await screen.findByText("Connected as Alex");
+    fireEvent.click(screen.getByRole("button", { name: "Timesheet" }));
+    expect(
+      await screen.findByText("Choose a board to see your tasks"),
+    ).toBeInTheDocument();
+    expect(requests.some((path) => /\/board\/\d+\/issue$/.test(path))).toBe(false);
+    expect(requests).toContain("/rest/api/3/search/jql");
   });
 
   it.each([
@@ -295,6 +398,12 @@ describe("App", () => {
       if (path.endsWith("/search/jql")) {
         return { ...common, data: { issues: [rawIssue], isLast: true } };
       }
+      if (path.endsWith("/worklog")) {
+        return {
+          ...common,
+          data: { worklogs: [], startAt: 0, maxResults: 100, total: 0 },
+        };
+      }
       return { ...common, data: {} };
     });
     const store = new SettingsStore(new MemoryStorage());
@@ -305,6 +414,14 @@ describe("App", () => {
       await screen.findByRole("heading", { name: "What do you want to open?" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Gantt" })).toBeNull();
+    expect(
+      screen.queryByText("Create Daily, Weekly, and Sprint summaries for your team."),
+    ).toBeNull();
+    expect(
+      screen.queryByText(
+        "Estimate client scope, clarify requirements, and prepare QA handoffs.",
+      ),
+    ).toBeNull();
 
     fireEvent.click(
       screen
@@ -318,6 +435,18 @@ describe("App", () => {
       screen.getByRole("img", { name: /Power Delivery Board: Done 1, 100%/ }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Workspace" }));
+    fireEvent.click(
+      screen.getByText("Review your logged time by issue and day.").closest("button")!,
+    );
+    expect(await screen.findByRole("heading", { name: "Timesheet" })).toBeInTheDocument();
+    expect(
+      await screen.findByText("Choose a board to see your tasks"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Timesheet" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Workspace" }));
 
     fireEvent.click(
       screen
@@ -327,6 +456,10 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Gantt" })).toBeInTheDocument();
     expect(await screen.findByRole("grid", { name: "Gantt tasks" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    // Reopening Settings keeps the loaded workspace available; no second
+    // Save and continue is needed just to enable another section.
+    expect(screen.getByRole("button", { name: "Workspace" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Gantt" })).toBeEnabled();
     expect(
       await screen.findByRole("option", { name: "Power Delivery Board · scrum" }),
     ).toBeInTheDocument();
@@ -337,7 +470,16 @@ describe("App", () => {
       ),
     );
 
+    const reportsToggle = screen.getByRole("switch", { name: "Reports" });
+    expect(reportsToggle).not.toBeChecked();
+    fireEvent.click(reportsToggle);
+    await waitFor(() => expect(reportsToggle).toBeChecked());
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    expect(
+      await screen.findByText(
+        "Create Daily, Weekly, and Sprint summaries for your team.",
+      ),
+    ).toBeVisible();
     const reportsButton = await screen.findByRole("button", { name: "Reports" });
     jiraRequest.mockClear();
     fireEvent.click(reportsButton);

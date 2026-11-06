@@ -11,6 +11,7 @@ export interface WorkspaceSettingsServiceProps {
   runtime: ExtensionRuntime;
   settingsStore?: SettingsStore;
   autoContinue: boolean;
+  active?: boolean;
   onDiagnosticsChanged?: () => void;
   onWorkspaceReady: (workspace: WorkspaceContext | undefined) => void;
   onSetupComplete: (workspace: WorkspaceContext) => void;

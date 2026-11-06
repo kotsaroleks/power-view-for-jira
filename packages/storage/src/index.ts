@@ -2,6 +2,9 @@ export { ContextStore, type StorageArea, type StoredJiraContext } from "./contex
 export { DiagnosticsStore, type DiagnosticsState } from "./diagnostics-store";
 export {
   SettingsStore,
+  DEFAULT_APP_SECTIONS,
+  type AppSection,
+  type AppSectionVisibility,
   type BoardConfigurationBackup,
   type BoardConfigurationScope,
   type GanttBoardState,
