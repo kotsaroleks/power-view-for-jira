@@ -1,0 +1,73 @@
+
+Web
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 222 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/extension/app/index.html                       0.74 kB │ gzip:   0.39 kB
+../../dist/extension/app/assets/index-DGOz-sT4.css      107.47 kB │ gzip:  19.05 kB
+../../dist/extension/app/assets/DesktopApp-CMNkf2B3.js    2.67 kB │ gzip:   1.20 kB
+../../dist/extension/app/assets/index-CXVQXKGF.js       694.24 kB │ gzip: 192.96 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 821ms
+
+Chrome extension
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 153 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/extension/assets/icon-16-D1CWirzr.png      0.36 kB
+../../dist/extension/assets/icon-32-Cu0D19i2.png      0.44 kB
+../../dist/extension/popup/index.html                 0.73 kB │ gzip:  0.39 kB
+../../dist/extension/assets/popup-B_i5TPWk.css        5.98 kB │ gzip:  1.78 kB
+../../dist/extension/background/service-worker.js    36.55 kB │ gzip: 11.08 kB
+../../dist/extension/assets/build-info-DQ07iq_A.js   90.12 kB │ gzip: 24.50 kB
+../../dist/extension/assets/popup-CoRD6BD_.js       201.44 kB │ gzip: 63.58 kB
+✓ built in 479ms
+
+Chrome content script
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 103 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/extension/content/content-script.js  97.21 kB │ gzip: 27.08 kB
+✓ built in 268ms
+
+Extension validation
+Validated 10 extension entry points.
+
+Chrome archive
+Packaged 18 files as dist/power-view-for-jira-0.3.2.zip (1244933 bytes).
+SHA-256 3a77c92c99a0414035fccdbd262fbb6c0d9d2df78731592e89b738ce1ee11ffc
+
+Electron preview
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 101 modules transformed.
+
+(!) outDir /private/tmp/power-view-git-build-29z3up_g/dist/desktop is not inside project root and will not be emptied.
+Use --emptyOutDir to override.
+
+rendering chunks...
+computing gzip size...
+../../dist/desktop/main.mjs  135.53 kB │ gzip: 29.59 kB
+✓ built in 224ms
+
+Electron preload
+
+Safari web extension
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 118 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/safari-extension/background/service-worker.js  126.62 kB │ gzip: 34.52 kB
+✓ built in 270ms
+Prepared Safari web extension: /private/tmp/power-view-git-build-29z3up_g/dist/safari-extension

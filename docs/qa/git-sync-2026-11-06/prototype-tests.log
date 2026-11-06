@@ -1,0 +1,12 @@
+✔ one lease winner, expiry and stale editor fencing through Drive write (6.552375ms)
+✔ identity is server-derived and unknown actions cannot renew (0.869208ms)
+✔ uncertain save response is reconciled without a second revision (0.888875ms)
+✔ shared envelope and receipts never contain a raw lease secret (0.407041ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 81.192958

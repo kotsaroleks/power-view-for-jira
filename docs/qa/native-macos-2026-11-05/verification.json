@@ -1,0 +1,96 @@
+{
+  "activationProhibited": true,
+  "active": false,
+  "artifacts": [
+    {
+      "file": "section-settings.png",
+      "height": "1080",
+      "width": "1600"
+    },
+    {
+      "file": "timesheet-week-wide.png",
+      "height": "1700",
+      "width": "2760"
+    },
+    {
+      "file": "timesheet-week-compact.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "worklog-new.png",
+      "height": "1280",
+      "width": "1400"
+    },
+    {
+      "file": "worklog-edit.png",
+      "height": "1200",
+      "width": "1400"
+    },
+    {
+      "file": "time-report-team.png",
+      "height": "1700",
+      "width": "2560"
+    },
+    {
+      "file": "time-report-individual.png",
+      "height": "1700",
+      "width": "2000"
+    },
+    {
+      "file": "timesheet-refreshing.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "timesheet-read-error.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "timesheet-month-compact.png",
+      "height": "1700",
+      "width": "2000"
+    },
+    {
+      "file": "gantt.png",
+      "height": "1700",
+      "width": "2760"
+    },
+    {
+      "file": "status.png",
+      "height": "1700",
+      "width": "2560"
+    },
+    {
+      "file": "estimation.png",
+      "height": "1700",
+      "width": "2760"
+    },
+    {
+      "file": "jira-setup.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "full-timesheet-1440.png",
+      "height": "1800",
+      "width": "2880"
+    },
+    {
+      "file": "full-timesheet-1280.png",
+      "height": "1600",
+      "width": "2560"
+    }
+  ],
+  "fixtureRequestsAfterRendering": 60,
+  "fixtureRequestsBeforeRendering": 60,
+  "hiddenWindows": 1,
+  "realNetworkTransports": 0,
+  "status": "passed",
+  "unverifiedInteractions": {
+    "timesheet-month-scroll": "Detached SwiftUI does not expose horizontal document geometry; actual scroll interaction remains unverified.",
+    "timesheet-week-scroll": "Detached SwiftUI does not expose vertical document geometry; actual scroll interaction remains unverified."
+  },
+  "windows": 0
+}

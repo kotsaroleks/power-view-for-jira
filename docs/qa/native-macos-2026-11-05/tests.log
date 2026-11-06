@@ -1,0 +1,298 @@
+Building for debugging...
+[2 / 7] PowerViewApplicationTests-product
+[4 / 9] PowerViewApplicationTests-product
+[7 / 10] PowerViewApplicationTests-product
+[9 / 13] PowerViewApplicationTests-product
+Build complete! (2,80 с)
+Test Suite 'All tests' started at 2026-11-05 17:19:56.412.
+Test Suite 'All tests' passed at 2026-11-05 17:19:56.415.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+Test Suite 'All tests' started at 2026-11-05 17:19:56.758.
+Test Suite 'All tests' passed at 2026-11-05 17:19:56.759.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 2403
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test resumeUsesOnlyWorkspacePages() started.
+◇ Test unavailableWorklogsStayVisibleAsUnavailableInNativeText() started.
+◇ Test changedIssueTreeRetainsUnchangedAncestorsAndPrunesUnchangedSiblings() started.
+◇ Test staleWorklogAndOtherAuthorNeverProduceAMutation() started.
+◇ Test macOSUpdateOnlyOffersOurPublishedPackage() started.
+◇ Test repeatedACDoDTransferReplacesOneManagedBlockAndPreservesOtherNodes() started.
+◇ Test workflowRequiresRecordedTasksAndRole() started.
+◇ Test calendarTimeoutReconcilesWithoutReplayingWrite() started.
+◇ Test sharedCalendarUsesChromeUTF8HexPaths() started.
+◇ Test concurrentCalendarWriteMergesOtherDatesUsingLatestSHA() started.
+◇ Test corruptedPreferredWorkspaceRecoversSavedDrafts() started.
+◇ Test staleStoryFormCannotOverwriteNewerPreparation() started.
+◇ Test ganttDateWriteRequiresEditableDateMetadataAndExplicitApproval() started.
+◇ Test privateRecoveryKeepsOtherEditorsChanges() started.
+◇ Test qaReadinessComparesSecondsWithoutFloatingPointFalseFailures() started.
+◇ Test returnNeedsNotesAndFreshTLApproval() started.
+◇ Test boardAndSprintHealthMatchOriginalGoldenOutputs() started.
+◇ Test nativeNumberValidationPreservesJavascriptImportedEstimateSemantics() started.
+◇ Test stalePreviewDoesNotSendMutations() started.
+◇ Test timeCalendarRejectsSkippedClockAndKeepsBothOverlapChoices() started.
+◇ Test jiraRejectsUnsafeOriginsAndKeysBeforeNetwork() started.
+◇ Test nativeEstimationMatchesOriginalChromeWorkflowForEveryEditAndReset() started.
+◇ Test customerApprovalRequiresCurrentExportAndArchivesSurviveScopeChanges() started.
+◇ Test blockedReportMetricMatchesExistingProductWithoutPortingScheduler() started.
+◇ Test dataCenterUsesBearerV2IdentityProjectsBoardPaginationAndReviewedDateWrites() started.
+◇ Test historyFetchUsesFourBoundedWorkersAndPreservesIssueOrderWhenResponsesFinishOutOfOrder() started.
+◇ Test commentReadMarkersSurviveRestartAndSeparateAccountsAndJiraInstances() started.
+◇ Test googleCallbackRejectsWrongStateDuplicateCodesAndForeignHost() started.
+◇ Test uncertainDriveWriteImmediatelyRevokesLocalEditing() started.
+◇ Test excelExportIsRealXLSXAndImportDiagnosesRows() started.
+◇ Test teamDefaultsAreScopedByOriginAndSurviveRestart() started.
+◇ Test malformedEstimatesCannotBecomeJiraValues() started.
+◇ Test sprintPersonUsesCloudAndDataCenterIdentifiers() started.
+◇ Test timeReportUsesWeekdaysUniqueOffAndUnknownCapacity() started.
+◇ Test reportingSetupIsSharedByReportTypesButIsolatedByJiraProject() started.
+◇ Test descriptionPreviewPreservesOriginalContentAndRole() started.
+◇ Test printableReportVisibleContentMatchesActualChromeTemplate() started.
+◇ Test twoIndependentEstimationReadersContinueOneFileAndRejectStaleSave() started.
+◇ Test partialFixVersionWriteShowsEveryOutcomeAndKeepsAudit() started.
+◇ Test jiraCommentsArePagedAndErrorsAreNotEmptySuccess() started.
+◇ Test leaseNeedsServerGrantAndPollingDoesNotRenewIt() started.
+◇ Test googleTokenExchangeUsesPKCEAndVerifiesAccountBeforeAcceptingCredentials() started.
+◇ Test workspaceAllowsUnmappedDatesAndMarksPartialScopeAtConfiguredLimit() started.
+◇ Test localPlansAreRestoredPerBoardAndJiraOrigin() started.
+◇ Test unknownWorklogWriteIsNeverRetried() started.
+◇ Test structuredPDFPreservesReportMetricsHierarchyAndGroupedActivity() started.
+◇ Test planFactNeverCountsTheParentOrQATwice() started.
+◇ Test releaseApprovalIsBoundToScopeRevision() started.
+◇ Test worklogEditPreservesStartedSecondsAndRichCommentByOmission() started.
+◇ Test directDriveCreatesSnapshotInChosenFolderAndReadsExactBytes() started.
+◇ Test planningBufferChangesDoNotAlterCustomerMaterialsOrQAReadiness() started.
+◇ Test fieldMappingUsesOriginalChromePreferredIDsAndRankedTenantFields() started.
+◇ Test sharedHandoffRejectsAnotherUsersChangeWithoutOverwritingIt() started.
+◇ Test nativeHandoffKeepsChromeDraftsAndKeysWithoutInventedReleaseGates() started.
+◇ Test sprintModeSwitchUsesSnapshotDataAndPreservesRemovedIssueHistory() started.
+◇ Test pastedScopeReportsDuplicatesAndForeignProjectsWithAcceptedKeys() started.
+◇ Test repeatedTimeSearchCursorFailsRatherThanReturningPartialSuccess() started.
+◇ Test excelUsesWorkbookSheetNamesRelationshipsAndRichSharedStrings() started.
+◇ Test typingCoalescesHistoryWithoutSkippingStateTransitionOrSavedContent() started.
+◇ Test workspaceChromeImportPreservesHierarchyDatesAndReverseDependencies() started.
+◇ Test realChromeExportCanRoundTripThroughNativeWithoutLosingSetupOrGanttData() started.
+◇ Test localPlanRejectsDependencyCyclesAndReportsDateConflicts() started.
+◇ Test exampleReleaseExportsRealExcelAndCannotBindToProductionJira() started.
+◇ Test malformedSharedCalendarIsUnknownAndNeverOverwritten() started.
+◇ Test missingCalendarIsEmptyOnlyWhenBranchIsAccessible() started.
+◇ Test forecastUsesSavedCalendarAndDurationWithoutChangingJiraDates() started.
+◇ Test jiraEstimatesDoNotSilentlyRoundClientValues() started.
+◇ Test reportPDFHasA4PagesRepeatedHeaderAndExtractableUkrainianText() started.
+◇ Test reportResultsMatchOriginalTypeScriptGoldenOutputs() started.
+◇ Test cascadeMatchesOriginalChromeForAllFourTypesLagWeekendsAndChains() started.
+◇ Test typedTimelineDependenciesRejectCyclesAndCheckAllFourConstraints() started.
+◇ Test releaseJourneyFromExcelThroughQAReturnToCustomerExport() started.
+◇ Test excelRejectsEntityDeclarationsEvenInUTF16() started.
+◇ Test creatingDependencyRecordsChromeComparisonBaselinesForBothTasks() started.
+◇ Test uncertainWriteIsNeverAutomaticallyRetried() started.
+◇ Test localPlanningNeedsNoFakeJiraEvidenceAndKeepsReadyGate() started.
+◇ Test workspaceUsesCursorPaginationAndStatusDistributionIncludesEveryStatus() started.
+◇ Test releaseScopeHistoryAndRoles() started.
+◇ Test deletingReportCanBeUndoneWithoutOverwritingAnotherSnapshot() started.
+◇ Test chromeSetupImportsMappedSettingsAndRetainsUnsupportedFields() started.
+◇ Test googleAuthorizationUsesFileScopeWithoutAppsScriptDeployment() started.
+◇ Test estimatesExcludeBuffer() started.
+◇ Test sprintFinishedFilterRespectsMappingAndCategory() started.
+◇ Test boardHealthUsesWholeBoardAndServerResolvedSprintMembership() started.
+◇ Test taskEvidenceAndEstimateEditsRespectParentAndRole() started.
+◇ Test resumeNeverConnectsSavedBoardToAnotherJira() started.
+◇ Test activityGroupsOneJiraEditAndOmitsSyntheticCompletion() started.
+◇ Test historyCacheReusesRawHistoryWithoutChangingResultsAndRespectsUserVersionAndForceRefresh() started.
+◇ Test ambiguousManagedDescriptionIsRejectedBeforePreview() started.
+◇ Test portableChromeConfigurationImportsRealEnvelopeAndRejectsMismatchedScopeAndCycles() started.
+◇ Test hierarchySortVisibilityAndSearchMatchActualChromeFunctions() started.
+◇ Test timeDurationsAndQuotedJQLPreserveIntent() started.
+◇ Test timeBasedBoardDoesNotPresentSecondsAsStoryPoints() started.
+◇ Test timelineDatesAndProgressMatchExistingChromeScheduleGoldenCases() started.
+◇ Test nativeSprintLoadsRemovedBoardIssuesAndAllContributorsWithoutWrites() started.
+◇ Test approvalDoesNotWriteAndExecutionCannotBeRepeated() started.
+◇ Test printableReportEscapesUntrustedTextAndBlocksRemoteResources() started.
+◇ Test directDriveRejectsInvalidTargetsBeforeSendingAndDoesNotRetryDeniedWrites() started.
+◇ Test chromeHandoffMigratesReadyWithoutInventedServerEvidence() started.
+◇ Test metadataActionsUseAvailableTransitionsAndNeedApprovalBeforeWriting() started.
+◇ Test workspaceSwitchRestoresEstimationPlansLinksAndPreferencesWithoutCrossBoardAttribution() started.
+◇ Test reportHistoryNeverOverwritesSnapshotIDs() started.
+◇ Test auditFailurePreventsAnyJiraMutation() started.
+◇ Test ownTimeUsesExactTimezoneAndNeverIncludesOtherAuthors() started.
+◇ Test externalJiraChangesAreDetectedFromAcceptedBaselineWithoutOverridingCurrentDates() started.
+◇ Test atomicWorkspaceSavePreservesLatestEstimationEditAndRejectsStaleAutosave() started.
+◇ Test timelineCollapseHidesAllDescendantsAndSearchKeepsAncestors() started.
+◇ Test missingProfileTimezoneDoesNotApplyUnsafeDiscoveryDates() started.
+◇ Test encryptedDraftRequiresAuthorsKeyAndRestoresSelectedFieldsOnly() started.
+◇ Test exactLegacyACDoDBlockMigratesWithoutRemovingSurroundingText() started.
+✔ Test resumeUsesOnlyWorkspacePages() passed after 0.288 seconds.
+✔ Test repeatedACDoDTransferReplacesOneManagedBlockAndPreservesOtherNodes() passed after 0.287 seconds.
+✔ Test macOSUpdateOnlyOffersOurPublishedPackage() passed after 0.287 seconds.
+✔ Test changedIssueTreeRetainsUnchangedAncestorsAndPrunesUnchangedSiblings() passed after 0.288 seconds.
+✔ Test workflowRequiresRecordedTasksAndRole() passed after 0.287 seconds.
+✔ Test sharedCalendarUsesChromeUTF8HexPaths() passed after 0.287 seconds.
+✔ Test staleStoryFormCannotOverwriteNewerPreparation() passed after 0.287 seconds.
+✔ Test corruptedPreferredWorkspaceRecoversSavedDrafts() passed after 0.288 seconds.
+✔ Test privateRecoveryKeepsOtherEditorsChanges() passed after 0.287 seconds.
+✔ Test qaReadinessComparesSecondsWithoutFloatingPointFalseFailures() passed after 0.287 seconds.
+✔ Test returnNeedsNotesAndFreshTLApproval() passed after 0.287 seconds.
+✔ Test stalePreviewDoesNotSendMutations() passed after 0.288 seconds.
+✔ Test ganttDateWriteRequiresEditableDateMetadataAndExplicitApproval() passed after 0.289 seconds.
+✔ Test staleWorklogAndOtherAuthorNeverProduceAMutation() passed after 0.290 seconds.
+✔ Test nativeNumberValidationPreservesJavascriptImportedEstimateSemantics() passed after 0.289 seconds.
+✔ Test jiraRejectsUnsafeOriginsAndKeysBeforeNetwork() passed after 0.289 seconds.
+✔ Test boardAndSprintHealthMatchOriginalGoldenOutputs() passed after 0.290 seconds.
+✔ Test blockedReportMetricMatchesExistingProductWithoutPortingScheduler() passed after 0.289 seconds.
+✔ Test nativeEstimationMatchesOriginalChromeWorkflowForEveryEditAndReset() passed after 0.290 seconds.
+✔ Test calendarTimeoutReconcilesWithoutReplayingWrite() passed after 0.290 seconds.
+✔ Test commentReadMarkersSurviveRestartAndSeparateAccountsAndJiraInstances() passed after 0.290 seconds.
+✔ Test concurrentCalendarWriteMergesOtherDatesUsingLatestSHA() passed after 0.290 seconds.
+✔ Test uncertainDriveWriteImmediatelyRevokesLocalEditing() passed after 0.290 seconds.
+✔ Test googleCallbackRejectsWrongStateDuplicateCodesAndForeignHost() passed after 0.290 seconds.
+✔ Test teamDefaultsAreScopedByOriginAndSurviveRestart() passed after 0.290 seconds.
+✔ Test malformedEstimatesCannotBecomeJiraValues() passed after 0.290 seconds.
+✔ Test sprintPersonUsesCloudAndDataCenterIdentifiers() passed after 0.290 seconds.
+✔ Test dataCenterUsesBearerV2IdentityProjectsBoardPaginationAndReviewedDateWrites() passed after 0.290 seconds.
+✔ Test customerApprovalRequiresCurrentExportAndArchivesSurviveScopeChanges() passed after 0.290 seconds.
+✔ Test reportingSetupIsSharedByReportTypesButIsolatedByJiraProject() passed after 0.290 seconds.
+✔ Test descriptionPreviewPreservesOriginalContentAndRole() passed after 0.292 seconds.
+✔ Test partialFixVersionWriteShowsEveryOutcomeAndKeepsAudit() passed after 0.292 seconds.
+✔ Test jiraCommentsArePagedAndErrorsAreNotEmptySuccess() passed after 0.292 seconds.
+✔ Test leaseNeedsServerGrantAndPollingDoesNotRenewIt() passed after 0.292 seconds.
+✔ Test googleTokenExchangeUsesPKCEAndVerifiesAccountBeforeAcceptingCredentials() passed after 0.292 seconds.
+✔ Test unknownWorklogWriteIsNeverRetried() passed after 0.292 seconds.
+✔ Test localPlansAreRestoredPerBoardAndJiraOrigin() passed after 0.292 seconds.
+✔ Test workspaceAllowsUnmappedDatesAndMarksPartialScopeAtConfiguredLimit() passed after 0.292 seconds.
+✔ Test twoIndependentEstimationReadersContinueOneFileAndRejectStaleSave() passed after 0.292 seconds.
+✔ Test releaseApprovalIsBoundToScopeRevision() passed after 0.292 seconds.
+✔ Test planFactNeverCountsTheParentOrQATwice() passed after 0.292 seconds.
+✔ Test directDriveCreatesSnapshotInChosenFolderAndReadsExactBytes() passed after 0.292 seconds.
+✔ Test planningBufferChangesDoNotAlterCustomerMaterialsOrQAReadiness() passed after 0.292 seconds.
+✔ Test fieldMappingUsesOriginalChromePreferredIDsAndRankedTenantFields() passed after 0.292 seconds.
+✔ Test nativeHandoffKeepsChromeDraftsAndKeysWithoutInventedReleaseGates() passed after 0.292 seconds.
+✔ Test sharedHandoffRejectsAnotherUsersChangeWithoutOverwritingIt() passed after 0.292 seconds.
+✔ Test worklogEditPreservesStartedSecondsAndRichCommentByOmission() passed after 0.292 seconds.
+✔ Test pastedScopeReportsDuplicatesAndForeignProjectsWithAcceptedKeys() passed after 0.293 seconds.
+✔ Test printableReportVisibleContentMatchesActualChromeTemplate() passed after 0.294 seconds.
+✔ Test typingCoalescesHistoryWithoutSkippingStateTransitionOrSavedContent() passed after 0.293 seconds.
+✔ Test repeatedTimeSearchCursorFailsRatherThanReturningPartialSuccess() passed after 0.293 seconds.
+✔ Test workspaceChromeImportPreservesHierarchyDatesAndReverseDependencies() passed after 0.293 seconds.
+✔ Test localPlanRejectsDependencyCyclesAndReportsDateConflicts() passed after 0.293 seconds.
+✔ Test realChromeExportCanRoundTripThroughNativeWithoutLosingSetupOrGanttData() passed after 0.293 seconds.
+✔ Test timeCalendarRejectsSkippedClockAndKeepsBothOverlapChoices() passed after 0.294 seconds.
+✔ Test missingCalendarIsEmptyOnlyWhenBranchIsAccessible() passed after 0.293 seconds.
+✔ Test forecastUsesSavedCalendarAndDurationWithoutChangingJiraDates() passed after 0.293 seconds.
+✔ Test malformedSharedCalendarIsUnknownAndNeverOverwritten() passed after 0.293 seconds.
+✔ Test jiraEstimatesDoNotSilentlyRoundClientValues() passed after 0.293 seconds.
+✔ Test timeReportUsesWeekdaysUniqueOffAndUnknownCapacity() passed after 0.294 seconds.
+✔ Test structuredPDFPreservesReportMetricsHierarchyAndGroupedActivity() passed after 0.294 seconds.
+✔ Test reportPDFHasA4PagesRepeatedHeaderAndExtractableUkrainianText() passed after 0.293 seconds.
+✔ Test excelUsesWorkbookSheetNamesRelationshipsAndRichSharedStrings() passed after 0.294 seconds.
+✔ Test typedTimelineDependenciesRejectCyclesAndCheckAllFourConstraints() passed after 0.294 seconds.
+✔ Test excelExportIsRealXLSXAndImportDiagnosesRows() passed after 0.294 seconds.
+✔ Test creatingDependencyRecordsChromeComparisonBaselinesForBothTasks() passed after 0.294 seconds.
+✔ Test uncertainWriteIsNeverAutomaticallyRetried() passed after 0.294 seconds.
+✔ Test localPlanningNeedsNoFakeJiraEvidenceAndKeepsReadyGate() passed after 0.294 seconds.
+✔ Test releaseScopeHistoryAndRoles() passed after 0.294 seconds.
+✔ Test workspaceUsesCursorPaginationAndStatusDistributionIncludesEveryStatus() passed after 0.294 seconds.
+✔ Test chromeSetupImportsMappedSettingsAndRetainsUnsupportedFields() passed after 0.294 seconds.
+✔ Test googleAuthorizationUsesFileScopeWithoutAppsScriptDeployment() passed after 0.294 seconds.
+✔ Test reportResultsMatchOriginalTypeScriptGoldenOutputs() passed after 0.294 seconds.
+✔ Test estimatesExcludeBuffer() passed after 0.294 seconds.
+✔ Test sprintFinishedFilterRespectsMappingAndCategory() passed after 0.294 seconds.
+✔ Test taskEvidenceAndEstimateEditsRespectParentAndRole() passed after 0.294 seconds.
+✔ Test boardHealthUsesWholeBoardAndServerResolvedSprintMembership() passed after 0.294 seconds.
+✔ Test activityGroupsOneJiraEditAndOmitsSyntheticCompletion() passed after 0.294 seconds.
+✔ Test resumeNeverConnectsSavedBoardToAnotherJira() passed after 0.295 seconds.
+✔ Test ambiguousManagedDescriptionIsRejectedBeforePreview() passed after 0.295 seconds.
+✔ Test deletingReportCanBeUndoneWithoutOverwritingAnotherSnapshot() passed after 0.295 seconds.
+✔ Test portableChromeConfigurationImportsRealEnvelopeAndRejectsMismatchedScopeAndCycles() passed after 0.295 seconds.
+✔ Test timeBasedBoardDoesNotPresentSecondsAsStoryPoints() passed after 0.295 seconds.
+✔ Test timeDurationsAndQuotedJQLPreserveIntent() passed after 0.295 seconds.
+✔ Test hierarchySortVisibilityAndSearchMatchActualChromeFunctions() passed after 0.295 seconds.
+✔ Test approvalDoesNotWriteAndExecutionCannotBeRepeated() passed after 0.297 seconds.
+✔ Test printableReportEscapesUntrustedTextAndBlocksRemoteResources() passed after 0.297 seconds.
+✔ Test directDriveRejectsInvalidTargetsBeforeSendingAndDoesNotRetryDeniedWrites() passed after 0.297 seconds.
+✔ Test chromeHandoffMigratesReadyWithoutInventedServerEvidence() passed after 0.297 seconds.
+✔ Test workspaceSwitchRestoresEstimationPlansLinksAndPreferencesWithoutCrossBoardAttribution() passed after 0.297 seconds.
+✔ Test reportHistoryNeverOverwritesSnapshotIDs() passed after 0.297 seconds.
+✔ Test metadataActionsUseAvailableTransitionsAndNeedApprovalBeforeWriting() passed after 0.297 seconds.
+✔ Test auditFailurePreventsAnyJiraMutation() passed after 0.297 seconds.
+✔ Test cascadeMatchesOriginalChromeForAllFourTypesLagWeekendsAndChains() passed after 0.297 seconds.
+✔ Test atomicWorkspaceSavePreservesLatestEstimationEditAndRejectsStaleAutosave() passed after 0.297 seconds.
+✔ Test externalJiraChangesAreDetectedFromAcceptedBaselineWithoutOverridingCurrentDates() passed after 0.297 seconds.
+✔ Test timelineCollapseHidesAllDescendantsAndSearchKeepsAncestors() passed after 0.297 seconds.
+✔ Test exactLegacyACDoDBlockMigratesWithoutRemovingSurroundingText() passed after 0.299 seconds.
+✔ Test timelineDatesAndProgressMatchExistingChromeScheduleGoldenCases() passed after 0.299 seconds.
+✔ Test encryptedDraftRequiresAuthorsKeyAndRestoresSelectedFieldsOnly() passed after 0.302 seconds.
+✔ Test excelRejectsEntityDeclarationsEvenInUTF16() passed after 0.320 seconds.
+✔ Test unavailableWorklogsStayVisibleAsUnavailableInNativeText() passed after 0.321 seconds.
+✔ Test ownTimeUsesExactTimezoneAndNeverIncludesOtherAuthors() passed after 0.320 seconds.
+✔ Test missingProfileTimezoneDoesNotApplyUnsafeDiscoveryDates() passed after 0.323 seconds.
+✔ Test nativeSprintLoadsRemovedBoardIssuesAndAllContributorsWithoutWrites() passed after 0.327 seconds.
+✔ Test sprintModeSwitchUsesSnapshotDataAndPreservesRemovedIssueHistory() passed after 0.336 seconds.
+✔ Test historyFetchUsesFourBoundedWorkersAndPreservesIssueOrderWhenResponsesFinishOutOfOrder() passed after 0.362 seconds.
+✔ Test historyCacheReusesRawHistoryWithoutChangingResultsAndRespectsUserVersionAndForceRefresh() passed after 0.372 seconds.
+✔ Test exampleReleaseExportsRealExcelAndCannotBindToProductionJira() passed after 0.374 seconds.
+✔ Test releaseJourneyFromExcelThroughQAReturnToCustomerExport() passed after 0.401 seconds.
+✔ Test run with 110 tests in 0 suites passed after 0.403 seconds.
+◇ Test run started.
+↳ Testing Library Version: 2403
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test previousWeekPartialReadDoesNotAddMisleadingRows() started.
+◇ Test delayedBoardMetadataCannotReplaceTheSelectedBoard() started.
+◇ Test refreshTracksProfileChangesOnlyForJiraTimezoneSource() started.
+◇ Test monthRowsExcludeBoardOnlyIssuesAndWeeklyHierarchy() started.
+◇ Test worklogDraftPreservesHistoricalSecondsAndRequiresAnExplicitDSTInstant() started.
+◇ Test unsavedTimeBlocksOpenNewAndQuitPreservationPaths() started.
+◇ Test reopeningTimesheetStartsInWeekAndMigratesLegacyImplicitKyivZone() started.
+◇ Test explicitCancelAndPeriodChangeCannotAcceptLateReadResponses() started.
+◇ Test tabStyleInlineSavesQueueAndKeepTheNextCellUsableWithoutReload() started.
+◇ Test openPreservesEditsBeforeAutosaveAndKeepsAnUnnamedWorkspace() started.
+◇ Test nativeWorklogJourneyCreatesEditsAndDeletesWithoutChangingEstimates() started.
+◇ Test twoIndependentCalendarClientsPreserveConcurrentDayOffChanges() started.
+◇ Test dayOffAndWorklogConflictsAreEnforcedInBothDirections() started.
+◇ Test jiraTimezoneWarningUsesOffsetsAcrossTheWholeDSTPeriod() started.
+◇ Test unchangedOrClearedInlineHoursNeverSendMutationsAndUnreadBoardHoursStayUnknown() started.
+◇ Test closingGuardUsesTheSameUnsavedInputProtectionAsOpenAndQuit() started.
+◇ Test nativeTimesheetExplicitFilterDoesNotLeakBoardOnlyRows() started.
+◇ Test timezoneFollowsJiraUntilExplicitlyOverriddenAndIsAccountScoped() started.
+◇ Test obsoleteIssueSearchAndClosedFormDoNotPublishOldResults() started.
+◇ Test timeReportUsesCurrentMembershipAndClearsResultsOnTeamAndAccountChange() started.
+◇ Test competingOpenAndNewNeverCrossWriteDocuments() started.
+◇ Test nativeTimesheetLargeBoardBuildsHierarchyWithoutRepeatedSorting() started.
+◇ Test reportMetricsAndTimezoneWarningsMatchCurrentChromeGolden() started.
+◇ Test weeklyRowsMatchCurrentChromeGoldenIncludingCyclesAndParentContext() started.
+◇ Test unreadCalendarAndUnknownWriteNeverCauseBlindOrRepeatedMutations() started.
+◇ Test failedTeamDiscoveryCannotBeHiddenByReloadingAnOldSelection() started.
+◇ Test previousWeekCopiesOnlyTaskRowsWithoutHoursOrWrites() started.
+◇ Test boardPickerSeparatesAssignedChildrenAndScopedFavorites() started.
+✔ Test jiraTimezoneWarningUsesOffsetsAcrossTheWholeDSTPeriod() passed after 0.009 seconds.
+✔ Test twoIndependentCalendarClientsPreserveConcurrentDayOffChanges() passed after 0.016 seconds.
+✔ Test worklogDraftPreservesHistoricalSecondsAndRequiresAnExplicitDSTInstant() passed after 0.050 seconds.
+✔ Test unsavedTimeBlocksOpenNewAndQuitPreservationPaths() passed after 0.053 seconds.
+✔ Test nativeTimesheetExplicitFilterDoesNotLeakBoardOnlyRows() passed after 0.055 seconds.
+✔ Test closingGuardUsesTheSameUnsavedInputProtectionAsOpenAndQuit() passed after 0.055 seconds.
+Timesheet fixture construction: 0.05925107002258301
+✔ Test reportMetricsAndTimezoneWarningsMatchCurrentChromeGolden() passed after 0.129 seconds.
+Timesheet three hierarchy passes: 0.047673940658569336
+✔ Test nativeTimesheetLargeBoardBuildsHierarchyWithoutRepeatedSorting() passed after 0.170 seconds.
+✔ Test openPreservesEditsBeforeAutosaveAndKeepsAnUnnamedWorkspace() passed after 0.473 seconds.
+✔ Test weeklyRowsMatchCurrentChromeGoldenIncludingCyclesAndParentContext() passed after 0.487 seconds.
+✔ Test competingOpenAndNewNeverCrossWriteDocuments() passed after 0.496 seconds.
+✔ Test boardPickerSeparatesAssignedChildrenAndScopedFavorites() passed after 0.636 seconds.
+✔ Test reopeningTimesheetStartsInWeekAndMigratesLegacyImplicitKyivZone() passed after 0.719 seconds.
+✔ Test previousWeekPartialReadDoesNotAddMisleadingRows() passed after 0.845 seconds.
+✔ Test timezoneFollowsJiraUntilExplicitlyOverriddenAndIsAccountScoped() passed after 0.856 seconds.
+✔ Test monthRowsExcludeBoardOnlyIssuesAndWeeklyHierarchy() passed after 1.013 seconds.
+✔ Test delayedBoardMetadataCannotReplaceTheSelectedBoard() passed after 1.014 seconds.
+✔ Test explicitCancelAndPeriodChangeCannotAcceptLateReadResponses() passed after 1.049 seconds.
+✔ Test previousWeekCopiesOnlyTaskRowsWithoutHoursOrWrites() passed after 1.163 seconds.
+✔ Test unreadCalendarAndUnknownWriteNeverCauseBlindOrRepeatedMutations() passed after 1.181 seconds.
+✔ Test tabStyleInlineSavesQueueAndKeepTheNextCellUsableWithoutReload() passed after 1.202 seconds.
+✔ Test failedTeamDiscoveryCannotBeHiddenByReloadingAnOldSelection() passed after 1.202 seconds.
+✔ Test obsoleteIssueSearchAndClosedFormDoNotPublishOldResults() passed after 1.234 seconds.
+✔ Test refreshTracksProfileChangesOnlyForJiraTimezoneSource() passed after 1.315 seconds.
+✔ Test unchangedOrClearedInlineHoursNeverSendMutationsAndUnreadBoardHoursStayUnknown() passed after 1.346 seconds.
+✔ Test timeReportUsesCurrentMembershipAndClearsResultsOnTeamAndAccountChange() passed after 1.353 seconds.
+✔ Test dayOffAndWorklogConflictsAreEnforcedInBothDirections() passed after 1.361 seconds.
+✔ Test nativeWorklogJourneyCreatesEditsAndDeletesWithoutChangingEstimates() passed after 1.371 seconds.
+✔ Test run with 28 tests in 0 suites passed after 1.372 seconds.

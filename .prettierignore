@@ -2,6 +2,8 @@ node_modules/
 .pnpm-store/
 dist/
 .secrets/
+.env
+.env.*
 safari/
 coverage/
 playwright-report/

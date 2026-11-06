@@ -1,0 +1,6 @@
+Building for debugging...
+[3 / 9]
+Build complete! (0,31 с)
+Scroll fixture timesheet-week-scroll: viewport=(960.0, 24.0) document=(0.0, 0.0); viewport=(960.0, 450.0) document=(0.0, 0.0); viewport=(685.0, 664.0) document=(0.0, 0.0)
+Scroll fixture timesheet-month-scroll: viewport=(960.0, 230.0) document=(0.0, 0.0); viewport=(685.0, 86.0) document=(0.0, 0.0)
+Rendered 16 production views; activation prohibited; zero visible windows; zero desktop input.

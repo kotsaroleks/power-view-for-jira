@@ -1,7 +1,23 @@
 # Power View for Jira
 
-Power View for Jira is a Chrome Manifest V3 extension for Jira planning views in a
-separate full-page workspace. The first production module is a Gantt view.
+Power View for Jira provides Jira planning, reporting, time tracking and estimation. This
+repository contains the Chrome extension, a native macOS application, and desktop and
+Safari previews.
+
+## Product versions
+
+| Variant                      | Current version            | Build                                | Guide                                                 |
+| ---------------------------- | -------------------------- | ------------------------------------ | ----------------------------------------------------- |
+| Chrome extension             | 0.3.2                      | `pnpm build`                         | [Install the extension](#load-the-unpacked-extension) |
+| Native macOS, SwiftUI/AppKit | 0.1.0, build 5             | `sh scripts/package-native-macos.sh` | [Native app](apps/macos/README.md)                    |
+| Electron desktop preview     | 0.3.0                      | `pnpm build:desktop`                 | [Desktop preview](docs/desktop.md)                    |
+| Safari web extension preview | 0.3.2, derived from Chrome | `pnpm build:safari`                  | [Safari preview](docs/safari.md)                      |
+
+These variants have separate version numbers and acceptance limits. The native app is
+implemented in SwiftUI/AppKit. The Electron preview hosts the shared web application.
+Safari's generated Xcode wrapper and local signing settings are not checked into Git. See
+the [current native status](docs/native-macos-sync-2026-11-06.md) for completed work and
+remaining live acceptance.
 
 This repository implements the production pipeline through **Milestone 8: hardening and
 release readiness**, plus an opt-in browser-session editing beta. The synchronized Gantt
@@ -57,6 +73,13 @@ custom Jira host, enter its HTTPS URL in the popup and approve the exact-site re
 Reload the Jira tab if Chrome cannot inject the detector into a page that was already
 open.
 
+## Safari on macOS
+
+A local Safari preview can be built with `pnpm build:safari`. Generate its Xcode wrapper
+once with `pnpm safari:project`, then build and run it in Xcode. See
+[the Safari guide](docs/safari.md) for setup, updates, and the live Jira verification
+checklist.
+
 ## Update notifications
 
 The extension is loaded unpacked, so Chrome cannot silently auto-update it. The
@@ -100,6 +123,8 @@ Useful commands:
 ```text
 apps/extension             Chrome popup, service worker, and manifest
 apps/web                   Full-page React application
+apps/macos                 Native SwiftUI/AppKit app, core models and tests
+apps/desktop               Electron preview and preload bridge
 packages/domain            Framework-independent domain foundation
 packages/jira-client       Cloud and Data Center connection and mutation adapters
 packages/extension-messaging  Runtime messaging package boundary
@@ -112,7 +137,7 @@ docs                       Architecture, security, testing, and release notes
 
 The supplied `POWER_VIEW_FOR_JIRA_SDD.md` is the baseline implementation specification.
 The editing beta intentionally adds a tightly allowlisted browser-session write path. The
-build produces `dist/power-view-for-jira-0.1.0.zip` and a matching SHA-256 file. Store
+build produces `dist/power-view-for-jira-0.3.2.zip` and a matching SHA-256 file. Store
 signing and publication remain manual owner actions.
 
 ## Estimation board
@@ -132,3 +157,8 @@ device. **Export handoff** produces a JSON file that another lead can upload on 
 board to continue; replacing existing issue drafts requires confirmation. This is a manual
 file handoff, not live collaboration. Estimates, decomposition, and readiness are local
 preparation records: no Jira subtasks are created and no Jira status is changed.
+
+## Desktop preview
+
+An Electron desktop preview is available with `pnpm desktop`. See
+[desktop setup](docs/desktop.md) for token authentication and current limitations.

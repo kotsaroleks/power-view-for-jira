@@ -1,0 +1,561 @@
+{
+  "origin": "https://fixture.atlassian.net",
+  "anchor": "2026-11-06",
+  "user": {
+    "accountId": "fixture-author",
+    "displayName": "Demo user · TEST DATA",
+    "timeZone": "Europe/Kyiv"
+  },
+  "issues": [
+    {
+      "id": "20001",
+      "key": "POWER-1",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Release preparation",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20002",
+      "key": "POWER-2",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Review worklog contracts",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20003",
+      "key": "POWER-3",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Regression tests",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20004",
+      "key": "POWER-4",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Resolve integration failures",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20005",
+      "key": "POWER-5",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Update release documentation",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20006",
+      "key": "OTHER-6",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Support another project",
+        "project": {
+          "id": "20000",
+          "key": "OTHER",
+          "name": "Other project"
+        }
+      }
+    },
+    {
+      "id": "20070",
+      "key": "POWER-70",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "someone-else"
+        },
+        "summary": "Pinned cross-team task",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20071",
+      "key": "POWER-71",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "fixture-author"
+        },
+        "summary": "Assigned without worklogs",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20080",
+      "key": "LBR-68393",
+      "fields": {
+        "issuetype": {
+          "name": "Epic",
+          "subtask": false,
+          "hierarchyLevel": 1
+        },
+        "assignee": {
+          "accountId": "someone-else"
+        },
+        "summary": "ARIA — Regular Project related activities",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20081",
+      "key": "POWER-81",
+      "fields": {
+        "issuetype": {
+          "name": "Story",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "someone-else"
+        },
+        "summary": "First-run experience",
+        "parent": {
+          "key": "LBR-68393"
+        },
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20082",
+      "key": "POWER-82",
+      "fields": {
+        "issuetype": {
+          "name": "Subtask",
+          "subtask": true,
+          "hierarchyLevel": -1
+        },
+        "assignee": {
+          "accountId": "someone-else"
+        },
+        "summary": "Welcome screen",
+        "parent": {
+          "key": "POWER-81"
+        },
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20083",
+      "key": "POWER-83",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "someone-else"
+        },
+        "summary": "Other board work",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    }
+  ],
+  "searchIssues": [
+    {
+      "id": "20001",
+      "key": "POWER-1",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Release preparation",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20002",
+      "key": "POWER-2",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Review worklog contracts",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20003",
+      "key": "POWER-3",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Regression tests",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20004",
+      "key": "POWER-4",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Resolve integration failures",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20005",
+      "key": "POWER-5",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Update release documentation",
+        "project": {
+          "id": "10000",
+          "key": "POWER",
+          "name": "Power View"
+        }
+      }
+    },
+    {
+      "id": "20006",
+      "key": "OTHER-6",
+      "fields": {
+        "issuetype": {
+          "name": "Task",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "assignee": {
+          "accountId": "me"
+        },
+        "summary": "Support another project",
+        "project": {
+          "id": "20000",
+          "key": "OTHER",
+          "name": "Other project"
+        }
+      }
+    }
+  ],
+  "worklogs": [
+    {
+      "id": "100",
+      "issueId": "20001",
+      "author": {
+        "accountId": "fixture-author",
+        "displayName": "Demo user · TEST DATA",
+        "timeZone": "Europe/Kyiv"
+      },
+      "started": "2026-11-06T09:00:00.000+0200",
+      "timeSpentSeconds": 1800,
+      "updated": "2026-10-29T12:00:00.000Z",
+      "comment": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Test fixture worklog"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "101",
+      "issueId": "20002",
+      "author": {
+        "accountId": "fixture-author",
+        "displayName": "Demo user · TEST DATA",
+        "timeZone": "Europe/Kyiv"
+      },
+      "started": "2026-11-06T09:00:00.000+0200",
+      "timeSpentSeconds": 3600,
+      "updated": "2026-10-29T12:00:00.000Z",
+      "comment": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Test fixture worklog"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "102",
+      "issueId": "20003",
+      "author": {
+        "accountId": "fixture-author",
+        "displayName": "Demo user · TEST DATA",
+        "timeZone": "Europe/Kyiv"
+      },
+      "started": "2026-11-06T09:00:00.000+0200",
+      "timeSpentSeconds": 5400,
+      "updated": "2026-10-29T12:00:00.000Z",
+      "comment": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Test fixture worklog"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "103",
+      "issueId": "20004",
+      "author": {
+        "accountId": "fixture-author",
+        "displayName": "Demo user · TEST DATA",
+        "timeZone": "Europe/Kyiv"
+      },
+      "started": "2026-11-06T09:00:00.000+0200",
+      "timeSpentSeconds": 7200,
+      "updated": "2026-10-29T12:00:00.000Z",
+      "comment": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Test fixture worklog"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "104",
+      "issueId": "20005",
+      "author": {
+        "accountId": "fixture-author",
+        "displayName": "Demo user · TEST DATA",
+        "timeZone": "Europe/Kyiv"
+      },
+      "started": "2026-11-06T09:00:00.000+0200",
+      "timeSpentSeconds": 9000,
+      "updated": "2026-10-29T12:00:00.000Z",
+      "comment": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Test fixture worklog"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "105",
+      "issueId": "20006",
+      "author": {
+        "accountId": "fixture-author",
+        "displayName": "Demo user · TEST DATA",
+        "timeZone": "Europe/Kyiv"
+      },
+      "started": "2026-11-06T09:00:00.000+0200",
+      "timeSpentSeconds": 10800,
+      "updated": "2026-10-29T12:00:00.000Z",
+      "comment": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Test fixture worklog"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "boardID": "7",
+  "boardName": "Team board",
+  "pins": ["POWER-70"],
+  "priorities": ["LBR-68393"],
+  "expectedRows": [
+    "POWER-70",
+    "OTHER-6",
+    "POWER-1",
+    "POWER-2",
+    "POWER-3",
+    "POWER-4",
+    "POWER-5",
+    "LBR-68393",
+    "POWER-71",
+    "POWER-83"
+  ],
+  "expectedSeconds": 37800,
+  "source": "e2e/timesheet-production.spec.ts · timesheet-agreed-groups-1440.png state"
+}

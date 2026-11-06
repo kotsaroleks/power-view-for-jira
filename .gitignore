@@ -2,6 +2,10 @@ node_modules/
 .pnpm-store/
 dist/
 .secrets/
+.env
+.env.*
+!.env.example
+*.pvworkspace
 playwright-report/
 test-results/
 coverage/

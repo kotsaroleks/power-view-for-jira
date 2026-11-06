@@ -79,3 +79,13 @@ membership IDs; metrics and UI details are calculated from normalized Setup issu
 
 Passing unit tests without these contracts is not sufficient evidence that the application
 works.
+
+## Personal Timesheet exception
+
+Timesheet uses only the verified Jira connection and current account. It is available
+without board setup and does not consume `WorkspaceContext.issues` or enumerate board
+issues. Its Cloud API searches worklog candidates by author/period and reads their
+worklogs, with explicit project filters. Saved Setup JQL is copied only by the user's “Use
+current Setup context” action; subsequent Setup changes do not overwrite it. Preferences
+are scoped by instance/account, not board. Reports/Gantt keep their existing board scope.
+See [Timesheet specification](timesheet-chrome-product-spec.md).
