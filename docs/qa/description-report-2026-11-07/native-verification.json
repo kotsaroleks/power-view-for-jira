@@ -1,0 +1,198 @@
+{
+  "activationProhibited": true,
+  "active": false,
+  "artifacts": [
+    {
+      "file": "section-settings.png",
+      "height": "1080",
+      "width": "1600"
+    },
+    {
+      "file": "description-report-hierarchy.png",
+      "height": "1300",
+      "width": "2000"
+    },
+    {
+      "file": "description-report-compact.png",
+      "height": "1400",
+      "width": "1280"
+    },
+    {
+      "file": "description-report-empty.png",
+      "height": "800",
+      "width": "2000"
+    },
+    {
+      "file": "description-report-form.png",
+      "height": "1700",
+      "width": "2000"
+    },
+    {
+      "file": "description-report-form-compact.png",
+      "height": "1900",
+      "width": "1280"
+    },
+    {
+      "file": "timesheet-week-wide.png",
+      "height": "1700",
+      "width": "2760"
+    },
+    {
+      "file": "timesheet-week-compact.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "worklog-new.png",
+      "height": "1280",
+      "width": "1400"
+    },
+    {
+      "file": "worklog-edit.png",
+      "height": "1200",
+      "width": "1400"
+    },
+    {
+      "file": "worklog-details-multiple.png",
+      "height": "1200",
+      "width": "1400"
+    },
+    {
+      "file": "time-report-team.png",
+      "height": "1700",
+      "width": "2560"
+    },
+    {
+      "file": "time-report-individual.png",
+      "height": "1700",
+      "width": "2000"
+    },
+    {
+      "file": "timesheet-refreshing.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "timesheet-read-error.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "timesheet-month-compact.png",
+      "height": "1700",
+      "width": "2000"
+    },
+    {
+      "file": "gantt.png",
+      "height": "1700",
+      "width": "2760"
+    },
+    {
+      "file": "status.png",
+      "height": "1700",
+      "width": "2560"
+    },
+    {
+      "file": "estimation.png",
+      "height": "1700",
+      "width": "2760"
+    },
+    {
+      "file": "jira-setup.png",
+      "height": "1600",
+      "width": "2000"
+    },
+    {
+      "file": "full-timesheet-1440.png",
+      "height": "1800",
+      "width": "2880"
+    },
+    {
+      "file": "full-timesheet-1280.png",
+      "height": "1600",
+      "width": "2560"
+    },
+    {
+      "file": "full-timesheet-minimum.png",
+      "height": "1400",
+      "width": "1360"
+    },
+    {
+      "file": "chrome-scene-native-1440.png",
+      "height": "1600",
+      "width": "2800"
+    },
+    {
+      "file": "chrome-scene-native-1280.png",
+      "height": "1400",
+      "width": "2480"
+    },
+    {
+      "file": "chrome-scene-full-native-1440.png",
+      "height": "1800",
+      "width": "2880"
+    },
+    {
+      "file": "chrome-scene-full-native-1280.png",
+      "height": "1600",
+      "width": "2560"
+    },
+    {
+      "file": "timesheet-empty.png",
+      "height": "1300",
+      "width": "2000"
+    },
+    {
+      "file": "time-report-partial.png",
+      "height": "1700",
+      "width": "2000"
+    },
+    {
+      "file": "worklog-unknown-result.png",
+      "height": "700",
+      "width": "1800"
+    },
+    {
+      "file": "worklog-retained-unknown-draft.png",
+      "height": "1700",
+      "width": "1400"
+    }
+  ],
+  "fixtureRequestsAfterRendering": 60,
+  "fixtureRequestsBeforeRendering": 60,
+  "hiddenWindows": 1,
+  "installation": {
+    "build": "6",
+    "bundleIconDecoded": true,
+    "bundleID": "com.powerview.native",
+    "systemFileIconDecoded": true
+  },
+  "programmaticScrollChecks": {},
+  "realNetworkTransports": 0,
+  "sharedChromeScene": {
+    "detailsClosedAfterDelete": true,
+    "matchesCurrentChromeRowsAndHours": true,
+    "mutationMethods": ["POST", "PUT", "DELETE"],
+    "rows": [
+      "POWER-70",
+      "OTHER-6",
+      "POWER-1",
+      "POWER-2",
+      "POWER-3",
+      "POWER-4",
+      "POWER-5",
+      "LBR-68393",
+      "POWER-71",
+      "POWER-83"
+    ],
+    "seconds": 37800,
+    "source": "e2e/timesheet-production.spec.ts \u00b7 timesheet-agreed-groups-1440.png state",
+    "successMessage": "Worklog deleted in Jira."
+  },
+  "status": "passed",
+  "unverifiedInteractions": {
+    "timesheet-month-scroll": "The detached production view did not reach the requested scroll offset (x=0.0, y=0.0); actual interaction remains unverified.",
+    "timesheet-week-scroll": "The detached production view did not reach the requested scroll offset (x=0.0, y=0.0); actual interaction remains unverified."
+  },
+  "windows": 0
+}

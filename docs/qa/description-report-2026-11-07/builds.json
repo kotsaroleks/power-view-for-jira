@@ -1,0 +1,7 @@
+{
+  "sourceCommit": "abebcf8722226dce47921ea1f421496eece9f7b7",
+  "builds": ["Chrome", "Electron", "Safari", "native Swift build 6"],
+  "chromeZipSha256": "635629e6d9d74097dc22483de069cb5600e52a67d9125fe1814b1a69e4086e5e",
+  "nativeZipSha256": "2ea672fa5885fe60abd42c777379913cfe5a992aec9e1596d4f68b87f443407c",
+  "loadedExtensionDirectoryOverwritten": false
+}

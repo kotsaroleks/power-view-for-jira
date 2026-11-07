@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "abebcf8",
+  "javascriptTests": 707,
+  "swiftTests": 152,
+  "headlessBrowserScenarios": 2,
+  "nativeBackgroundRenders": 31,
+  "visibleNativeWindows": 0,
+  "nativeDesktopInput": false,
+  "liveJiraDescriptionRead": "pending protected configuration",
+  "googleChatDelivery": "pending protected configuration",
+  "automaticDeliveryEnabled": false,
+  "privateActionsWorkerCheck": "passed; no Jira or Chat calls"
+}

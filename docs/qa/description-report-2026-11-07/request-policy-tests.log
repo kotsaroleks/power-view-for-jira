@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 <repository>
+
+ ✓ apps/extension/src/jira-request-policy.test.ts (21 tests) 24ms
+
+ Test Files  1 passed (1)
+      Tests  21 passed (21)
+   Start at  18:04:24
+   Duration  1.60s (transform 180ms, setup 591ms, collect 335ms, tests 24ms, environment 406ms, prepare 69ms)
+

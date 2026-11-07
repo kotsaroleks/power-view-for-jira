@@ -1,0 +1,25 @@
+$ pnpm typecheck:root && pnpm -r --if-present typecheck
+$ tsc --noEmit
+Scope: 11 of 12 workspace projects
+apps/desktop typecheck$ tsc --noEmit
+packages/domain typecheck$ tsc --noEmit
+packages/test-fixtures typecheck$ tsc --noEmit
+packages/ui typecheck$ tsc --noEmit
+packages/test-fixtures typecheck: Done
+packages/update-checker typecheck$ tsc --noEmit
+packages/ui typecheck: Done
+apps/desktop typecheck: Done
+packages/domain typecheck: Done
+packages/extension-messaging typecheck$ tsc --noEmit
+packages/update-checker typecheck: Done
+packages/extension-messaging typecheck: Done
+packages/jira-client typecheck$ tsc --noEmit
+packages/storage typecheck$ tsc --noEmit
+packages/storage typecheck: Done
+apps/extension typecheck$ tsc --noEmit
+packages/jira-client typecheck: Done
+apps/web typecheck$ tsc --noEmit
+apps/report-bot typecheck$ tsc --noEmit
+apps/extension typecheck: Done
+apps/report-bot typecheck: Done
+apps/web typecheck: Done
