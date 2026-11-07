@@ -115,4 +115,3 @@ stdout | packages/domain/src/filters.test.ts > Gantt filters > benchmarks 1,000 
       Tests  707 passed (707)
    Start at  20:21:07
    Duration  28.01s (transform 987ms, setup 6.90s, collect 5.01s, tests 14.11s, environment 17.45s, prepare 2.94s)
-
