@@ -9,7 +9,7 @@ Safari previews.
 | Variant                      | Current version            | Build                                | Guide                                                 |
 | ---------------------------- | -------------------------- | ------------------------------------ | ----------------------------------------------------- |
 | Chrome extension             | 0.3.2                      | `pnpm build`                         | [Install the extension](#load-the-unpacked-extension) |
-| Native macOS, SwiftUI/AppKit | 0.1.0, build 5             | `sh scripts/package-native-macos.sh` | [Native app](apps/macos/README.md)                    |
+| Native macOS, SwiftUI/AppKit | 0.1.0, build 6             | `sh scripts/package-native-macos.sh` | [Native app](apps/macos/README.md)                    |
 | Electron desktop preview     | 0.3.0                      | `pnpm build:desktop`                 | [Desktop preview](docs/desktop.md)                    |
 | Safari web extension preview | 0.3.2, derived from Chrome | `pnpm build:safari`                  | [Safari preview](docs/safari.md)                      |
 
@@ -99,6 +99,12 @@ icon when an update is available) and on demand via **Check now** in the popup's
 
 ## Development
 
+Daily description-change reports have an explicit preview under **Reports → Description
+changes**, including the native Swift app. Automatic Google Chat delivery runs in a
+separate private GitHub Actions repository at 21:00 Kyiv, independently of the user's Mac.
+It remains disabled until the protected Jira/Chat setup succeeds. See
+[daily report setup and behavior](docs/daily-description-report.md).
+
 Run `pnpm dev` to watch the web and extension builds. After an extension build changes,
 select **Reload** on `chrome://extensions`.
 
@@ -125,6 +131,7 @@ apps/extension             Chrome popup, service worker, and manifest
 apps/web                   Full-page React application
 apps/macos                 Native SwiftUI/AppKit app, core models and tests
 apps/desktop               Electron preview and preload bridge
+apps/report-bot            Daily Jira description report worker for private Actions
 packages/domain            Framework-independent domain foundation
 packages/jira-client       Cloud and Data Center connection and mutation adapters
 packages/extension-messaging  Runtime messaging package boundary

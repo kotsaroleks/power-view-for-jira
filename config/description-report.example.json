@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "jiraBaseUrl": "https://company.atlassian.net",
+  "boardId": "7",
+  "expectedJiraAccountId": "verified-current-user-id",
+  "chatSpace": "YOUR_CHAT_SPACE_ID",
+  "firstReportDate": "2026-11-07"
+}

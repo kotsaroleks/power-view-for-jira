@@ -100,3 +100,7 @@ export type {
   TimesheetUser,
   WorklogInput,
 } from "./TimesheetClient";
+export {
+  collectDescriptionChangeReport,
+  type DescriptionReportClient,
+} from "./description-report";

@@ -453,7 +453,9 @@ extension JiraClient {
       let field =
         item["field"].string?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
       let type: String
-      if field == "status" {
+      if item["fieldId"].string == "description" || field == "description" {
+        type = "description-changed"
+      } else if field == "status" {
         type = "status-changed"
       } else if field == "assignee" {
         type = "assignee-changed"
@@ -476,6 +478,7 @@ extension JiraClient {
       ]
       if let actor = reportUser(entry["author"]) { event["actor"] = actor }
       for (from, to) in [("fieldId", "fieldId"), ("fromString", "from"), ("toString", "to")] {
+        if type == "description-changed" && from != "fieldId" { continue }
         if item[from] != .null { event[to] = item[from] }
       }
       if type == "sprint-added" {

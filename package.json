@@ -10,6 +10,7 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
+    "build:report-bot": "pnpm --filter @power-view/report-bot build",
     "build:desktop": "pnpm --filter @power-view/web build && pnpm --filter @power-view/desktop build && node scripts/prepare-desktop.mjs",
     "desktop": "pnpm build:desktop && pnpm --filter @power-view/desktop start",
     "build": "pnpm clean && pnpm --filter @power-view/web build && pnpm --filter @power-view/extension build && pnpm validate:extension && pnpm package:extension",

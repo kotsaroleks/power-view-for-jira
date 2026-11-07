@@ -72,6 +72,7 @@ export type ReportChangeType =
   | "issue-reopened"
   | "status-changed"
   | "assignee-changed"
+  | "description-changed"
   | "story-points-changed"
   | "original-estimate-changed"
   | "sprint-added"

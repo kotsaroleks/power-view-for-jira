@@ -33,6 +33,13 @@ const ALLOWED_READ_ROUTES = new Map<string, ReadonlySet<string>>([
 ]);
 
 const ISSUE_KEY_PATTERN = "[A-Z][A-Z0-9_]*-\\d+";
+const ISSUE_METADATA_PATH = new RegExp(
+  `^/rest/api/[23]/issue/(?:${ISSUE_KEY_PATTERN}|\\d{1,32})$`,
+);
+const ISSUE_METADATA_FIELDS = new Set([
+  "summary,project",
+  "summary,parent,issuetype,updated",
+]);
 const ISSUE_FIELD_PATTERN = /^(?:startdate|duedate|customfield_\d+)$/;
 const DATE_VALUE_PATTERN =
   /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:?\d{2}))?$/;
@@ -311,8 +318,7 @@ function allowedQueryParameters(
     )
   )
     return new Set();
-  if (new RegExp(`^/rest/api/3/issue/${ISSUE_KEY_PATTERN}$`).test(request.path))
-    return new Set(["fields"]);
+  if (ISSUE_METADATA_PATH.test(request.path)) return new Set(["fields"]);
 
   const exactRoute = ALLOWED_READ_ROUTES.get(request.path);
   if (exactRoute) {
@@ -466,8 +472,8 @@ export function validatedJiraRequestUrl(
   if (
     !requestIsAllowed ||
     (request.method === "GET" &&
-      new RegExp(`^/rest/api/3/issue/${ISSUE_KEY_PATTERN}$`).test(request.path) &&
-      request.query?.fields !== "summary,project") ||
+      ISSUE_METADATA_PATH.test(request.path) &&
+      !ISSUE_METADATA_FIELDS.has(String(request.query?.fields))) ||
     requestBaseUrl !== normalizedActiveBaseUrl ||
     allowedQuery === undefined ||
     Object.keys(request.query ?? {}).some((parameter) => !allowedQuery.has(parameter))

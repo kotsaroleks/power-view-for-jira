@@ -179,9 +179,14 @@ function classifyChange(
   storyPointsFieldId?: string,
 ): ReportChangeEvent["type"] | undefined {
   const normalized = (field ?? "").trim().toLowerCase();
+  if (fieldId === "description" || normalized === "description")
+    return "description-changed";
   if (normalized === "status") return "status-changed";
   if (normalized === "assignee") return "assignee-changed";
-  if (fieldId === storyPointsFieldId || normalized.includes("story point"))
+  if (
+    (storyPointsFieldId !== undefined && fieldId === storyPointsFieldId) ||
+    normalized.includes("story point")
+  )
     return "story-points-changed";
   if (normalized === "original estimate" || normalized === "timeoriginalestimate")
     return "original-estimate-changed";
@@ -213,8 +218,12 @@ export function mapChangelogEntry(
       occurredAt: entry.created,
       ...(actor ? { actor } : {}),
       ...(fieldId ? { fieldId } : {}),
-      ...(item.fromString !== undefined ? { from: item.fromString } : {}),
-      ...(item.toString !== undefined ? { to: item.toString } : {}),
+      ...(type !== "description-changed" && item.fromString !== undefined
+        ? { from: item.fromString }
+        : {}),
+      ...(type !== "description-changed" && item.toString !== undefined
+        ? { to: item.toString }
+        : {}),
     } satisfies Omit<ReportChangeEvent, "type">;
     if (type !== "sprint-added") {
       result.push({ ...base, type });

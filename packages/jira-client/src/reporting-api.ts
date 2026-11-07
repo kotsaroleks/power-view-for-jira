@@ -75,6 +75,8 @@ export interface GetSprintIssuesRequest extends GetBoardIssuesRequest {
 
 export interface GetIssueChangelogsRequest {
   issues: Array<{ id: string; key: string }>;
+  /** Require per-issue totals and complete, nonrepeating history pages. */
+  requireComplete?: boolean;
   storyPointsFieldId?: string;
   sprintFieldId?: string;
   sprintId?: string;
@@ -93,6 +95,10 @@ export interface GetIssueWorklogsRequest {
 }
 
 export interface ReportingJiraClient {
+  getReportIssue(
+    issueKeyOrId: string,
+    signal?: AbortSignal,
+  ): Promise<ReportingIssueSnapshot>;
   getBoards(request?: GetBoardsRequest, signal?: AbortSignal): Promise<JiraBoardPage>;
   getBoard(boardId: string, signal?: AbortSignal): Promise<JiraBoard>;
   getBoardConfiguration(

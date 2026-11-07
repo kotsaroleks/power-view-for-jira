@@ -92,6 +92,21 @@ importers:
         specifier: ^19.1.1
         version: 19.2.8(react@19.2.8)
 
+  apps/report-bot:
+    dependencies:
+      "@power-view/domain":
+        specifier: workspace:*
+        version: link:../../packages/domain
+      "@power-view/extension-messaging":
+        specifier: workspace:*
+        version: link:../../packages/extension-messaging
+      "@power-view/jira-client":
+        specifier: workspace:*
+        version: link:../../packages/jira-client
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
+
   apps/web:
     dependencies:
       "@power-view/domain":

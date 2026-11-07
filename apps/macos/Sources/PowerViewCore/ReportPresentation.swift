@@ -50,6 +50,7 @@ public enum ReportPresentation {
       let fragments = group.compactMap { event -> String? in
         let to = event["to"]
         switch event["type"].string {
+        case "description-changed": return "updated the description"
         case "status-changed":
           return to == .null || to.string == "" ? nil : "set status to \"" + to.plainText + "\""
         case "assignee-changed":

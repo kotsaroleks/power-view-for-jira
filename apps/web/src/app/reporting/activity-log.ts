@@ -29,6 +29,8 @@ export function joinFragments(fragments: string[]): string {
 
 export function changeFragment(event: ReportChangeEvent): string | undefined {
   switch (event.type) {
+    case "description-changed":
+      return "updated the description";
     case "status-changed":
       return event.to ? `set status to "${event.to}"` : undefined;
     case "assignee-changed":

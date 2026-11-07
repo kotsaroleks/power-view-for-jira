@@ -116,6 +116,37 @@ describe("Teams read boundary", () => {
 });
 
 describe("Jira request policy", () => {
+  it("allows only the exact report ancestor metadata fields for a key or numeric ID", () => {
+    for (const version of [2, 3])
+      for (const reference of ["POWER-42", "10042"]) {
+        const read = {
+          ...request,
+          path: `/rest/api/${version}/issue/${reference}`,
+          query: { fields: "summary,parent,issuetype,updated" },
+        };
+        expect(() => validatedJiraRequestUrl(read, request.baseUrl, false)).not.toThrow();
+        for (const fields of [
+          "*all",
+          "description",
+          "summary,parent,description,updated",
+          "",
+        ])
+          expect(() =>
+            validatedJiraRequestUrl(
+              { ...read, query: { fields } },
+              request.baseUrl,
+              false,
+            ),
+          ).toThrow();
+        expect(() =>
+          validatedJiraRequestUrl(
+            { ...read, query: { ...read.query, expand: "changelog" } },
+            request.baseUrl,
+            false,
+          ),
+        ).toThrow();
+      }
+  });
   it("builds only an allowlisted same-instance URL", () => {
     expect(
       validatedJiraRequestUrl(

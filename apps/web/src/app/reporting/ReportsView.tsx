@@ -116,6 +116,7 @@ function activityLabel(type: GeneratedReportSnapshot["changes"][number]["type"])
     "issue-reopened": "Reopened",
     "status-changed": "Status changed",
     "assignee-changed": "Assignment changed",
+    "description-changed": "Description changed",
     "story-points-changed": "Story points changed",
     "original-estimate-changed": "Estimate changed",
     "sprint-added": "Added to sprint",

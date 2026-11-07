@@ -121,3 +121,17 @@ POWER_VIEW_NATIVE_CHROME_SCENE=/private/tmp/power-view-native-chrome-scene.json 
 Detailed scope, verification and visual acceptance limits:
 `docs/native-macos-sync-2026-11-06.md` (current), `docs/native-macos-sync-2026-11-05.md`
 (earlier checkpoint), `docs/native-macos-chrome-sync-2026-11-04.md` (earlier checkpoint).
+
+## Description reports — 2026-11-07
+
+Build 6 adds **Reports → Description changes**: select a closed daily period and
+explicitly preview changed descriptions, all editors and the parent hierarchy. Complete
+empty periods and failed/incomplete reads are distinguished. The preview sends no
+messages. The separate GitHub Actions worker handles daily Google Chat delivery without
+this app running. See `docs/daily-description-report.md` for one-time setup and
+activation.
+
+Validation adds shared TypeScript/Swift golden fixtures, read-only Jira pagination and
+identity tests, and five production description-report renders. The full Swift suites pass
+152 tests; the shared Chrome-scene background check renders 31 states with zero visible
+windows. Real native pointer/keyboard acceptance remains unverified.

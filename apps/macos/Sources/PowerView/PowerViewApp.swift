@@ -75,7 +75,7 @@ struct ProductRoot: View {
   @State private var timeDirty = false
   @State private var timeBusy = false
   @State private var pendingPage: ProductPage?
-  @State private var timeReportTab = false
+  @State private var reportsTab = "existing"
   init(document: Binding<WorkspaceDocument>, onTimeDirty: @escaping (Bool) -> Void = { _ in }, jira: JiraSession? = nil, initialPage: ProductPage = .settings, timeModel: NativeTimesheetModel? = nil, loadsAutomatically: Bool = true) {
     _document = document; self.onTimeDirty = onTimeDirty; self.timeModel = timeModel; self.loadsAutomatically = loadsAutomatically
     _jira = StateObject(wrappedValue: jira ?? JiraSession()); _page = State(initialValue: initialPage)
@@ -135,7 +135,7 @@ struct ProductRoot: View {
             heading("OVERVIEW", "Status chart", "See every Jira status across the selected board.")
             ProductStatus(snapshot: document.state.snapshot)
           case .reports:
-            Picker("Reports", selection: $timeReportTab) { Text("Existing Reports").tag(false); Text("Time Report").tag(true) }.pickerStyle(.segmented).frame(maxWidth: 400)
+            Picker("Reports", selection: $reportsTab) { Text("Existing Reports").tag("existing"); Text("Time Report").tag("time"); Text("Description changes").tag("descriptions") }.pickerStyle(.segmented).frame(maxWidth: 590)
             ZStack(alignment: .top) {
               VStack(alignment: .leading, spacing: 30) {
               if ready {
@@ -148,11 +148,12 @@ struct ProductRoot: View {
               members: [], importedSetup: document.state.setup,
               workspaceIssues: document.state.snapshot?.issues ?? [])
               } else { Text("Choose a board in Settings to open existing reports. Time Report only needs a Jira connection.").foregroundStyle(PV.secondary) }
-              }.opacity(timeReportTab ? 0 : 1).frame(height: timeReportTab ? 0 : nil).clipped().accessibilityHidden(timeReportTab)
+              }.opacity(reportsTab == "existing" ? 1 : 0).frame(height: reportsTab == "existing" ? nil : 0).clipped().accessibilityHidden(reportsTab != "existing")
               if jira.client?.connection.deployment == .cloud, jira.user != nil {
-                NativeTimeReportView(jira: jira, active: timeReportTab).id(jira.timeScope)
-                  .opacity(timeReportTab ? 1 : 0).frame(height: timeReportTab ? nil : 0).clipped().accessibilityHidden(!timeReportTab)
-              } else if timeReportTab { Text("Time Report requires a Jira Cloud connection.") }
+                NativeTimeReportView(jira: jira, active: reportsTab == "time").id(jira.timeScope)
+                  .opacity(reportsTab == "time" ? 1 : 0).frame(height: reportsTab == "time" ? nil : 0).clipped().accessibilityHidden(reportsTab != "time")
+              } else if reportsTab == "time" { Text("Time Report requires a Jira Cloud connection.") }
+              if reportsTab == "descriptions" { NativeDescriptionChangesReport(jira: jira, boardID: document.state.setup?["board"]["id"].identifier ?? "").id(jira.timeScope + "|" + (document.state.setup?["board"]["id"].identifier ?? "")) }
             }
           case .diagnostics:
             heading(

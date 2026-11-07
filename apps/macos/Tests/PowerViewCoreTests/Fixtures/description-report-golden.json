@@ -1,0 +1,417 @@
+[
+  {
+    "name": "hierarchy-and-authors",
+    "input": {
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "TEST DATA · Task 1",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-1",
+          "issueType": {
+            "id": "1",
+            "name": "Epic"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": []
+        },
+        {
+          "id": "2",
+          "key": "TEST-2",
+          "summary": "TEST DATA · Task 2",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-2",
+          "issueType": {
+            "id": "1",
+            "name": "Subtask"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": [],
+          "parentId": "1",
+          "parentKey": "TEST-1"
+        },
+        {
+          "id": "3",
+          "key": "TEST-3",
+          "summary": "TEST DATA · Task 3",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-3",
+          "issueType": {
+            "id": "1",
+            "name": "Subtask"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": [],
+          "parentId": "2",
+          "parentKey": "TEST-2"
+        },
+        {
+          "id": "4",
+          "key": "TEST-4",
+          "summary": "TEST DATA · Task 4",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-4",
+          "issueType": {
+            "id": "1",
+            "name": "Subtask"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": [],
+          "parentId": "1",
+          "parentKey": "TEST-1"
+        }
+      ],
+      "events": [
+        {
+          "id": "a",
+          "issueId": "2",
+          "issueKey": "TEST-2",
+          "type": "description-changed",
+          "occurredAt": "2026-11-06T10:00:00Z",
+          "actor": {
+            "id": "Alice",
+            "displayName": "Alice"
+          }
+        },
+        {
+          "id": "b",
+          "issueId": "3",
+          "issueKey": "TEST-3",
+          "type": "description-changed",
+          "occurredAt": "2026-11-06T10:00:00Z",
+          "actor": {
+            "id": "Bob",
+            "displayName": "Bob"
+          }
+        },
+        {
+          "id": "c",
+          "issueId": "3",
+          "issueKey": "TEST-3",
+          "type": "description-changed",
+          "occurredAt": "2026-11-06T10:00:00Z",
+          "actor": {
+            "id": "Alice",
+            "displayName": "Alice"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "schemaVersion": 1,
+      "id": "descriptions:7:2026-11-06",
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "changedIssueCount": 2,
+      "changeCount": 3,
+      "rows": [
+        {
+          "issueId": "1",
+          "issueKey": "TEST-1",
+          "summary": "TEST DATA · Task 1",
+          "issueType": "Epic",
+          "depth": 0,
+          "contextOnly": true,
+          "authors": [],
+          "changeCount": 0
+        },
+        {
+          "issueId": "2",
+          "issueKey": "TEST-2",
+          "summary": "TEST DATA · Task 2",
+          "issueType": "Subtask",
+          "parentId": "1",
+          "depth": 1,
+          "contextOnly": false,
+          "authors": [
+            {
+              "id": "Alice",
+              "displayName": "Alice"
+            }
+          ],
+          "changeCount": 1
+        },
+        {
+          "issueId": "3",
+          "issueKey": "TEST-3",
+          "summary": "TEST DATA · Task 3",
+          "issueType": "Subtask",
+          "parentId": "2",
+          "depth": 2,
+          "contextOnly": false,
+          "authors": [
+            {
+              "id": "Alice",
+              "displayName": "Alice"
+            },
+            {
+              "id": "Bob",
+              "displayName": "Bob"
+            }
+          ],
+          "changeCount": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty",
+    "input": {
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "TEST DATA · Task 1",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-1",
+          "issueType": {
+            "id": "1",
+            "name": "Epic"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": []
+        }
+      ],
+      "events": []
+    },
+    "expected": {
+      "schemaVersion": 1,
+      "id": "descriptions:7:2026-11-06",
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "changedIssueCount": 0,
+      "changeCount": 0,
+      "rows": []
+    }
+  },
+  {
+    "name": "boundaries",
+    "input": {
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "TEST DATA · Task 1",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-1",
+          "issueType": {
+            "id": "1",
+            "name": "Epic"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": []
+        },
+        {
+          "id": "2",
+          "key": "TEST-2",
+          "summary": "TEST DATA · Task 2",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-2",
+          "issueType": {
+            "id": "1",
+            "name": "Subtask"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": [],
+          "parentId": "1",
+          "parentKey": "TEST-1"
+        }
+      ],
+      "events": [
+        {
+          "id": "a",
+          "issueId": "2",
+          "issueKey": "TEST-2",
+          "type": "description-changed",
+          "occurredAt": "2026-11-05T19:00:00Z",
+          "actor": {
+            "id": "Alice",
+            "displayName": "Alice"
+          }
+        },
+        {
+          "id": "b",
+          "issueId": "2",
+          "issueKey": "TEST-2",
+          "type": "description-changed",
+          "occurredAt": "2026-11-06T19:00:00Z",
+          "actor": {
+            "id": "Bob",
+            "displayName": "Bob"
+          }
+        }
+      ]
+    },
+    "expected": {
+      "schemaVersion": 1,
+      "id": "descriptions:7:2026-11-06",
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "changedIssueCount": 1,
+      "changeCount": 1,
+      "rows": [
+        {
+          "issueId": "1",
+          "issueKey": "TEST-1",
+          "summary": "TEST DATA · Task 1",
+          "issueType": "Epic",
+          "depth": 0,
+          "contextOnly": true,
+          "authors": [],
+          "changeCount": 0
+        },
+        {
+          "issueId": "2",
+          "issueKey": "TEST-2",
+          "summary": "TEST DATA · Task 2",
+          "issueType": "Subtask",
+          "parentId": "1",
+          "depth": 1,
+          "contextOnly": false,
+          "authors": [
+            {
+              "id": "Alice",
+              "displayName": "Alice"
+            }
+          ],
+          "changeCount": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "unknown-editor",
+    "input": {
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "issues": [
+        {
+          "id": "1",
+          "key": "TEST-1",
+          "summary": "TEST DATA · Task 1",
+          "browseUrl": "https://fixture.atlassian.net/browse/TEST-1",
+          "issueType": {
+            "id": "1",
+            "name": "Epic"
+          },
+          "status": {
+            "name": "Open"
+          },
+          "sprintIds": []
+        }
+      ],
+      "events": [
+        {
+          "id": "a",
+          "issueId": "1",
+          "issueKey": "TEST-1",
+          "type": "description-changed",
+          "occurredAt": "2026-11-06T10:00:00Z"
+        }
+      ]
+    },
+    "expected": {
+      "schemaVersion": 1,
+      "id": "descriptions:7:2026-11-06",
+      "jiraBaseUrl": "https://fixture.atlassian.net",
+      "boardId": "7",
+      "boardName": "TEST DATA · Description report",
+      "period": {
+        "date": "2026-11-06",
+        "start": "2026-11-05T19:00:00.000Z",
+        "end": "2026-11-06T19:00:00.000Z",
+        "timeZone": "Europe/Kyiv"
+      },
+      "generatedAt": "2026-11-06T19:05:00.000Z",
+      "changedIssueCount": 1,
+      "changeCount": 1,
+      "rows": [
+        {
+          "issueId": "1",
+          "issueKey": "TEST-1",
+          "summary": "TEST DATA · Task 1",
+          "issueType": "Epic",
+          "depth": 0,
+          "contextOnly": false,
+          "authors": [
+            {
+              "id": "unavailable",
+              "displayName": "Автор недоступний"
+            }
+          ],
+          "changeCount": 1
+        }
+      ]
+    }
+  }
+]

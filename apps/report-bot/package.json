@@ -1,0 +1,16 @@
+{
+  "name": "@power-view/report-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@power-view/domain": "workspace:*",
+    "@power-view/jira-client": "workspace:*",
+    "@power-view/extension-messaging": "workspace:*",
+    "zod": "^4.0.0"
+  }
+}

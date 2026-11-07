@@ -171,3 +171,5 @@ export {
   type TimeReportIssue,
   type TimeReportEmployee,
 } from "./time-report";
+export * from "./description-report";
+export * from "./description-chat";

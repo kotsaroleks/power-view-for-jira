@@ -1,0 +1,53 @@
+name: Daily Jira description changes
+on:
+  schedule:
+    - cron: "0 21 * * *"
+      timezone: Europe/Kyiv
+    - cron: "20 21 * * *"
+      timezone: Europe/Kyiv
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Preview without sending, or deliver pending reports
+        required: true
+        default: preview
+        type: choice
+        options: [preview, deliver, check]
+permissions:
+  contents: write
+concurrency:
+  group: daily-description-report
+  cancel-in-progress: false
+jobs:
+  report:
+    if:
+      vars.REPORT_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' &&
+      inputs.mode != 'deliver')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Read Jira and prepare or deliver the report
+        env:
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+          GH_REPORT_TOKEN: ${{ github.token }}
+          REPORT_STATE_REPOSITORY: ${{ github.repository }}
+          REPORT_CONFIG_PATH: config.json
+          REPORT_MODE:
+            ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'deliver' }}
+        run: |
+          if [ "$REPORT_MODE" = "check" ]; then
+            node --check bot/description-report.mjs
+            node --input-type=module -e 'import {readFileSync} from "node:fs"; JSON.parse(readFileSync("config.json", "utf8")); console.log("Worker and configuration parsed. Credentials and Chat delivery were not exercised.");'
+          elif [ "$REPORT_MODE" = "preview" ]; then
+            node bot/description-report.mjs --dry-run
+          else
+            node bot/description-report.mjs
+          fi

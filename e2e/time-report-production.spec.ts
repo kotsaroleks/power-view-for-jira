@@ -47,6 +47,23 @@ test("production Time Report: team-week worklog search, cross-project totals and
     location: { projectKey: "POWER" },
   };
   const boardIssues = makeJiraIssueFixtures(1);
+  const descriptionChild = {
+    id: "91009",
+    key: "POWER-9",
+    fields: {
+      summary: "TEST DATA · Edited description",
+      issuetype: { id: "subtask", name: "Subtask" },
+      parent: { id: "91008", key: "POWER-8" },
+    },
+  };
+  const descriptionParent = {
+    id: "91008",
+    key: "POWER-8",
+    fields: {
+      summary: "TEST DATA · Parent outside the candidate list",
+      issuetype: { id: "epic", name: "Epic" },
+    },
+  };
   const adminIssue = {
     id: "90001",
     key: "ADMIN-9",
@@ -142,12 +159,40 @@ test("production Time Report: team-week worklog search, cross-project totals and
       else if (path.endsWith("/board/7")) data = board;
       else if (path.endsWith("/board/7/issue"))
         data = {
-          issues: boardIssues,
+          issues: String(req.query?.jql ?? "").includes("updated >=")
+            ? [descriptionChild]
+            : boardIssues,
           startAt: 0,
           maxResults: 100,
           total: boardIssues.length,
         };
-      else if (path.endsWith("/board/7/sprint"))
+      else if (path.endsWith("/issue/POWER-8")) data = descriptionParent;
+      else if (path.endsWith("/POWER-9/changelog")) {
+        const offset = Number(req.query?.startAt ?? 0);
+        data = {
+          startAt: offset,
+          maxResults: 1,
+          total: 2,
+          values: [
+            {
+              id: String(700 + offset),
+              created: "2026-11-06T10:00:00Z",
+              author: {
+                accountId: offset ? "editor-b" : "editor-a",
+                displayName: offset ? "Bob Editor" : "Alice Editor",
+              },
+              items: [
+                {
+                  fieldId: "description",
+                  field: "Опис",
+                  fromString: "Private old description",
+                  toString: "Private new description",
+                },
+              ],
+            },
+          ],
+        };
+      } else if (path.endsWith("/board/7/sprint"))
         data = { values: [], startAt: 0, maxResults: 50, total: 0, isLast: true };
       else if (path.endsWith("/project/POWER/statuses")) data = [];
       else if (path.endsWith("/status")) data = [];
@@ -478,6 +523,48 @@ test("production Time Report: team-week worklog search, cross-project totals and
   await panel.getByRole("button", { name: "Weekly", exact: true }).click();
   await panel.getByLabel("Week containing", { exact: true }).fill("2026-10-26");
   await panel.getByRole("button", { name: "Load Time Report", exact: true }).click();
+  await page.getByRole("tab", { name: "Description changes", exact: true }).click();
+  const descriptions = page.getByRole("region", { name: "Description changes report" });
+  const historyCount = () =>
+    requests.filter((req) => req.path.endsWith("/POWER-9/changelog")).length;
+  expect(historyCount()).toBe(0);
+  await descriptions.getByLabel("Report date", { exact: true }).fill("2026-11-06");
+  await descriptions.getByRole("button", { name: "Preview description changes" }).click();
+  await expect(
+    descriptions.getByRole("link", { name: "POWER-9", exact: true }),
+  ).toBeVisible();
+  await expect(
+    descriptions.getByRole("link", { name: "POWER-8", exact: true }),
+  ).toBeVisible();
+  await expect(
+    descriptions.getByText("Alice Editor, Bob Editor", { exact: true }),
+  ).toBeVisible();
+  await expect(descriptions.getByText("— (context)", { exact: true })).toBeVisible();
+  await expect(descriptions).toContainText("Changed issues: 1 · Edits: 2");
+  await expect(descriptions).not.toContainText("Private old description");
+  expect(historyCount()).toBe(2);
+  expect(
+    requests
+      .filter((req) => req.path.endsWith("/POWER-9/changelog"))
+      .map((req) => req.method),
+  ).toEqual(["GET", "GET"]);
+  await page.screenshot({
+    path: testInfo.outputPath("description-report-desktop.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    descriptions.getByRole("button", { name: "Preview description changes" }),
+  ).toBeVisible();
+  expect(
+    await descriptions
+      .getByLabel("Report date", { exact: true })
+      .evaluate((element) => element.getBoundingClientRect().height),
+  ).toBeGreaterThanOrEqual(40);
+  await page.screenshot({
+    path: testInfo.outputPath("description-report-mobile.png"),
+    fullPage: true,
+  });
   expect(unexpected).toEqual([]);
   expect(errors).toEqual([]);
 });

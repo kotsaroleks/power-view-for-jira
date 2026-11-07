@@ -552,6 +552,23 @@ export abstract class BaseJiraClient implements JiraClient {
       .sort((left, right) => left.name.localeCompare(right.name));
   }
 
+  async getReportIssue(issueKeyOrId: string, signal?: AbortSignal) {
+    if (!/^(?:[A-Z][A-Z0-9_]*-\d+|\d+)$/.test(issueKeyOrId))
+      throw new Error("Invalid issue reference.");
+    const raw = await this.transport.request(
+      {
+        baseUrl: this.baseUrl,
+        method: "GET",
+        path: `/rest/api/${this.apiVersion}/issue/${issueKeyOrId}`,
+        query: { fields: "summary,parent,issuetype,updated" },
+        headers: { Accept: "application/json" },
+      },
+      rawPartialJiraIssueSchema,
+      signal,
+    );
+    return mapReportingIssue(raw, this.baseUrl);
+  }
+
   async getBoardIssues(
     request: GetBoardIssuesRequest,
     signal?: AbortSignal,
@@ -698,8 +715,12 @@ export abstract class BaseJiraClient implements JiraClient {
         const events = [] as ReturnType<typeof mapChangelogEntry>;
         let startAt = 0;
         let isLast = false;
+        const historyIDs = new Set<string>();
+        let pages = 0;
         // Pagination stays serial: page N+1 needs page N's startAt.
         while (!isLast) {
+          if (request.requireComplete && ++pages > 1000)
+            throw new Error("Jira history exceeded the complete-read limit.");
           const raw = await this.transport.request(
             {
               baseUrl: this.baseUrl,
@@ -711,11 +732,30 @@ export abstract class BaseJiraClient implements JiraClient {
             reportingIssueChangelogPageSchema,
             request.signal,
           );
+          if (request.requireComplete) {
+            const loaded = startAt + raw.values.length;
+            if (
+              raw.startAt !== startAt ||
+              raw.total === undefined ||
+              loaded > raw.total ||
+              (raw.values.length === 0 && loaded < raw.total) ||
+              (raw.isLast === true && loaded < raw.total)
+            )
+              throw new Error("Jira returned incomplete issue history.");
+            for (const entry of raw.values) {
+              const id = String(entry.id);
+              if (historyIDs.has(id) || !Number.isFinite(Date.parse(entry.created)))
+                throw new Error("Jira returned repeated or invalid issue history.");
+              historyIDs.add(id);
+            }
+          }
           for (const entry of raw.values)
             events.push(...mapChangelogEntry(entry, issue, request));
           const loaded = startAt + raw.values.length;
-          isLast =
-            raw.isLast ?? (raw.values.length === 0 || loaded >= (raw.total ?? loaded));
+          isLast = request.requireComplete
+            ? loaded === raw.total
+            : (raw.isLast ??
+              (raw.values.length === 0 || loaded >= (raw.total ?? loaded)));
           startAt = loaded;
         }
         completed += 1;

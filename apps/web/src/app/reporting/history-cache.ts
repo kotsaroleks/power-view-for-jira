@@ -27,6 +27,7 @@ export function changelogFingerprint(request: {
   completedStatusNames?: readonly string[];
 }): string {
   return JSON.stringify([
+    "description-events-v1",
     request.storyPointsFieldId ?? null,
     request.sprintFieldId ?? null,
     request.sprintId ?? null,

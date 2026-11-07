@@ -59,9 +59,19 @@ private struct CheckFailure: Error, CustomStringConvertible {
       }
 
       try render(NativeSectionSettings(settings: .constant("{}")), name: "section-settings", width: 800, height: 540)
+      let descriptionFixtureURL = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Tests/PowerViewCoreTests/Fixtures/description-report-golden.json")
+      let descriptionFixtures = try JSONDecoder().decode(JSONValue.self, from: Data(contentsOf: descriptionFixtureURL)).array
+      let descriptionData = try JSONEncoder().encode(descriptionFixtures[0]["expected"])
+      let descriptionReport = try JSONDecoder().decode(DescriptionReportSnapshot.self, from: descriptionData)
+      try render(NativeDescriptionChangesResult(report: descriptionReport).padding(24), name: "description-report-hierarchy", width: 1000, height: 650)
+      try render(NativeDescriptionChangesResult(report: descriptionReport).padding(24), name: "description-report-compact", width: 640, height: 700)
+      let emptyDescription = try JSONDecoder().decode(DescriptionReportSnapshot.self, from: JSONEncoder().encode(descriptionFixtures[1]["expected"]))
+      try render(NativeDescriptionChangesResult(report: emptyDescription).padding(24), name: "description-report-empty", width: 1000, height: 400)
       let transport = NativeTimeFixtureTransport(); await transport.useDemoIssues()
       let client = JiraClient(connection: try JiraConnection(origin: NativeTimeFixtureTransport.origin, email: "fixture@example.invalid", token: "fixture-only"), transport: transport)
       let session = JiraSession(client: client, user: JiraUser(accountId: "fixture", displayName: "Fixture User", timeZone: "Europe/Kyiv"))
+      try render(NativeDescriptionChangesReport(jira: session, boardID: "7", initialReport: descriptionReport).padding(16), name: "description-report-form", width: 1000, height: 850)
+      try render(NativeDescriptionChangesReport(jira: session, boardID: "7", initialReport: descriptionReport).padding(16), name: "description-report-form-compact", width: 640, height: 950)
       let calendarTransport = NativeCalendarFixtureTransport(); let calendar = try await calendarTransport.makeStore()
       let suite = "PowerView.BackgroundFixture." + UUID().uuidString; let defaults = UserDefaults(suiteName: suite)!
       defer { defaults.removePersistentDomain(forName: suite) }

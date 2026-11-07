@@ -106,7 +106,13 @@ export class JiraCloudClient extends BaseJiraClient {
   override async getIssueChangelogs(
     request: GetIssueChangelogsRequest,
   ): Promise<ReportChangeEvent[]> {
-    if (this.bulkChangelogUnavailable || request.issues.length === 0)
+    // A scheduled audit needs a confirmed total for every issue, including empty
+    // histories. The bulk endpoint can omit empty issues and has no per-issue total.
+    if (
+      request.requireComplete ||
+      this.bulkChangelogUnavailable ||
+      request.issues.length === 0
+    )
       return super.getIssueChangelogs(request);
 
     try {

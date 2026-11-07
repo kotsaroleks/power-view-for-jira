@@ -6,6 +6,7 @@ import "../time-report/time-report.css";
 
 import { ReportsView } from "../reporting/ReportsView";
 import { BoardHealthReportView } from "./BoardHealthReport";
+import { DescriptionChangesReport } from "./DescriptionChangesReport";
 import type { WorkspaceContext } from "../workspace/WorkspaceContext";
 
 /** Reports feature boundary. It consumes, but never selects or changes, a workspace. */
@@ -22,7 +23,7 @@ export function ReportsService({
   client,
   timeReport,
 }: ReportsServiceProps) {
-  const [tab, setTab] = useState<"existing" | "time">("existing");
+  const [tab, setTab] = useState<"existing" | "time" | "descriptions">("existing");
   const board = {
     ...workspace.board,
     projectKeys: [...workspace.board.projectKeys],
@@ -50,6 +51,16 @@ export function ReportsService({
           onClick={() => setTab("time")}
         >
           Time Report
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "descriptions"}
+          aria-controls="description-report-panel"
+          id="description-report-tab"
+          onClick={() => setTab("descriptions")}
+        >
+          Description changes
         </button>
       </div>
       <div
@@ -101,6 +112,19 @@ export function ReportsService({
       {tab === "time" ? (
         <div role="tabpanel" id="time-report-panel" aria-labelledby="time-report-tab">
           {timeReport ?? <p>Time Report requires a Jira Cloud connection.</p>}
+        </div>
+      ) : null}
+      {tab === "descriptions" ? (
+        <div
+          role="tabpanel"
+          id="description-report-panel"
+          aria-labelledby="description-report-tab"
+        >
+          <DescriptionChangesReport
+            client={client}
+            baseUrl={workspace.jiraBaseUrl}
+            boardId={workspace.scope.boardId}
+          />
         </div>
       ) : null}
     </>
