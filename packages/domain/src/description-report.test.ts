@@ -100,8 +100,10 @@ describe("Daily description report", () => {
       descriptionFixture(undefined, [descriptionEvent("e", "2", "a", "not a time")]),
     ).toThrow(/time/);
   });
-  it("returns no message when no description changed", () => {
-    expect(descriptionChatMessages(descriptionFixture(undefined, []))).toEqual([]);
+  it("returns the exact plaintext message when no description changed", () => {
+    expect(descriptionChatMessages(descriptionFixture(undefined, []))).toEqual([
+      { text: "No changes for today" },
+    ]);
   });
   it("escapes Jira text and retains every changed task across bounded Chat cards", () => {
     const issues = [
@@ -119,7 +121,7 @@ describe("Daily description report", () => {
     expect(messages.length).toBeGreaterThan(1);
     expect(
       messages.reduce(
-        (sum, m) => sum + m.cardsV2[0]!.card.sections[0]!.widgets.length - 1,
+        (sum, m) => sum + m.cardsV2![0]!.card.sections[0]!.widgets.length - 1,
         0,
       ),
     ).toBeGreaterThanOrEqual(55);

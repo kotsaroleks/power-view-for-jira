@@ -17,6 +17,13 @@ checkpoint advanced through the report dated 7 November, with no pending deliver
 period had no description changes, so no daily table was sent. The separate connection
 notification confirmed the selected Chat destination.
 
+Following the user's update on 8 November, subsequent complete empty periods send exactly
+`No changes for today`. The plaintext message uses the same saved outbox, confirmed
+receipt and checkpoint as reports with changes. Already completed periods are not replayed.
+All 44 focused domain/worker tests pass, including empty-message retries after a lost
+response, failed receipt saves, catch-up periods and duplicate suppression. Bot/domain
+TypeScript checks, ESLint, the production bundle build and five protected-setup tests pass.
+
 The primary schedule is 21:00 Europe/Kyiv; the 21:20 recovery check resumes pending or
 missed periods. GitHub may start scheduled jobs late, but the report keeps its exact
 intended Kyiv period. The Mac and Power View do not need to remain running. The temporary

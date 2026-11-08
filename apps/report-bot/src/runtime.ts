@@ -132,10 +132,13 @@ export class ReadOnlyReportTransport implements JiraTransport {
 
 const partSchema = z.strictObject({
   requestId: z.uuid(),
-  payload: z.object({
-    text: z.string(),
-    cardsV2: z.array(z.record(z.string(), z.unknown())).min(1),
-  }),
+  payload: z.union([
+    z.strictObject({ text: z.literal("No changes for today") }),
+    z.object({
+      text: z.string(),
+      cardsV2: z.array(z.record(z.string(), z.unknown())).min(1),
+    }),
+  ]),
   messageName: z.string().optional(),
 });
 const stateSchema = z.strictObject({

@@ -41,16 +41,25 @@ function setup() {
   };
 }
 describe("Scheduled description report delivery", () => {
-  it("sends no message for a fully read empty report and checkpoints the period", async () => {
+  it("sends one plaintext message for a fully read empty period through the durable outbox", async () => {
     const { job, store, getState } = setup();
     job.collect = vi.fn(() => Promise.resolve(descriptionFixture(undefined, [])));
     expect(await runDescriptionReportJob(job)).toMatchObject({
       processed: 1,
+      messages: 1,
+    });
+    expect(job.send).toHaveBeenCalledOnce();
+    const part = vi.mocked(job.send).mock.calls[0]![0];
+    expect(part.payload).toEqual({ text: "No changes for today" });
+    expect(store.save.mock.calls[0]?.[0].pending?.parts).toEqual([part]);
+    expect(getState()?.processedThrough).toBe("2026-11-06");
+    expect(store.save).toHaveBeenCalledTimes(3);
+    expect(await runDescriptionReportJob(job)).toMatchObject({
+      processed: 0,
       messages: 0,
     });
-    expect(job.send).not.toHaveBeenCalled();
-    expect(getState()?.processedThrough).toBe("2026-11-06");
-    expect(store.save).toHaveBeenCalledTimes(1);
+    expect(job.send).toHaveBeenCalledOnce();
+    expect(job.collect).toHaveBeenCalledOnce();
   });
   it("does not recollect or duplicate a completed daily report", async () => {
     const { job } = setup();
@@ -67,36 +76,46 @@ describe("Scheduled description report delivery", () => {
     expect(store.save).not.toHaveBeenCalled();
     expect(job.send).not.toHaveBeenCalled();
   });
-  it("retains the exact pending request after an unknown Chat result", async () => {
-    const { job, getState } = setup();
-    const send = vi
-      .fn<DescriptionReportJob["send"]>()
-      .mockRejectedValueOnce(new Error("Timeout"))
-      .mockResolvedValue("spaces/test/messages/one");
-    job.send = send;
-    await expect(runDescriptionReportJob(job)).rejects.toThrow("Timeout");
-    expect(getState()?.pending).toBeDefined();
-    await runDescriptionReportJob(job);
-    expect(send.mock.calls[0]?.[0]).toEqual(send.mock.calls[1]?.[0]);
-    expect(job.collect).toHaveBeenCalledOnce();
-    expect(getState()?.processedThrough).toBe("2026-11-06");
-  });
-  it("reuses the same delivery ID after posting succeeded but its receipt could not be saved", async () => {
-    const { job, store } = setup();
-    const original = store.save.getMockImplementation()!;
-    let calls = 0;
-    store.save.mockImplementation((next) => {
-      calls++;
-      return calls === 2
-        ? Promise.reject(new Error("State unavailable"))
-        : original(next);
-    });
-    await expect(runDescriptionReportJob(job)).rejects.toThrow("State unavailable");
-    await runDescriptionReportJob(job);
-    const callsToChat = vi.mocked(job.send).mock.calls;
-    expect(callsToChat[0]?.[0]).toEqual(callsToChat[1]?.[0]);
-    expect(job.collect).toHaveBeenCalledOnce();
-  });
+  it.each(["changed", "empty"])(
+    "retains the exact pending %s request after an unknown Chat result",
+    async (kind) => {
+      const { job, getState } = setup();
+      if (kind === "empty")
+        job.collect = vi.fn(() => Promise.resolve(descriptionFixture(undefined, [])));
+      const send = vi
+        .fn<DescriptionReportJob["send"]>()
+        .mockRejectedValueOnce(new Error("Timeout"))
+        .mockResolvedValue("spaces/test/messages/one");
+      job.send = send;
+      await expect(runDescriptionReportJob(job)).rejects.toThrow("Timeout");
+      expect(getState()?.pending).toBeDefined();
+      await runDescriptionReportJob(job);
+      expect(send.mock.calls[0]?.[0]).toEqual(send.mock.calls[1]?.[0]);
+      expect(job.collect).toHaveBeenCalledOnce();
+      expect(getState()?.processedThrough).toBe("2026-11-06");
+    },
+  );
+  it.each(["changed", "empty"])(
+    "reuses the same %s delivery ID after posting succeeded but its receipt could not be saved",
+    async (kind) => {
+      const { job, store } = setup();
+      if (kind === "empty")
+        job.collect = vi.fn(() => Promise.resolve(descriptionFixture(undefined, [])));
+      const original = store.save.getMockImplementation()!;
+      let calls = 0;
+      store.save.mockImplementation((next) => {
+        calls++;
+        return calls === 2
+          ? Promise.reject(new Error("State unavailable"))
+          : original(next);
+      });
+      await expect(runDescriptionReportJob(job)).rejects.toThrow("State unavailable");
+      await runDescriptionReportJob(job);
+      const callsToChat = vi.mocked(job.send).mock.calls;
+      expect(callsToChat[0]?.[0]).toEqual(callsToChat[1]?.[0]);
+      expect(job.collect).toHaveBeenCalledOnce();
+    },
+  );
   it("resumes a long report at the undelivered part", async () => {
     const { job } = setup();
     const issues = [
@@ -148,6 +167,12 @@ describe("Scheduled description report delivery", () => {
       "2026-11-06",
     ]);
     expect(getState()?.processedThrough).toBe("2026-11-06");
+    const parts = vi.mocked(job.send).mock.calls.map(([part]) => part);
+    expect(parts).toHaveLength(3);
+    expect(new Set(parts.map((part) => part.requestId)).size).toBe(3);
+    expect(parts.every((part) => part.payload.text === "No changes for today")).toBe(
+      true,
+    );
   });
   it("does not reuse delivery state after scope/recipient changes", async () => {
     const { job, setState } = setup();

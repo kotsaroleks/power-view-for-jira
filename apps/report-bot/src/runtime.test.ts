@@ -262,4 +262,76 @@ describe("Protected description report transports", () => {
       branch: "main",
     });
   });
+  it("round-trips an exact plaintext empty-report payload through private persisted state", async () => {
+    const state = {
+      schemaVersion: 1 as const,
+      scope: "scope",
+      pending: {
+        date: "2026-11-06",
+        parts: [
+          {
+            requestId: "12345678-1234-4123-a123-123456789012",
+            payload: { text: "No changes for today" },
+          },
+        ],
+      },
+    };
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ private: true, default_branch: "main" })),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            sha: "known-sha",
+            encoding: "base64",
+            content: btoa(JSON.stringify(state)),
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ content: { sha: "next-sha" } })),
+      );
+    const store = new GitHubReportStateStore("owner/reports", "fixture-only", fetcher);
+    await expect(store.load()).resolves.toEqual(state);
+    await store.save(state);
+    const uploaded = JSON.parse(fetcher.mock.calls[2]?.[1]?.body as string) as {
+      content: string;
+    };
+    expect(JSON.parse(atob(uploaded.content))).toEqual(state);
+  });
+  it("rejects other plaintext payloads in saved state", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ private: true, default_branch: "main" })),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            sha: "known-sha",
+            encoding: "base64",
+            content: btoa(
+              JSON.stringify({
+                schemaVersion: 1,
+                scope: "scope",
+                pending: {
+                  date: "2026-11-06",
+                  parts: [
+                    {
+                      requestId: "12345678-1234-4123-a123-123456789012",
+                      payload: { text: "Unapproved plaintext message" },
+                    },
+                  ],
+                },
+              }),
+            ),
+          }),
+        ),
+      );
+    await expect(
+      new GitHubReportStateStore("owner/reports", "fixture-only", fetcher).load(),
+    ).rejects.toThrow(/state is invalid/);
+  });
 });

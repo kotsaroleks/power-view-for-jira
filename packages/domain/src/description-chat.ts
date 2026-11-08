@@ -6,7 +6,7 @@ import {
 
 export interface DescriptionChatMessage {
   text: string;
-  cardsV2: Array<{
+  cardsV2?: Array<{
     cardId: string;
     card: {
       header: { title: string; subtitle: string };
@@ -80,7 +80,7 @@ function message(
 export function descriptionChatMessages(
   report: DescriptionChangeReport,
 ): DescriptionChatMessage[] {
-  if (!report.changedIssueCount) return [];
+  if (!report.changedIssueCount) return [{ text: "No changes for today" }];
   const byId = new Map(report.rows.map((row) => [row.issueId, row]));
   const parts: DescriptionReportRow[][] = [];
   let current: DescriptionReportRow[] = [];

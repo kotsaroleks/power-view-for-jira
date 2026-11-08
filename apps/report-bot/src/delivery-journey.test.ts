@@ -26,7 +26,8 @@ function requestURL(input: Parameters<typeof fetch>[0]): string {
 function setup(scenario: string) {
   let saved: string | undefined;
   let stateSHA = 0;
-  let unknownResult = scenario === "timeout";
+  let unknownResult = scenario === "timeout" || scenario === "empty-timeout";
+  const empty = scenario === "empty" || scenario === "empty-timeout";
   const messages = new Map<string, { body: string; name: string }>();
   const fetcher = vi.fn<typeof fetch>((input, init) => {
     const url = new URL(requestURL(input));
@@ -112,8 +113,8 @@ function setup(scenario: string) {
         body = {
           startAt: offset,
           maxResults: 1,
-          total: 2,
-          values: scenario === "partial" && offset === 1 ? [] : [history],
+          total: empty ? 0 : 2,
+          values: empty || (scenario === "partial" && offset === 1) ? [] : [history],
         };
       } else if (url.pathname.endsWith("/issue/TEST-1"))
         body = {
@@ -181,6 +182,55 @@ describe("Jira history → private checkpoint → Google Chat delivery", () => {
     await expect(job()).rejects.toThrow(/incomplete/);
     expect(state()).toBeUndefined();
     expect(messages.size).toBe(0);
+  });
+  it("posts the exact empty report text once per period without reading ancestor context", async () => {
+    const { job, messages, state, fetcher } = setup("empty");
+    expect(await job()).toMatchObject({ processed: 1, messages: 1 });
+    expect(messages.size).toBe(1);
+    expect(JSON.parse([...messages.values()][0]!.body)).toEqual({
+      text: "No changes for today",
+    });
+    expect(state()).toHaveProperty("processedThrough", "2026-11-06");
+    expect(state()).not.toHaveProperty("pending");
+    expect(await job()).toMatchObject({ processed: 0, messages: 0 });
+    expect(messages.size).toBe(1);
+    expect(
+      fetcher.mock.calls.filter(([input]) =>
+        new URL(requestURL(input)).pathname.endsWith("/issue/TEST-1"),
+      ),
+    ).toHaveLength(0);
+  });
+  it("recovers an accepted empty report with the same client ID and body after a lost response", async () => {
+    const { job, messages, state, fetcher } = setup("empty-timeout");
+    await expect(job()).rejects.toThrow(/response lost/);
+    expect(state()).toHaveProperty("pending");
+    expect(state()).not.toHaveProperty("processedThrough");
+    expect(messages.size).toBe(1);
+    expect(JSON.parse([...messages.values()][0]!.body)).toEqual({
+      text: "No changes for today",
+    });
+    const reads = fetcher.mock.calls.filter(([input]) =>
+      requestURL(input).includes("fixture.atlassian.net"),
+    ).length;
+    expect(await job()).toMatchObject({ processed: 1, messages: 1 });
+    const chatRequests = fetcher.mock.calls.filter(
+      ([input]) => new URL(requestURL(input)).hostname === "chat.googleapis.com",
+    );
+    expect(chatRequests).toHaveLength(2);
+    expect(new URL(requestURL(chatRequests[1]![0])).searchParams.get("messageId")).toBe(
+      new URL(requestURL(chatRequests[0]![0])).searchParams.get("messageId"),
+    );
+    expect(chatRequests[1]![1]?.body).toBe(chatRequests[0]![1]?.body);
+    expect(messages.size).toBe(1);
+    expect(state()).toHaveProperty("processedThrough", "2026-11-06");
+    expect(state()).not.toHaveProperty("pending");
+    expect(
+      fetcher.mock.calls.filter(([input]) =>
+        requestURL(input).includes("fixture.atlassian.net"),
+      ),
+    ).toHaveLength(reads);
+    expect(await job()).toMatchObject({ processed: 0, messages: 0 });
+    expect(messages.size).toBe(1);
   });
   it("recovers an unknown Chat outcome through the saved client message ID and duplicate response", async () => {
     const { job, messages, state, fetcher } = setup("timeout");

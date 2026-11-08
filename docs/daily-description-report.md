@@ -21,8 +21,10 @@ template; it does not run the daily job or hold delivery state.
 - Every changed issue appears once, with all distinct editors. The table includes its
   available ancestors in order and marks unchanged ancestors as context. Unchanged
   siblings are omitted. Missing authors are explicitly labeled unavailable.
-- A complete empty period advances the checkpoint and sends **no Chat message**. Failed or
-  partial Jira reads do not produce an empty-success report or advance the checkpoint.
+- A complete empty period sends exactly **No changes for today** and advances the
+  checkpoint after delivery is confirmed. It uses the same durable outbox and duplicate
+  protection as a changed-issue report. Failed or partial Jira reads do not produce an
+  empty-success message or advance the checkpoint.
 
 ## Reading Jira
 
@@ -96,10 +98,10 @@ order; recovery or subsequent scheduled runs continue from the checkpoint.
    scheduler is required to configure delivery with an existing webhook.
 5. **Verify and enable** checks Jira identity and a complete production report read, then
    uploads encrypted Actions secrets, writes the verified configuration, enables the
-   schedule and dispatches the first due report. A valid empty report sends nothing. A
-   dispatch acknowledgement confirms only that GitHub accepted the run; check its result
-   for actual delivery. If dispatch fails after setup, the page reports that the schedule
-   is enabled but the first run is unconfirmed.
+   schedule and dispatches the first due report. A valid empty report sends **No changes
+   for today**. A dispatch acknowledgement confirms only that GitHub accepted the run;
+   check its result for actual delivery. If dispatch fails after setup, the page reports
+   that the schedule is enabled but the first run is unconfirmed.
 
 The local form is only an initial configuration tool. It binds to `127.0.0.1`, expires
 after 24 hours by default (`--lifetime` overrides this), uses an unguessable route and a
