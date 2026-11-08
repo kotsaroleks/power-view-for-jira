@@ -38,7 +38,7 @@ export function stableRequestId(value: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20)}`;
 }
 /** Save the exact outbox BEFORE posting. A timeout or failed receipt write retries the
- * same Google requestId and body, never a freshly regenerated/duplicated message. */
+ * same Google custom messageId and body, derived from the saved internal UUID. */
 export async function runDescriptionReportJob(
   job: DescriptionReportJob,
 ): Promise<{ processed: number; messages: number; dryRun: boolean }> {

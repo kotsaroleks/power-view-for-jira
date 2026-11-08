@@ -57,6 +57,9 @@ class RemoteStatusError extends Error {
 }
 async function jsonResponse(response: Response): Promise<unknown> {
   if (!response.ok) throw new RemoteStatusError(response.status);
+  return jsonBody(response);
+}
+async function jsonBody(response: Response): Promise<unknown> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error("The remote response was empty.");
   const chunks: Uint8Array[] = [];
@@ -248,7 +251,8 @@ export async function sendDescriptionChatPart(
   fetcher: typeof fetch = fetch,
 ): Promise<string> {
   const url = checkedChatWebhook(webhook, space);
-  url.searchParams.set("requestId", part.requestId);
+  const messageId = "client-" + part.requestId;
+  url.searchParams.set("messageId", messageId);
   const response = await fetcher(url, {
     method: "POST",
     redirect: "error",
@@ -256,6 +260,13 @@ export async function sendDescriptionChatPart(
     body: JSON.stringify(part.payload),
     signal: AbortSignal.timeout(30000),
   });
+  if (response.status === 409) {
+    const duplicate = z
+      .object({ error: z.object({ status: z.literal("ALREADY_EXISTS") }) })
+      .safeParse(await jsonBody(response).catch(() => undefined));
+    if (duplicate.success) return `spaces/${space}/messages/${messageId}`;
+    throw new RemoteStatusError(response.status);
+  }
   const result = z
     .object({ name: z.string().min(1) })
     .safeParse(await jsonResponse(response));

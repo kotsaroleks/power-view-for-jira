@@ -99,7 +99,7 @@ describe("Protected description report transports", () => {
       checkedChatWebhook(webhook + "&unexpected=value", config.chatSpace),
     ).toThrow();
   });
-  it("posts the persisted body and requestId and requires a receipt from the selected room", async () => {
+  it("posts the persisted body with a custom messageId and requires a receipt from the selected room", async () => {
     const payload = descriptionChatMessages(descriptionFixture())[0]!;
     const requestId = "12345678-1234-4123-a123-123456789012";
     const fetcher = vi
@@ -111,7 +111,8 @@ describe("Protected description report transports", () => {
       sendDescriptionChatPart({ requestId, payload }, webhook, config.chatSpace, fetcher),
     ).resolves.toBe("spaces/fixture-space/messages/one");
     const url = fetcher.mock.calls[0]?.[0] as URL;
-    expect(url.searchParams.get("requestId")).toBe(requestId);
+    expect(url.searchParams.get("messageId")).toBe("client-" + requestId);
+    expect(url.searchParams.has("requestId")).toBe(false);
     expect(fetcher.mock.calls[0]?.[1]?.body).toBe(JSON.stringify(payload));
     fetcher.mockResolvedValue(
       new Response(JSON.stringify({ name: "spaces/other/messages/one" })),
@@ -120,6 +121,47 @@ describe("Protected description report transports", () => {
       sendDescriptionChatPart({ requestId, payload }, webhook, config.chatSpace, fetcher),
     ).rejects.toThrow(/confirm/);
   });
+  it("reconciles an existing client message after a lost response", async () => {
+    const part = {
+      requestId: "12345678-1234-4123-a123-123456789012",
+      payload: descriptionChatMessages(descriptionFixture())[0]!,
+    };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ error: { status: "ALREADY_EXISTS" } }), {
+        status: 409,
+      }),
+    );
+    await expect(
+      sendDescriptionChatPart(part, webhook, config.chatSpace, fetcher),
+    ).resolves.toBe("spaces/fixture-space/messages/client-" + part.requestId);
+    const url = fetcher.mock.calls[0]?.[0] as URL;
+    expect(url.searchParams.get("messageId")).toBe("client-" + part.requestId);
+    expect(url.searchParams.has("requestId")).toBe(false);
+  });
+  it.each([
+    { status: 409, body: JSON.stringify({ error: { status: "ABORTED" } }) },
+    { status: 409, body: "{}" },
+    { status: 409, body: "not JSON" },
+    { status: 403, body: JSON.stringify({ error: { status: "ALREADY_EXISTS" } }) },
+  ])(
+    "rejects unconfirmed Chat conflicts and errors: $status $body",
+    async ({ status, body }) => {
+      const fetcher = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(body, { status }));
+      await expect(
+        sendDescriptionChatPart(
+          {
+            requestId: "12345678-1234-4123-a123-123456789012",
+            payload: descriptionChatMessages(descriptionFixture())[0]!,
+          },
+          webhook,
+          config.chatSpace,
+          fetcher,
+        ),
+      ).rejects.toThrow("HTTP " + status);
+    },
+  );
   it("never puts private report state in a public repository", async () => {
     const fetcher = vi
       .fn<typeof fetch>()

@@ -36,6 +36,32 @@ def github_token():
     return fields["password"]
 
 
+def resolve_jira_credential(local):
+    """Reuse the authorized native login without opening any system dialog."""
+    result = dict(local)
+    result["jiraEmail"] = local.get("jiraEmail") or os.environ.get("JIRA_EMAIL") or ""
+    result["jiraToken"] = local.get("jiraToken") or os.environ.get("JIRA_API_TOKEN") or ""
+    if result.get("jiraToken") or sys.platform != "darwin":
+        return result
+    with tempfile.TemporaryDirectory(prefix="power-view-saved-jira-") as directory:
+        target = Path(directory) / "credential.json"
+        try:
+            read = subprocess.run(["swift", str(ROOT / "scripts/read-saved-report-jira.swift"),
+                                   local["config"]["jiraBaseUrl"], str(target)],
+                                  capture_output=True, timeout=90)
+            if read.returncode or not target.is_file() or target.stat().st_mode & 0o077:
+                return result
+            credential = json.loads(target.read_text())
+            if credential["origin"].rstrip("/") != local["config"]["jiraBaseUrl"].rstrip("/"):
+                return result
+            if credential.get("email") and credential.get("token"):
+                result["jiraEmail"] = credential["email"]
+                result["jiraToken"] = credential["token"]
+        except (OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+            pass
+    return result
+
+
 class GitHub:
     def __init__(self):
         self.token = github_token()
@@ -124,6 +150,7 @@ def verify_report_read(config, email, token, bundle):
 
 
 def deploy(local, enable=False):
+    local = resolve_jira_credential(local)
     repository = local["repository"]
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise RuntimeError("Choose an owner/private-repository name.")
@@ -183,6 +210,7 @@ def deploy(local, enable=False):
         "bot/description-report.mjs": bundle.read_text(),
         "config.json": json.dumps(config, indent=2) + "\n",
         ".github/workflows/daily-description-report.yml": (ROOT / "automation/description-report/workflow.yml").read_text(),
+        ".github/workflows/verify-chat-connection.yml": (ROOT / "automation/description-report/verify-chat-connection.yml").read_text(),
         "README.md": "# Power View daily description report\n\nPrivate automation and delivery state. Schedule: 21:00 Europe/Kyiv; recovery: 21:20.\n\nREPORT_ENABLED controls delivery. Jira and Chat credentials are encrypted Actions secrets. The source and tests live in kotsaroleks/power-view-for-jira. No credentials belong in this repository's files.\n",
     }
     tree = gh.api("POST", "/repos/" + repository + "/git/trees", {"base_tree": commit["tree"]["sha"],

@@ -45,21 +45,29 @@ function setup(scenario: string) {
       } else if (!saved) return Promise.resolve(new Response("{}", { status: 404 }));
       else body = { sha: String(stateSHA), encoding: "base64", content: saved };
     } else if (url.hostname === "chat.googleapis.com") {
-      const requestID = url.searchParams.get("requestId")!;
-      const prior = messages.get(requestID);
-      if (!prior)
-        messages.set(requestID, {
-          body: bodyText,
-          name: "spaces/fixture-space/messages/" + requestID,
-        });
-      else expect(bodyText).toBe(prior.body);
+      expect(url.searchParams.has("requestId")).toBe(false);
+      const messageID = url.searchParams.get("messageId")!;
+      expect(messageID).toMatch(/^client-[0-9a-f-]{36}$/);
+      const prior = messages.get(messageID);
+      if (prior) {
+        expect(bodyText).toBe(prior.body);
+        return Promise.resolve(
+          new Response(JSON.stringify({ error: { status: "ALREADY_EXISTS" } }), {
+            status: 409,
+          }),
+        );
+      }
+      messages.set(messageID, {
+        body: bodyText,
+        name: "spaces/fixture-space/messages/" + messageID,
+      });
       if (unknownResult) {
         unknownResult = false;
         return Promise.reject(
           new Error("Network response lost after Chat accepted the message"),
         );
       }
-      body = { name: messages.get(requestID)!.name };
+      body = { name: messages.get(messageID)!.name };
     } else if (url.hostname === "fixture.atlassian.net") {
       if (init?.method !== "GET")
         return Promise.reject(new Error("Jira mutation attempted"));
@@ -174,7 +182,7 @@ describe("Jira history → private checkpoint → Google Chat delivery", () => {
     expect(state()).toBeUndefined();
     expect(messages.size).toBe(0);
   });
-  it("recovers an unknown Chat outcome with the saved body and creates a single message", async () => {
+  it("recovers an unknown Chat outcome through the saved client message ID and duplicate response", async () => {
     const { job, messages, state, fetcher } = setup("timeout");
     await expect(job()).rejects.toThrow(/response lost/);
     expect(state()).toHaveProperty("pending");
@@ -183,6 +191,13 @@ describe("Jira history → private checkpoint → Google Chat delivery", () => {
     ).length;
     await job();
     expect(messages.size).toBe(1);
+    const chatRequests = fetcher.mock.calls
+      .map(([input]) => new URL(requestURL(input)))
+      .filter((url) => url.hostname === "chat.googleapis.com");
+    expect(chatRequests).toHaveLength(2);
+    expect(chatRequests[1]!.searchParams.get("messageId")).toBe(
+      chatRequests[0]!.searchParams.get("messageId"),
+    );
     expect(state()).toHaveProperty("processedThrough", "2026-11-06");
     expect(
       fetcher.mock.calls.filter(([input]) =>

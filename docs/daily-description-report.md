@@ -55,7 +55,10 @@ scheduled and manual runs.
 
 Before sending, the complete outbox is committed. Every part has a stable UUID derived
 from its scope, period, position and body. Retries reuse the exact saved body and Google
-Chat `requestId`. Confirmed receipts are saved after each part. A lost response or failed
+Chat custom `messageId` (`client-` plus the internal UUID). Incoming webhooks reject the
+`requestId` query parameter. A repeated custom ID returns `409 ALREADY_EXISTS`, which
+confirms the existing message alias instead of creating another message. Other conflicts
+remain failures. Confirmed receipts are saved after each part. A lost response or failed
 receipt write leaves that request pending; it is not regenerated from newly read Jira
 data. Settings and webhook identity changes cannot silently reuse an old outbox.
 
@@ -82,20 +85,37 @@ order; recovery or subsequent scheduled runs continue from the checkpoint.
    .secrets/report-setup-env/bin/python scripts/complete-description-report.py
    ```
 
-4. Open the printed loopback-only form manually. Enter the Jira credential and the
-   incoming webhook from the selected Google Chat space. The form explains where to copy
+4. Open the printed loopback-only form manually. Setup automatically reuses the saved Jira
+   login for the configured site, without opening an app or a system dialog. When that
+   login is available, the form asks only for the incoming webhook from the selected
+   Google Chat space; it never embeds the saved Jira email or token. If no saved login is
+   available, enter the Jira email and API token as well. The form explains where to copy
    the webhook: space title → **Apps & integrations → Add webhooks**. Availability depends
    on that Workspace's permissions. The webhook is restricted to its exact configured
-   space. No separate Google Cloud project or Mac scheduler is required.
+   space. No Google sign-in, browser session, separate Google Cloud project or Mac
+   scheduler is required to configure delivery with an existing webhook.
 5. **Verify and enable** checks Jira identity and a complete production report read, then
    uploads encrypted Actions secrets, writes the verified configuration, enables the
-   schedule and dispatches the first due report. A valid empty report sends nothing.
+   schedule and dispatches the first due report. A valid empty report sends nothing. A
+   dispatch acknowledgement confirms only that GitHub accepted the run; check its result
+   for actual delivery. If dispatch fails after setup, the page reports that the schedule
+   is enabled but the first run is unconfirmed.
 
 The local form is only an initial configuration tool. It binds to `127.0.0.1`, expires
-after an hour, uses an unguessable route and a one-time form nonce, checks Host/Origin,
-rejects cross-site POSTs and disables caching and external resources. Credentials remain
-in memory until they are uploaded; they are not saved to the local JSON or Git files. The
-form can be closed and the Mac switched off after activation.
+after 24 hours by default (`--lifetime` overrides this), uses an unguessable route and a
+one-time form nonce, checks Host/Origin, rejects cross-site POSTs and disables caching and
+external resources. Credentials remain in memory until they are uploaded; they are not
+saved to the local JSON or Git files. The form can be closed and the Mac switched off
+after activation.
+
+Run the protected-form checks without network calls, saved credentials or a browser:
+
+```sh
+python3 -m unittest discover -s scripts -p 'test_complete_description_report.py'
+```
+
+These checks cover saved-login secrecy, webhook-only submission, resumed-session routing,
+Host/Origin/nonce rejection, and the distinction between deployment and dispatch success.
 
 The repository secrets are `JIRA_EMAIL`, `JIRA_API_TOKEN` and `GOOGLE_CHAT_WEBHOOK_URL`.
 The runtime uses its repository's short-lived `github.token` to save state, rather than

@@ -114,7 +114,9 @@ async function main() {
   console.log(
     JSON.stringify({
       ...result,
-      changedIssues: previews.reduce((sum, r) => sum + r.changedIssueCount, 0),
+      ...(dryRun
+        ? { changedIssues: previews.reduce((sum, r) => sum + r.changedIssueCount, 0) }
+        : {}),
     }),
   );
 }
