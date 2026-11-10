@@ -173,3 +173,6 @@ export {
 } from "./time-report";
 export * from "./description-report";
 export * from "./description-chat";
+export * from "./work-report-period";
+export * from "./work-activity-report";
+export * from "./work-activity-chat";

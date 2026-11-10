@@ -39,7 +39,7 @@ def form(local, action, nonce, error=""):
         "<p><label>Email Jira<br><input type='email' name='email' required autocomplete='username' value='" + escape(local.get("jiraEmail", "")) + "'></label></p>"
         "<p><label>Ключ API Jira<br><input type='password' name='jiraToken' required autocomplete='off'></label></p>")
     return document("<h1>Підключення щоденних репортів</h1>"
-        "<p>О 21:00 за Києвом перевірятимемо зміни описів задач. Репорт потрапить у вибрану вами групу Google Chat, якщо були зміни.</p>"
+        "<p>Щобудня о 08:01 за Києвом формуватимемо репорти про рух задач і зміни описів за період 08:00–08:00. Якщо змін немає: No changes for today.</p>"
         "<p><strong>Дошка:</strong> " + escape(local["config"]["boardId"]) + " · " + escape(local["config"]["jiraBaseUrl"]) + "</p>"
         + jira_fields +
         "<h2>Підключення Google Chat</h2>"
@@ -131,7 +131,7 @@ def serve(local, lifetime=86400, ready_path=None, session=None, status_path=None
                 self.respond(400, document("<h1>Розклад увімкнено, перший запуск не підтверджено</h1><p>Jira перевірена, налаштування збережені. Не вдалося підтвердити запуск першого репорту в GitHub. Заплановані запуски залишаються увімкненими.</p><p>Перевірте <a href='" + escape(result["repository"] + "/actions") + "'>історію запусків</a> перед повторним запуском. Надсилання в чат ще не підтверджено.</p>"))
                 return
             status("enabled", deliveryEnabled=True, workflowDispatched=True)
-            self.respond(200, document("<h1>Репорти увімкнено</h1><p>Jira перевірена. Перший запуск передано GitHub; наступні заплановані о 21:00 за Києвом.</p><p>Факт надсилання перевіряйте в <a href='" + escape(result["repository"] + "/actions") + "'>історії запусків</a>. Якщо змін немає, бот надсилає «No changes for today».</p><p>Цю сторінку можна закрити.</p>"))
+            self.respond(200, document("<h1>Репорти увімкнено</h1><p>Jira перевірена. Перший запуск передано GitHub; наступні заплановані на робочі дні о 08:01 за Києвом. GitHub може затримувати запуск.</p><p>Факт надсилання перевіряйте в <a href='" + escape(result["repository"] + "/actions") + "'>історії запусків</a>. Якщо змін немає, бот надсилає «No changes for today».</p><p>Цю сторінку можна закрити.</p>"))
             print(json.dumps({"setupCompleted": True, "deliveryEnabled": True, "workflowDispatched": True}), flush=True)
             self.server.done = True
 

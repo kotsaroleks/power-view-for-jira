@@ -1,9 +1,9 @@
-name: Daily Jira description changes
+name: Morning Jira work and description reports
 on:
   schedule:
-    - cron: "0 21 * * *"
+    - cron: "1 8 * * 1-5"
       timezone: Europe/Kyiv
-    - cron: "20 21 * * *"
+    - cron: "11,31 8 * * 1-5"
       timezone: Europe/Kyiv
   workflow_dispatch:
     inputs:
@@ -44,10 +44,10 @@ jobs:
             ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'deliver' }}
         run: |
           if [ "$REPORT_MODE" = "check" ]; then
-            node --check bot/description-report.mjs
+            node --check bot/morning-report.mjs
             node --input-type=module -e 'import {readFileSync} from "node:fs"; JSON.parse(readFileSync("config.json", "utf8")); console.log("Worker and configuration parsed. Credentials and Chat delivery were not exercised.");'
           elif [ "$REPORT_MODE" = "preview" ]; then
-            node bot/description-report.mjs --dry-run
+            node bot/morning-report.mjs --dry-run
           else
-            node bot/description-report.mjs
+            node bot/morning-report.mjs
           fi

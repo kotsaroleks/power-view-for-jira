@@ -1,9 +1,12 @@
 # Daily Jira description changes
 
-Implemented 7 November 2026. The daily worker runs in GitHub Actions in a separate,
-private automation repository. Power View and the user's Mac can be closed or powered off
-after setup. The public product repository contains the source, tests and deployment
-template; it does not run the daily job or hold delivery state.
+Implemented 7 November 2026. Delivery migrated to the morning workday calendar on 10
+November: see [the current two-report behavior](morning-work-reports.md). The 21:00
+details below describe the preserved legacy implementation and its product previews; the
+bot now uses explicit 08:00 boundaries. The daily worker runs in GitHub Actions in a
+separate, private automation repository. Power View and the user's Mac can be closed or
+powered off after setup. The public product repository contains the source, tests and
+deployment template; it does not run the daily job or hold delivery state.
 
 ## Report behavior
 

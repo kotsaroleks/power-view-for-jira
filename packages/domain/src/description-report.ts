@@ -102,18 +102,29 @@ export function descriptionCandidateJql(period: DescriptionReportPeriod): string
   const padded = new Date(Date.parse(period.start) - 86_400_000).toISOString();
   return `updated >= "${padded.slice(0, 10)} ${padded.slice(11, 16)}" ORDER BY key ASC`;
 }
-export function buildDescriptionChangeReport(input: {
-  jiraBaseUrl: string;
-  boardId: string;
-  boardName: string;
-  period: DescriptionReportPeriod;
-  generatedAt: string;
-  issues: readonly ReportingIssueSnapshot[];
-  events: readonly ReportChangeEvent[];
-}): DescriptionChangeReport {
-  const period = descriptionReportPeriod(input.period.date);
+export function buildDescriptionChangeReport(
+  input: {
+    jiraBaseUrl: string;
+    boardId: string;
+    boardName: string;
+    period: DescriptionReportPeriod;
+    generatedAt: string;
+    issues: readonly ReportingIssueSnapshot[];
+    events: readonly ReportChangeEvent[];
+  },
+  expectedPeriod?: DescriptionReportPeriod,
+): DescriptionChangeReport {
+  const period = expectedPeriod ?? descriptionReportPeriod(input.period.date);
   if (period.start !== input.period.start || period.end !== input.period.end)
-    throw new Error("The report does not use complete Kyiv 21:00 boundaries.");
+    throw new Error("The report does not match its configured Kyiv period boundaries.");
+  if (
+    period.date !== input.period.date ||
+    period.timeZone !== DESCRIPTION_REPORT_TIME_ZONE ||
+    !Number.isFinite(Date.parse(period.start)) ||
+    !Number.isFinite(Date.parse(period.end)) ||
+    Date.parse(period.start) >= Date.parse(period.end)
+  )
+    throw new Error("The configured report period is invalid.");
   const origin = new URL(input.jiraBaseUrl);
   if (origin.protocol !== "https:" || origin.username || origin.password)
     throw new Error("Use a valid HTTPS Jira URL.");

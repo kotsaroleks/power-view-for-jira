@@ -50,7 +50,7 @@ jobs:
               const messageId='client-'+requestId;
               url.searchParams.set('messageId',messageId);
               stage='Google Chat confirmation';
-              const response=await fetch(url,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json; charset=UTF-8'},body:JSON.stringify({text:'Power View підключено. Щоденна перевірка змін описів задач — о 21:00 за Києвом. Якщо змін немає: No changes for today'}),signal:AbortSignal.timeout(30000)});
+              const response=await fetch(url,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json; charset=UTF-8'},body:JSON.stringify({text:'Power View підключено. Репорти про рух задач і зміни описів — у робочі дні, заплановано о 08:01 за Києвом за період 08:00–08:00. Якщо змін немає: No changes for today'}),signal:AbortSignal.timeout(30000)});
               let message;
               if (response.status===409) {
                 const error=await response.json();

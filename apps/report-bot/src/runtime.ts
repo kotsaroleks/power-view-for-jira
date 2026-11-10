@@ -16,6 +16,17 @@ export const reportBotConfigSchema = z.strictObject({
     .regex(/^[a-f0-9]{64}$/)
     .optional(),
   jiraApiRoot: z.url().optional(),
+  morningReports: z
+    .strictObject({
+      calendar: z.literal("kyiv-workdays-08-v1"),
+      firstReportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      sprintFieldId: z
+        .string()
+        .regex(/^customfield_\d+$/)
+        .optional(),
+      descriptionCoveredThrough: z.iso.datetime().optional(),
+    })
+    .optional(),
 });
 export type ReportBotConfig = z.infer<typeof reportBotConfigSchema>;
 export function checkedJiraRoot(config: ReportBotConfig): string {
@@ -161,9 +172,16 @@ export class GitHubReportStateStore implements ReportStateStore {
     private readonly repository: string,
     private readonly token: string,
     private readonly fetcher: typeof fetch = fetch,
+    private readonly statePath = "state/description-report.json",
   ) {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repository))
       throw new Error("Select a private automation repository.");
+    if (
+      !/^state\/(?:description-report|morning-description-report|work-activity-report)\.json$/.test(
+        statePath,
+      )
+    )
+      throw new Error("Select a supported private report state file.");
   }
   private async request(path: string, method = "GET", body?: unknown): Promise<Response> {
     return this.fetcher(`https://api.github.com/repos/${this.repository}${path}`, {
@@ -186,9 +204,7 @@ export class GitHubReportStateStore implements ReportStateStore {
     if (!repo.success)
       throw new Error("Report state must stay in a private repository on main.");
     this.checked = true;
-    const response = await this.request(
-      "/contents/state/description-report.json?ref=main",
-    );
+    const response = await this.request("/contents/" + this.statePath + "?ref=main");
     if (response.status === 404) {
       this.sha = undefined;
       return undefined;
@@ -210,16 +226,12 @@ export class GitHubReportStateStore implements ReportStateStore {
     if (!this.checked)
       throw new Error("Read and verify private report state before saving it.");
     stateSchema.parse(value);
-    const response = await this.request(
-      "/contents/state/description-report.json",
-      "PUT",
-      {
-        message: "Record description report delivery checkpoint",
-        branch: "main",
-        content: Buffer.from(JSON.stringify(value)).toString("base64"),
-        ...(this.sha ? { sha: this.sha } : {}),
-      },
-    );
+    const response = await this.request("/contents/" + this.statePath, "PUT", {
+      message: "Record description report delivery checkpoint",
+      branch: "main",
+      content: Buffer.from(JSON.stringify(value)).toString("base64"),
+      ...(this.sha ? { sha: this.sha } : {}),
+    });
     const parsed = z
       .object({ content: z.object({ sha: z.string().min(1) }) })
       .safeParse(await jsonResponse(response));

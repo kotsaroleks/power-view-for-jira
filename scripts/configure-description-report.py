@@ -96,6 +96,17 @@ class GitHub:
 
 
 def validate_config(config):
+    calendar = config.get("morningReports")
+    if calendar is not None:
+        if (not isinstance(calendar, dict) or calendar.get("calendar") != "kyiv-workdays-08-v1"
+                or not isinstance(calendar.get("firstReportDate"), str)):
+            raise RuntimeError("Configure the supported morning reporting calendar.")
+        try:
+            first = date.fromisoformat(calendar["firstReportDate"])
+        except ValueError:
+            raise RuntimeError("Select a valid morning report start date.") from None
+        if first.weekday() > 4:
+            raise RuntimeError("The first morning report date must be Monday–Friday.")
     url = urlsplit(config["jiraBaseUrl"])
     if (url.scheme != "https" or not (url.hostname or "").endswith(".atlassian.net")
             or url.port not in (None, 443) or url.username or url.password or url.query or url.fragment or url.path not in ("", "/")):
@@ -156,6 +167,8 @@ def deploy(local, enable=False):
         raise RuntimeError("Choose an owner/private-repository name.")
     config = dict(local["config"])
     validate_config(config)
+    if not config.get("morningReports"):
+        raise RuntimeError("Configure the morningReports calendar and weekday start date before deploying the morning workflow.")
     email = local.get("jiraEmail") or os.environ.get("JIRA_EMAIL")
     token = local.get("jiraToken") or os.environ.get("JIRA_API_TOKEN")
     webhook = (local.get("webhook") or os.environ.get("GOOGLE_CHAT_WEBHOOK_URL") or "").strip()
@@ -175,7 +188,7 @@ def deploy(local, enable=False):
         config["chatWebhookFingerprint"] = hashlib.sha256(webhook.encode()).hexdigest()
     if enable and not (email and token and webhook):
         raise RuntimeError("Verified Jira access and the selected Chat webhook are required before enabling delivery.")
-    bundle = ROOT / "dist/report-bot/description-report.mjs"
+    bundle = ROOT / ("dist/report-bot/morning-report.mjs" if config.get("morningReports") else "dist/report-bot/description-report.mjs")
     if not bundle.is_file():
         raise RuntimeError("Build the report worker before deploying it.")
     if email or token or webhook:
@@ -207,11 +220,12 @@ def deploy(local, enable=False):
     commit = gh.api("GET", "/repos/" + repository + "/git/commits/" + ref["object"]["sha"])
     files = {
         ".power-view-report-automation": MARKER + "\n",
-        "bot/description-report.mjs": bundle.read_text(),
+        "bot/description-report.mjs": (ROOT / "dist/report-bot/description-report.mjs").read_text(),
+        "bot/morning-report.mjs": (ROOT / "dist/report-bot/morning-report.mjs").read_text(),
         "config.json": json.dumps(config, indent=2) + "\n",
         ".github/workflows/daily-description-report.yml": (ROOT / "automation/description-report/workflow.yml").read_text(),
         ".github/workflows/verify-chat-connection.yml": (ROOT / "automation/description-report/verify-chat-connection.yml").read_text(),
-        "README.md": "# Power View daily description report\n\nPrivate automation and delivery state. Schedule: 21:00 Europe/Kyiv; recovery: 21:20.\n\nREPORT_ENABLED controls delivery. Jira and Chat credentials are encrypted Actions secrets. The source and tests live in kotsaroleks/power-view-for-jira. No credentials belong in this repository's files.\n",
+        "README.md": "# Power View morning Jira reports\n\nPrivate automation and delivery state. Target schedule: 08:01 Europe/Kyiv Monday–Friday. Recovery: 08:11 and 08:31. GitHub schedule can be delayed. Both reports cover previous weekday 08:00 to current weekday 08:00; Monday includes the weekend.\n\nREPORT_ENABLED controls delivery. Jira and Chat credentials are encrypted Actions secrets. The source and tests live in kotsaroleks/power-view-for-jira. No credentials belong in this repository's files.\n",
     }
     tree = gh.api("POST", "/repos/" + repository + "/git/trees", {"base_tree": commit["tree"]["sha"],
                   "tree": [{"path": path, "mode": "100644", "type": "blob", "content": content} for path, content in files.items()]})

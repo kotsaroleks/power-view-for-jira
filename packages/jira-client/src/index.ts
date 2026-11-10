@@ -104,3 +104,4 @@ export {
   collectDescriptionChangeReport,
   type DescriptionReportClient,
 } from "./description-report";
+export * from "./work-activity-report";

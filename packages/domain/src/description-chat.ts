@@ -1,5 +1,4 @@
 import {
-  shiftDescriptionDate,
   type DescriptionChangeReport,
   type DescriptionReportRow,
 } from "./description-report";
@@ -27,7 +26,23 @@ function message(
   index: number,
   count: number,
 ): DescriptionChatMessage {
-  const period = `${shiftDescriptionDate(report.period.date, -1)} 21:00 — ${report.period.date} 21:00 · Київ`;
+  const dateTime = (instant: string) => {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Kyiv",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      })
+        .formatToParts(new Date(instant))
+        .map((part) => [part.type, part.value]),
+    );
+    return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+  };
+  const period = `${dateTime(report.period.start)} — ${dateTime(report.period.end)} · Київ`;
   const widgets: Array<Record<string, unknown>> = [
     {
       textParagraph: {

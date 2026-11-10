@@ -4,5 +4,10 @@
   "boardId": "7",
   "expectedJiraAccountId": "verified-current-user-id",
   "chatSpace": "YOUR_CHAT_SPACE_ID",
-  "firstReportDate": "2026-11-07"
+  "firstReportDate": "2026-11-10",
+  "morningReports": {
+    "calendar": "kyiv-workdays-08-v1",
+    "sprintFieldId": "customfield_10020",
+    "firstReportDate": "2026-11-10"
+  }
 }
