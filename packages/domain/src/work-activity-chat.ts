@@ -12,12 +12,6 @@ const html = (value: string) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 const size = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
-const time = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Kyiv",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
 const local = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Kyiv",
   year: "numeric",
@@ -40,10 +34,11 @@ function value(value: string | number | null | undefined, missing: string): stri
   return value === null || value === undefined || value === "" ? missing : String(value);
 }
 function eventLine(change: WorkActivityChange, text: string): string {
-  return `${time.format(new Date(change.occurredAt))} · ${text} · ${actor(change)}`;
+  const dateTime = localDateTime(change.occurredAt);
+  return `${dateTime.slice(0, 5)} ${dateTime.slice(11)} · ${text} · ${actor(change)}`;
 }
 function owner(row: WorkActivityRow): string {
-  return `<b>Поточний виконавець:</b> ${html(row.currentAssignee?.displayName ?? "Не призначено")}`;
+  return `<b>Виконавець зараз:</b> ${html(row.currentAssignee?.displayName ?? "Не призначено")}`;
 }
 function taskCount(count: number): string {
   const lastTwo = count % 100;
@@ -68,7 +63,7 @@ interface Unit {
 }
 interface DisplayRow {
   issue: WorkActivityRow;
-  context: boolean;
+  ancestors: WorkActivityRow[];
   detail: string;
 }
 interface DisplaySection {
@@ -80,25 +75,16 @@ interface DisplaySection {
 function sections(units: readonly Unit[]): DisplaySection[] {
   const result: DisplaySection[] = [];
   let current: DisplaySection | undefined;
-  let seen = new Set<string>();
   for (const unit of units) {
     if (!current || current.key !== unit.section) {
       current = { key: unit.section, title: unit.title, rows: [] };
       result.push(current);
-      seen = new Set<string>();
     }
-    for (const ancestor of unit.ancestors) {
-      if (!seen.has(ancestor.issueId)) {
-        current.rows.push({
-          issue: ancestor,
-          context: true,
-          detail: "— <i>контекст</i>",
-        });
-        seen.add(ancestor.issueId);
-      }
-    }
-    current.rows.push({ issue: unit.row, context: false, detail: unit.detail });
-    seen.add(unit.row.issueId);
+    current.rows.push({
+      issue: unit.row,
+      ancestors: unit.ancestors,
+      detail: unit.detail,
+    });
   }
   return result;
 }
@@ -109,29 +95,38 @@ function message(
   index: number,
   count: number,
 ): DescriptionChatMessage {
-  const widgets: Array<Record<string, unknown>> = [
-    {
+  const boardName = report.boardName.replace(/[\r\n]/g, " ");
+  const widgets: Array<Record<string, unknown>> = [];
+  if (index === 0)
+    widgets.push({
       textParagraph: {
-        text: `<b>Задач зі змінами: ${report.changedIssueCount}</b><br>Статус: ${report.statusChangedIssueCount} · Виконавець: ${report.assigneeChangedIssueCount} · Опис: ${report.descriptionChangedIssueCount} · Спринт: ${report.sprintChangedIssueCount}<br>В одній задачі можуть змінюватися кілька полів.`,
+        text: `<b>${taskCount(report.changedIssueCount)} зі змінами</b> · ${html(boardName)}`,
       },
+    });
+  widgets.push({
+    columns: {
+      columnItems: ["Задача", "Зміни / виконавець"].map((heading) => ({
+        horizontalSizeStyle: "FILL_AVAILABLE_SPACE",
+        widgets: [{ textParagraph: { text: `<b>${heading}</b>` } }],
+      })),
     },
-    {
-      textParagraph: {
-        text: `Поточні статуси й виконавці прочитані під час формування: ${localDateTime(report.generatedAt)} · Київ. Переходи нижче належать лише звітному періоду.`,
-      },
-    },
-  ];
+  });
   for (const section of sections(units)) {
     widgets.push({ textParagraph: { text: `<b>${html(section.title)}</b>` } });
     for (const row of section.rows) {
-      const prefix = row.issue.depth
-        ? "　".repeat(Math.min(row.issue.depth - 1, 10)) + "↳ "
-        : "";
       const summary =
         row.issue.summary.length > 240
           ? row.issue.summary.slice(0, 240) + "…"
           : row.issue.summary;
-      const issue = `${prefix}<a href="${html(report.jiraBaseUrl + "/browse/" + encodeURIComponent(row.issue.issueKey))}">${html(row.issue.issueKey)}</a> · ${html(row.issue.issueType)}<br>${html(summary)}`;
+      const breadcrumb = row.ancestors
+        .map(
+          (ancestor) =>
+            `<a href="${html(report.jiraBaseUrl + "/browse/" + encodeURIComponent(ancestor.issueKey))}">${html(ancestor.issueKey)}</a> (${html(ancestor.issueType)})`,
+        )
+        .join(" → ");
+      const issue =
+        `<a href="${html(report.jiraBaseUrl + "/browse/" + encodeURIComponent(row.issue.issueKey))}">${html(row.issue.issueKey)}</a> · ${html(row.issue.issueType)}<br>${html(summary)}` +
+        (breadcrumb ? `<br><i>${breadcrumb}</i>` : "");
       widgets.push({
         columns: {
           columnItems: [
@@ -148,16 +143,22 @@ function message(
       });
     }
   }
-  const boardName = report.boardName.replace(/[\r\n]/g, " ");
+  if (index === count - 1)
+    widgets.push({
+      textParagraph: {
+        text: `<i>Поточний стан: ${localDateTime(report.generatedAt)} · Київ.</i>`,
+      },
+    });
   return {
-    text: `Що змінилося в роботі · ${report.period.date} · ${report.changedIssueCount} задач · ${boardName.replaceAll("<", "‹").replaceAll(">", "›")}`,
+    text: "",
     cardsV2: [
       {
         cardId: `work-activity-${report.period.date}-${index + 1}`,
         card: {
           header: {
-            title: "Що змінилося в роботі",
-            subtitle: `${boardName.slice(0, 120)} · ${localDateTime(report.period.start)} — ${localDateTime(report.period.end)} · Київ · ${index + 1}/${count}`,
+            title:
+              "Що змінилося в роботі" + (count > 1 ? ` · ${index + 1}/${count}` : ""),
+            subtitle: `${localDateTime(report.period.start)} — ${localDateTime(report.period.end)} · Київ`,
           },
           sections: [{ widgets }],
         },
@@ -166,7 +167,7 @@ function message(
   };
 }
 
-/** Two aligned Chat columns, bounded chunks and repeated status/ancestor context.
+/** One table entry per changed issue, bounded chunks and compact ancestor breadcrumbs.
  * Every event is retained; an individually oversized row fails instead of truncating it. */
 export function workActivityChatMessages(
   report: WorkActivityReport,
@@ -191,64 +192,74 @@ export function workActivityChatMessages(
   function add(section: string, title: string, row: WorkActivityRow, detail: string) {
     units.push({ section, title, row, ancestors: ancestors(row), detail });
   }
-  for (const group of report.statusGroups) {
+  const groups = new Map<
+    string,
+    { statusId?: string; statusName: string; rows: WorkActivityRow[] }
+  >();
+  for (const row of report.rows.filter((row) => !row.contextOnly)) {
+    const key = row.currentStatus.id ?? row.currentStatus.name;
+    const group = groups.get(key) ?? {
+      ...(row.currentStatus.id ? { statusId: row.currentStatus.id } : {}),
+      statusName: row.currentStatus.name,
+      rows: [],
+    };
+    group.rows.push(row);
+    groups.set(key, group);
+  }
+  const statusOrder = [
+    "To Do",
+    "In Progress",
+    "In Review",
+    "In Testing",
+    "Acceptance",
+    "Done",
+  ];
+  const orderedGroups = [...groups.values()].sort((left, right) => {
+    const order = (name: string) => {
+      const index = statusOrder.indexOf(name);
+      return index < 0 ? statusOrder.length : index;
+    };
+    return (
+      order(left.statusName) - order(right.statusName) ||
+      left.statusName.localeCompare(right.statusName, "uk")
+    );
+  });
+  for (const group of orderedGroups) {
     const title = `${group.statusName} · ${taskCount(group.rows.length)}`;
     for (const row of group.rows) {
-      const transitions = row.changes
-        .filter((change) => change.type === "status-changed")
-        .map((change) =>
-          eventLine(
-            change,
-            `${html(value(change.from, "Невідомо"))} → ${html(value(change.to, "Невідомо"))}`,
-          ),
-        );
+      const transitions = row.changes.map((change) => {
+        switch (change.type) {
+          case "status-changed":
+            return eventLine(
+              change,
+              `${html(value(change.from, "Невідомо"))} → ${html(value(change.to, "Невідомо"))}`,
+            );
+          case "assignee-changed":
+            return eventLine(
+              change,
+              `Виконавець: ${html(value(change.from, "Не призначено"))} → ${html(value(change.to, "Не призначено"))}`,
+            );
+          case "description-changed":
+            return eventLine(change, "Оновлено опис");
+          case "sprint-added":
+            return eventLine(
+              change,
+              `Додано до спринту: ${html(value(change.to, "Sprint " + change.sprintId))}`,
+            );
+          case "sprint-removed":
+            return eventLine(
+              change,
+              `Знято зі спринту: ${html(value(change.from, "Sprint " + change.sprintId))}`,
+            );
+        }
+      });
       add(
         "status:" + (group.statusId ?? group.statusName),
         title,
         row,
-        transitions.join("<br>") + "<br>" + owner(row),
+        owner(row) + "<br>" + transitions.join("<br>"),
       );
     }
-  }
-  for (const row of report.assigneeChanges) {
-    const transitions = row.changes
-      .filter((change) => change.type === "assignee-changed")
-      .map((change) =>
-        eventLine(
-          change,
-          `${html(value(change.from, "Не призначено"))} → ${html(value(change.to, "Не призначено"))}`,
-        ),
-      );
-    add(
-      "assignees",
-      "Передача відповідальності",
-      row,
-      transitions.join("<br>") + "<br>" + owner(row),
-    );
-  }
-  for (const row of report.descriptionChanges) {
-    const edits = row.changes
-      .filter((change) => change.type === "description-changed")
-      .map((change) => eventLine(change, "Оновлено опис"));
-    add("descriptions", "Оновлені описи", row, edits.join("<br>"));
-  }
-  for (const row of report.sprintChanges) {
-    const changes = row.changes
-      .filter(
-        (change) => change.type === "sprint-added" || change.type === "sprint-removed",
-      )
-      .map((change) => {
-        const added = change.type === "sprint-added";
-        const sprint = value(
-          added ? change.to : change.from,
-          "Sprint " + change.sprintId,
-        );
-        return eventLine(
-          change,
-          `${added ? "Додано до спринту" : "Знято зі спринту"}: ${html(sprint)}`,
-        );
-      });
-    add("sprints", "Зміни плану спринтів", row, changes.join("<br>"));
   }
   if (!units.length) throw new Error("The changed work report has no deliverable rows.");
   const parts: Unit[][] = [];

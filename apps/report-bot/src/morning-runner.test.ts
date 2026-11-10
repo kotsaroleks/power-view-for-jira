@@ -161,7 +161,9 @@ describe("Morning CLI report orchestration", () => {
     );
     const parts = vi.mocked(options.send).mock.calls.map(([part]) => part);
     expect(parts).toHaveLength(2);
-    expect(parts[0]!.payload.text).toContain("Що змінилося в роботі");
+    expect(parts[0]!.payload.cardsV2?.[0]?.card.header.title).toContain(
+      "Що змінилося в роботі",
+    );
     expect(JSON.stringify(parts[0]!.payload)).toContain("In Testing · 1 задача");
     expect(JSON.stringify(parts[0]!.payload)).toContain("Developer");
     expect(JSON.stringify(parts[0]!.payload)).toContain("QA owner");
@@ -218,7 +220,7 @@ describe("Morning CLI report orchestration", () => {
     const { options, state } = setup();
     let fail = true;
     options.send = vi.fn<MorningReportsOptions["send"]>((part) =>
-      fail && part.payload.text.startsWith("Що змінилося")
+      fail && part.payload.cardsV2?.[0]?.cardId.startsWith("work-activity-")
         ? Promise.reject(new Error("Work response lost"))
         : Promise.resolve("spaces/fixture-space/messages/client-" + part.requestId),
     );
@@ -248,7 +250,7 @@ describe("Morning CLI report orchestration", () => {
   it("reconciles a saved description delivery even when the next work period cannot be read", async () => {
     const { options, state } = setup();
     options.send = vi.fn<MorningReportsOptions["send"]>((part) =>
-      part.payload.text.startsWith("Зміни описів")
+      part.payload.cardsV2?.[0]?.cardId.startsWith("descriptions-")
         ? Promise.reject(new Error("Description response lost"))
         : Promise.resolve("spaces/fixture-space/messages/client-" + part.requestId),
     );
