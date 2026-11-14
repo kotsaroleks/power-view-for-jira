@@ -21,6 +21,9 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
 MARKER = "power-view-description-report-v1"
+DAILY_WORKFLOW_PATH = ".github/workflows/daily-description-report.yml"
+GITHUB_PRIMARY_SCHEDULE = '    - cron: "5 0 * * *"\n      timezone: Europe/Kyiv\n'
+CLOUDFLARE_PRIMARY_SCHEDULE = "    # Cloudflare dispatches the primary report at 00:05 Europe/Kyiv.\n"
 
 
 def github_token():
@@ -98,15 +101,19 @@ class GitHub:
 def validate_config(config):
     calendar = config.get("morningReports")
     if calendar is not None:
-        if (not isinstance(calendar, dict) or calendar.get("calendar") != "kyiv-workdays-08-v1"
-                or not isinstance(calendar.get("firstReportDate"), str)):
-            raise RuntimeError("Configure the supported morning reporting calendar.")
+        if (not isinstance(calendar, dict)
+                or calendar.get("calendar") not in ("kyiv-workdays-08-v1", "kyiv-calendar-days-00-v1")
+                or not isinstance(calendar.get("firstReportDate"), str)
+                or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", calendar["firstReportDate"])):
+            raise RuntimeError("Configure a supported reporting calendar and first report date.")
         try:
             first = date.fromisoformat(calendar["firstReportDate"])
         except ValueError:
-            raise RuntimeError("Select a valid morning report start date.") from None
-        if first.weekday() > 4:
+            raise RuntimeError("Select a valid report start date.") from None
+        if calendar["calendar"] == "kyiv-workdays-08-v1" and first.weekday() > 4:
             raise RuntimeError("The first morning report date must be Monday–Friday.")
+        if calendar["calendar"] == "kyiv-calendar-days-00-v1" and calendar.get("descriptionCoveredThrough"):
+            raise RuntimeError("Calendar-day reports must cover the full day.")
     url = urlsplit(config["jiraBaseUrl"])
     if (url.scheme != "https" or not (url.hostname or "").endswith(".atlassian.net")
             or url.port not in (None, 443) or url.username or url.password or url.query or url.fragment or url.path not in ("", "/")):
@@ -167,8 +174,8 @@ def deploy(local, enable=False):
         raise RuntimeError("Choose an owner/private-repository name.")
     config = dict(local["config"])
     validate_config(config)
-    if not config.get("morningReports"):
-        raise RuntimeError("Configure the morningReports calendar and weekday start date before deploying the morning workflow.")
+    if (config.get("morningReports") or {}).get("calendar") != "kyiv-calendar-days-00-v1":
+        raise RuntimeError("Configure the morningReports calendar and first report date for daily delivery.")
     email = local.get("jiraEmail") or os.environ.get("JIRA_EMAIL")
     token = local.get("jiraToken") or os.environ.get("JIRA_API_TOKEN")
     webhook = (local.get("webhook") or os.environ.get("GOOGLE_CHAT_WEBHOOK_URL") or "").strip()
@@ -218,14 +225,31 @@ def deploy(local, enable=False):
         gh.api("PATCH", "/repos/" + repository, {"default_branch": "main"})
     ref = gh.api("GET", "/repos/" + repository + "/git/ref/heads/main")
     commit = gh.api("GET", "/repos/" + repository + "/git/commits/" + ref["object"]["sha"])
+    current_workflow = gh.api(
+        "GET",
+        f"/repos/{repository}/contents/{DAILY_WORKFLOW_PATH}?ref={ref['object']['sha']}",
+        missing=True,
+    )
+    current_source = base64.b64decode(current_workflow["content"]).decode() if current_workflow else ""
+    workflow = (ROOT / "automation/description-report/workflow.yml").read_text()
+    schedule = "Both reports are scheduled daily at 00:05 Europe/Kyiv with recovery at 00:15 and 00:35."
+    if CLOUDFLARE_PRIMARY_SCHEDULE in current_source:
+        workflow = workflow.replace(GITHUB_PRIMARY_SCHEDULE, CLOUDFLARE_PRIMARY_SCHEDULE, 1)
+        schedule = "Cloudflare starts both reports daily at 00:05 Europe/Kyiv, with GitHub recovery at 00:15 and 00:35."
+    readme = (
+        "# Power View daily Jira reports\n\nPrivate automation and delivery state. "
+        f"{schedule} Each covers the previous calendar day from midnight to midnight, including weekends. "
+        "GitHub may start the workflow late.\n\nREPORT_ENABLED controls delivery. Jira and Chat credentials "
+        "are encrypted Actions secrets. The source and tests live in kotsaroleks/power-view-for-jira.\n"
+    )
     files = {
         ".power-view-report-automation": MARKER + "\n",
         "bot/description-report.mjs": (ROOT / "dist/report-bot/description-report.mjs").read_text(),
         "bot/morning-report.mjs": (ROOT / "dist/report-bot/morning-report.mjs").read_text(),
         "config.json": json.dumps(config, indent=2) + "\n",
-        ".github/workflows/daily-description-report.yml": (ROOT / "automation/description-report/workflow.yml").read_text(),
+        DAILY_WORKFLOW_PATH: workflow,
         ".github/workflows/verify-chat-connection.yml": (ROOT / "automation/description-report/verify-chat-connection.yml").read_text(),
-        "README.md": "# Power View morning Jira reports\n\nPrivate automation and delivery state. Target schedule: 08:01 Europe/Kyiv Monday–Friday. Recovery: 08:11 and 08:31. GitHub schedule can be delayed. Both reports cover previous weekday 08:00 to current weekday 08:00; Monday includes the weekend.\n\nREPORT_ENABLED controls delivery. Jira and Chat credentials are encrypted Actions secrets. The source and tests live in kotsaroleks/power-view-for-jira. No credentials belong in this repository's files.\n",
+        "README.md": readme,
     }
     tree = gh.api("POST", "/repos/" + repository + "/git/trees", {"base_tree": commit["tree"]["sha"],
                   "tree": [{"path": path, "mode": "100644", "type": "blob", "content": content} for path, content in files.items()]})

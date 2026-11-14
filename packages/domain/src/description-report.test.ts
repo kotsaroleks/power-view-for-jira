@@ -121,7 +121,14 @@ describe("Daily description report", () => {
     expect(messages.length).toBeGreaterThan(1);
     expect(
       messages.reduce(
-        (sum, m) => sum + m.cardsV2![0]!.card.sections[0]!.widgets.length - 1,
+        (sum, m) =>
+          sum +
+          m
+            .cardsV2![0]!.card.sections.find(
+              (section) => section.header === "🧾 Правки за задачами",
+            )!
+            .widgets.filter((widget) => "columns" in widget).length -
+          1,
         0,
       ),
     ).toBeGreaterThanOrEqual(55);

@@ -27,6 +27,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SectionSettings } from "./SectionSettings";
+import { loadedBuildTime, updateApp } from "./reload-app";
 import { useAppSections } from "./use-app-sections";
 import { EstimationBoard } from "./estimation/EstimationBoard";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
@@ -104,8 +105,30 @@ function AppContent({
   const [diagnosticsError, setDiagnosticsError] = useState<string>();
   const [copyStatus, setCopyStatus] = useState<string>();
   const [readySchedule, setReadySchedule] = useState<WorkspaceContext>();
+  const rememberReadyWorkspace = useCallback(
+    (workspace: WorkspaceContext | undefined) => {
+      // Editing or reloading the Settings preview must not erase a usable workspace.
+      if (!workspace) return;
+      setReadySchedule((current) => {
+        // A draft or a late refresh from another scope cannot replace the
+        // active workspace; only completing setup commits a different scope.
+        if (
+          current &&
+          (current.queryKey !== workspace.queryKey ||
+            current.scope.boardId !== workspace.scope.boardId)
+        )
+          return current;
+        return workspace;
+      });
+    },
+    [],
+  );
   const [jiraClient, setJiraClient] = useState<JiraClient>();
   const [page, setPage] = useState<AppPage>("settings");
+  const [navigationMessage, setNavigationMessage] = useState("");
+  const [updateMessage, setUpdateMessage] = useState("");
+  const [reloading, setReloading] = useState(false);
+  const [buildTime] = useState(loadedBuildTime);
   const connectionAbort = useRef<AbortController | undefined>(undefined);
   const timesheetGuard = useRef<(() => boolean) | undefined>(undefined);
   const registerTimesheetGuard = useCallback((guard: (() => boolean) | undefined) => {
@@ -263,28 +286,55 @@ function AppContent({
   // readySchedule alone can't tell these apart, since it resets on every fresh
   // mount (e.g. reopening the extension) just like a true first load would.
   const hasNavigatedRef = useRef(false);
+  const navigationRevision = useRef(0);
+  const setupNavigationRevision = navigationRevision.current;
+  const canLeaveTimesheet = () => {
+    if (page !== "timesheet" || !timesheetGuard.current || timesheetGuard.current()) {
+      return true;
+    }
+    setNavigationMessage(
+      "Finish saving or canceling your Timesheet changes before leaving this page.",
+    );
+    return false;
+  };
   const navigate = (nextPage: AppPage) => {
     if (
       Object.hasOwn(DEFAULT_APP_SECTIONS, nextPage) &&
       !sectionEnabled(nextPage as AppSection)
     )
-      return;
-    if (
-      page === "timesheet" &&
-      nextPage !== page &&
-      timesheetGuard.current &&
-      !timesheetGuard.current()
-    )
-      return;
+      return false;
+    if (nextPage === "timesheet" && context?.deploymentType !== "cloud") return false;
+    if (nextPage !== page && !canLeaveTimesheet()) return false;
     hasNavigatedRef.current = true;
+    navigationRevision.current += 1;
+    setNavigationMessage("");
+    setUpdateMessage("");
     setPage(nextPage);
     if (!navigator.userAgent.toLowerCase().includes("jsdom")) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+    return true;
+  };
+
+  const completeWorkspaceSetup = (schedule: WorkspaceContext) => {
+    setReadySchedule(schedule);
+    // An in-flight setup retains the callback from when it started. Publish its
+    // workspace without replacing a more recent menu choice, even Settings.
+    if (navigationRevision.current === setupNavigationRevision) navigate("chooser");
   };
 
   const authenticated = context && connection.status === "authenticated";
   const workspaceReady = authenticated && Boolean(readySchedule);
+  const workspacePageTitle =
+    page === "reports"
+      ? "Reports"
+      : page === "gantt"
+        ? "Gantt"
+        : page === "status"
+          ? "Status chart"
+          : page === "estimation"
+            ? "Estimation board"
+            : undefined;
 
   return (
     <div className="app-shell">
@@ -293,7 +343,7 @@ function AppContent({
           className="brand"
           type="button"
           aria-label={`${PRODUCT_NAME} home`}
-          onClick={() => navigate(workspaceReady ? "chooser" : "settings")}
+          onClick={() => navigate("chooser")}
         >
           <span className="brand-mark" aria-hidden="true">
             PV
@@ -307,97 +357,106 @@ function AppContent({
             </small>
           </span>
         </button>
-        {authenticated ? (
-          <nav className="top-navigation" aria-label="Power View navigation">
-            <button
-              type="button"
-              disabled={!workspaceReady}
-              aria-current={page === "chooser" ? "page" : undefined}
-              onClick={() => navigate("chooser")}
-            >
-              Workspace
-            </button>
-            {sectionEnabled("reports") ? (
-              <button
-                type="button"
-                disabled={!workspaceReady}
-                aria-current={page === "reports" ? "page" : undefined}
-                onClick={() => navigate("reports")}
-              >
-                Reports
-              </button>
-            ) : null}
-            {sectionEnabled("timesheet") ? (
-              <button
-                type="button"
-                disabled={context.deploymentType !== "cloud"}
-                aria-current={page === "timesheet" ? "page" : undefined}
-                onClick={() => navigate("timesheet")}
-              >
-                Timesheet
-              </button>
-            ) : null}
-            {sectionEnabled("gantt") ? (
-              <button
-                type="button"
-                disabled={!workspaceReady}
-                aria-current={page === "gantt" ? "page" : undefined}
-                onClick={() => navigate("gantt")}
-              >
-                Gantt
-              </button>
-            ) : null}
-            {sectionEnabled("status") ? (
-              <button
-                type="button"
-                disabled={!workspaceReady}
-                aria-current={page === "status" ? "page" : undefined}
-                onClick={() => navigate("status")}
-              >
-                Status
-              </button>
-            ) : null}
-            {sectionEnabled("estimation") ? (
-              <button
-                type="button"
-                disabled={!workspaceReady}
-                aria-current={page === "estimation" ? "page" : undefined}
-                onClick={() => navigate("estimation")}
-              >
-                Estimation
-              </button>
-            ) : null}
-          </nav>
-        ) : null}
+        <nav className="top-navigation" aria-label="Power View navigation">
+          <button
+            type="button"
+            aria-current={page === "chooser" ? "page" : undefined}
+            onClick={() => navigate("chooser")}
+          >
+            Workspace
+          </button>
+          {authenticated ? (
+            <>
+              {sectionEnabled("reports") ? (
+                <button
+                  type="button"
+                  aria-current={page === "reports" ? "page" : undefined}
+                  onClick={() => navigate("reports")}
+                >
+                  Reports
+                </button>
+              ) : null}
+              {sectionEnabled("timesheet") ? (
+                <button
+                  type="button"
+                  disabled={context.deploymentType !== "cloud"}
+                  title={
+                    context.deploymentType !== "cloud"
+                      ? "Timesheet requires Jira Cloud."
+                      : undefined
+                  }
+                  aria-current={page === "timesheet" ? "page" : undefined}
+                  onClick={() => navigate("timesheet")}
+                >
+                  Timesheet
+                </button>
+              ) : null}
+              {sectionEnabled("gantt") ? (
+                <button
+                  type="button"
+                  aria-current={page === "gantt" ? "page" : undefined}
+                  onClick={() => navigate("gantt")}
+                >
+                  Gantt
+                </button>
+              ) : null}
+              {sectionEnabled("status") ? (
+                <button
+                  type="button"
+                  aria-current={page === "status" ? "page" : undefined}
+                  onClick={() => navigate("status")}
+                >
+                  Status
+                </button>
+              ) : null}
+              {sectionEnabled("estimation") ? (
+                <button
+                  type="button"
+                  aria-current={page === "estimation" ? "page" : undefined}
+                  onClick={() => navigate("estimation")}
+                >
+                  Estimation
+                </button>
+              ) : null}
+            </>
+          ) : null}
+        </nav>
         <div className="topbar-actions">
           <button
             className="settings-button"
             type="button"
-            title="Reload Power View to apply the latest installed build"
+            disabled={reloading}
+            title="Check for a newer Power View build"
             onClick={() => {
-              if (
-                page === "timesheet" &&
-                timesheetGuard.current &&
-                !timesheetGuard.current()
-              )
-                return;
-              if ("reload" in runtime && typeof runtime.reload === "function") {
-                runtime.reload();
-              } else {
-                window.location.reload();
-              }
+              if (!canLeaveTimesheet()) return;
+              setNavigationMessage("");
+              setUpdateMessage("");
+              setReloading(true);
+              void updateApp(runtime).then(
+                (message) => {
+                  if (!message) return;
+                  setReloading(false);
+                  setUpdateMessage(message);
+                },
+                () => {
+                  setReloading(false);
+                  setNavigationMessage(
+                    "Power View could not prepare the update. Try again or check the extension in Chrome's Extensions page.",
+                  );
+                },
+              );
             }}
           >
-            ↻ Update app
+            {reloading ? "Checking for updates…" : "↻ Update app"}
           </button>
           <button
             className="icon-button"
             type="button"
             aria-label="Open diagnostics"
+            aria-current={page === "diagnostics" ? "page" : undefined}
             title="Diagnostics"
             onClick={() => {
-              navigate("diagnostics");
-              void loadDiagnostics();
+              if (navigate("diagnostics")) void loadDiagnostics();
             }}
           >
             ?
@@ -413,143 +472,179 @@ function AppContent({
         </div>
       </header>
 
+      {navigationMessage ? (
+        <div className="navigation-feedback" role="status">
+          {navigationMessage}
+        </div>
+      ) : null}
+      {updateMessage ? (
+        <div className="navigation-feedback update-feedback" role="status">
+          {updateMessage}
+        </div>
+      ) : null}
+
       <main className="app-main">
         <section
           className="page-frame settings-page"
           aria-labelledby="settings-title"
           hidden={page !== "settings"}
         >
-          <SectionSettings
-            visibility={sections.visibility}
-            ready={sections.ready}
-            busy={sections.busy}
-            disabled={sections.disabled}
-            error={sections.error}
-            onChange={sections.change}
-          />
-          <section className="setup-card" aria-labelledby="settings-title">
-            <div className="setup-card-header">
-              <div className="setup-card-heading">
-                <span className="setup-icon" aria-hidden="true">
-                  ⚙
-                </span>
-                <div>
-                  <p className="report-eyebrow">WORKSPACE SETUP</p>
-                  <h2 id="settings-title">Configure your Jira workspace</h2>
-                  <p>{connectionDescription}</p>
-                </div>
-              </div>
-              {context &&
-              (connection.status === "authenticated" ||
-                connection.status === "checking") ? (
-                <div className={`connection-badge connection-badge-${connection.status}`}>
-                  {connection.status === "checking" ? (
-                    <>
-                      <span className="reporting-spinner" aria-hidden="true" />
-                      Connecting…
-                    </>
-                  ) : (
-                    <>
-                      <span className="app-status-dot" aria-hidden="true" />
-                      Connected as {connection.user.displayName}
-                    </>
-                  )}
-                </div>
-              ) : null}
+          <div className="settings-page-heading">
+            <div>
+              <h1 id="settings-title">Settings</h1>
+              <p>Make Power View work for your team.</p>
             </div>
-
-            {isLoading ? (
-              <div className="notice" role="status">
-                <span className="notice-icon" aria-hidden="true">
-                  i
-                </span>
-                <strong>Reading Jira context…</strong>
-              </div>
-            ) : !context ? (
-              <div className="notice notice-warning" role="alert">
-                <span className="notice-icon" aria-hidden="true">
-                  !
-                </span>
-                <div>
-                  <strong>{contextError ?? "No Jira context is available."}</strong>
-                  <p>Return to Jira and open Power View again from the board.</p>
+            <button
+              className="secondary-button settings-back-button"
+              type="button"
+              onClick={() => navigate("chooser")}
+            >
+              <span aria-hidden="true">←</span> Back to Workspace
+            </button>
+          </div>
+          <div className="settings-layout">
+            <section
+              className="setup-card workspace-settings-card"
+              aria-labelledby="workspace-settings-title"
+            >
+              <div className="setup-card-header">
+                <div className="setup-card-heading">
+                  <div>
+                    <h2 id="workspace-settings-title">Jira workspace</h2>
+                    <p>{connectionDescription}</p>
+                  </div>
                 </div>
+                {context &&
+                (connection.status === "authenticated" ||
+                  connection.status === "checking") ? (
+                  <div
+                    className={`connection-badge connection-badge-${connection.status}`}
+                  >
+                    {connection.status === "checking" ? (
+                      <>
+                        <span className="reporting-spinner" aria-hidden="true" />
+                        Connecting…
+                      </>
+                    ) : (
+                      <>
+                        <span className="app-status-dot" aria-hidden="true" />
+                        Connected as {connection.user.displayName}
+                      </>
+                    )}
+                  </div>
+                ) : null}
               </div>
-            ) : (
-              <>
-                <div className="app-context-summary">
-                  <span className="app-status-dot" aria-hidden="true" />
-                  <strong>Context detected</strong>
-                  <span>{context.projectKey ?? "Not detected"}</span>
-                  {context.boardId ? <span>Board {context.boardId}</span> : null}
-                  {context.issueKey ? <span>{context.issueKey}</span> : null}
-                  <span>{context.baseUrl}</span>
-                </div>
 
-                {connection.status === "error" ? (
-                  <div className="notice notice-warning" role="alert">
-                    <span className="notice-icon" aria-hidden="true">
-                      !
-                    </span>
-                    <div>
-                      <strong>{connection.error.message}</strong>
-                      <p>{connection.error.details ?? "Retry the connection."}</p>
-                      <span>Error code: {connection.error.code}</span>
-                      <button
-                        className="primary-button"
-                        type="button"
-                        onClick={() => void testConnection()}
-                      >
-                        Reconnect
-                      </button>
+              {isLoading ? (
+                <div className="notice" role="status">
+                  <span className="notice-icon" aria-hidden="true">
+                    i
+                  </span>
+                  <strong>Reading Jira context…</strong>
+                </div>
+              ) : !context ? (
+                <div className="notice notice-warning" role="alert">
+                  <span className="notice-icon" aria-hidden="true">
+                    !
+                  </span>
+                  <div>
+                    <strong>{contextError ?? "No Jira context is available."}</strong>
+                    <p>Return to Jira and open Power View again from the board.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="app-context-summary">
+                    <span className="app-status-dot" aria-hidden="true" />
+                    <strong>Jira site</strong>
+                    <span>{context.projectKey ?? "Not detected"}</span>
+                    {context.boardId ? <span>Board {context.boardId}</span> : null}
+                    <span>{context.baseUrl}</span>
+                  </div>
+
+                  {connection.status === "error" ? (
+                    <div className="notice notice-warning" role="alert">
+                      <span className="notice-icon" aria-hidden="true">
+                        !
+                      </span>
+                      <div>
+                        <strong>{connection.error.message}</strong>
+                        <p>{connection.error.details ?? "Retry the connection."}</p>
+                        <span>Error code: {connection.error.code}</span>
+                        <button
+                          className="primary-button"
+                          type="button"
+                          onClick={() => void testConnection()}
+                        >
+                          Reconnect
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : authenticated ? (
-                  <WorkspaceSettingsService
-                    key={`${context.baseUrl}:${connection.user.accountId ?? connection.user.username ?? "user"}`}
-                    context={context}
-                    runtime={runtime}
-                    {...(settingsStore ? { settingsStore } : {})}
-                    autoContinue={!hasNavigatedRef.current}
-                    active={page === "settings"}
-                    onDiagnosticsChanged={refreshDiagnostics}
-                    onWorkspaceReady={setReadySchedule}
-                    onSetupComplete={(schedule) => {
-                      setReadySchedule(schedule);
-                      navigate("chooser");
-                    }}
-                    onQuickStart={(schedule) => {
-                      setReadySchedule(schedule);
-                      navigate("chooser");
-                    }}
-                  />
-                ) : (
-                  <div className="setup-loading" role="status">
-                    <span className="reporting-spinner" aria-hidden="true" />
-                    Connecting to Jira…
-                  </div>
-                )}
-              </>
-            )}
-          </section>
+                  ) : authenticated ? (
+                    <WorkspaceSettingsService
+                      key={`${context.baseUrl}:${connection.user.accountId ?? connection.user.username ?? "user"}`}
+                      context={context}
+                      runtime={runtime}
+                      {...(settingsStore ? { settingsStore } : {})}
+                      autoContinue={!hasNavigatedRef.current}
+                      active={page === "settings"}
+                      onDiagnosticsChanged={refreshDiagnostics}
+                      onWorkspaceReady={rememberReadyWorkspace}
+                      onSetupComplete={completeWorkspaceSetup}
+                      onQuickStart={completeWorkspaceSetup}
+                    />
+                  ) : (
+                    <div className="setup-loading" role="status">
+                      <span className="reporting-spinner" aria-hidden="true" />
+                      Connecting to Jira…
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+            <aside className="settings-sidebar" aria-label="Navigation preferences">
+              <SectionSettings
+                visibility={sections.visibility}
+                ready={sections.ready}
+                busy={sections.busy}
+                disabled={sections.disabled}
+                error={sections.error}
+                onChange={sections.change}
+              />
+              <p className="settings-device-note">
+                Settings are stored on this device. Your Jira sign-in stays in your
+                browser.
+              </p>
+            </aside>
+          </div>
         </section>
 
-        {page === "chooser" && workspaceReady ? (
+        {page === "chooser" ? (
           <section className="page-frame chooser-page" aria-labelledby="chooser-title">
             <div className="chooser-heading">
-              <span className="success-orb" aria-hidden="true">
-                ✓
-              </span>
-              <p className="report-eyebrow">WORKSPACE READY</p>
+              {workspaceReady ? (
+                <span className="success-orb" aria-hidden="true">
+                  ✓
+                </span>
+              ) : null}
+              <p className="report-eyebrow">
+                {workspaceReady ? "WORKSPACE READY" : "WORKSPACE"}
+              </p>
               <h1 id="chooser-title">What do you want to open?</h1>
-              <p>Your Jira connection and project settings are ready.</p>
+              <p>
+                {workspaceReady
+                  ? "Your Jira connection and project settings are ready."
+                  : authenticated
+                    ? "Open a tool, or return to Settings to finish loading your board."
+                    : "Connect to Jira in Settings to use your workspace."}
+              </p>
             </div>
             {sections.ready && !Object.values(sections.visibility).some(Boolean) ? (
               <p className="notice">
                 No sections are enabled. Open Settings to turn on the sections you need.
               </p>
             ) : null}
-            <div className="tool-grid">
+            <div className="tool-grid" hidden={!authenticated}>
               {sectionEnabled("reports") ? (
                 <button
                   className="tool-card tool-card-reports"
@@ -573,6 +668,12 @@ function AppContent({
                 <button
                   className="tool-card tool-card-reports"
                   type="button"
+                  disabled={context?.deploymentType !== "cloud"}
+                  title={
+                    context?.deploymentType !== "cloud"
+                      ? "Timesheet requires Jira Cloud."
+                      : undefined
+                  }
                   onClick={() => navigate("timesheet")}
                 >
                   <span className="tool-icon" aria-hidden="true">
@@ -656,7 +757,7 @@ function AppContent({
               type="button"
               onClick={() => navigate("settings")}
             >
-              Edit workspace settings
+              {workspaceReady ? "Edit workspace settings" : "Open Settings"}
             </button>
           </section>
         ) : null}
@@ -730,7 +831,7 @@ function AppContent({
           </section>
         ) : null}
 
-        {page === "gantt" && sectionEnabled("gantt") && authenticated ? (
+        {page === "gantt" && sectionEnabled("gantt") && authenticated && readySchedule ? (
           <section className="page-frame tool-page tool-page-wide">
             <div className="tool-page-heading">
               <button
@@ -746,27 +847,10 @@ function AppContent({
                 <p>Review schedule health, dependencies, and delivery risk.</p>
               </div>
             </div>
-            {readySchedule ? (
-              <GanttV2Service
-                workspace={readySchedule}
-                {...(settingsStore ? { settingsStore } : {})}
-              />
-            ) : (
-              <div className="empty-tool-state">
-                <span aria-hidden="true">G</span>
-                <h2>Gantt data is not prepared yet</h2>
-                <p>
-                  Return to Settings and choose Save and continue to load the schedule.
-                </p>
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={() => navigate("settings")}
-                >
-                  Open Settings
-                </button>
-              </div>
-            )}
+            <GanttV2Service
+              workspace={readySchedule}
+              {...(settingsStore ? { settingsStore } : {})}
+            />
           </section>
         ) : null}
 
@@ -818,6 +902,25 @@ function AppContent({
           </section>
         ) : null}
 
+        {workspacePageTitle && sectionEnabled(page as AppSection) && !workspaceReady ? (
+          <section className="page-frame tool-page">
+            <div className="tool-page-heading">
+              <h1>{workspacePageTitle}</h1>
+            </div>
+            <div className="empty-tool-state">
+              <p>Workspace data is not ready yet.</p>
+              <p>Open Settings to load your board or retry the Jira connection.</p>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => navigate("settings")}
+              >
+                Open Settings
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         {page === "diagnostics" ? (
           <section
             className="page-frame diagnostics-page"
@@ -849,6 +952,16 @@ function AppContent({
                       <dt>Extension</dt>
                       <dd>{diagnostics.extensionVersion}</dd>
                     </div>
+                    {buildTime ? (
+                      <div>
+                        <dt>Build time</dt>
+                        <dd>
+                          <time dateTime={buildTime}>
+                            {new Date(buildTime).toLocaleString()}
+                          </time>
+                        </dd>
+                      </div>
+                    ) : null}
                     <div>
                       <dt>Browser</dt>
                       <dd>{diagnostics.browserVersion}</dd>

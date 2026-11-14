@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
+  DAILY_WORK_REPORT_CALENDAR,
   workReportPeriod,
   type ReportChangeEvent,
   type ReportingIssueSnapshot,
@@ -11,9 +12,12 @@ import {
   runMorningReports,
   type MorningReportsOptions,
   type MorningReportPreview,
-  type MorningReportStatePath,
 } from "./morning-runner";
-import type { ReportBotConfig } from "./runtime";
+import {
+  GitHubReportStateStore,
+  type MorningReportStatePath,
+  type ReportBotConfig,
+} from "./runtime";
 
 const config: ReportBotConfig = {
   schemaVersion: 1,
@@ -147,6 +151,105 @@ function setup() {
 }
 
 describe("Morning CLI report orchestration", () => {
+  it("delivers the full previous Kyiv day after a late run and preserves earlier checkpoints", async () => {
+    const { options, state, legacy, writes } = setup();
+    const day = "2026-11-12";
+    const period = workReportPeriod(day, DAILY_WORK_REPORT_CALENDAR);
+    options.config.morningReports = {
+      calendar: DAILY_WORK_REPORT_CALENDAR,
+      firstReportDate: day,
+    };
+    options.now = new Date("2026-11-12T07:30:00+02:00");
+    for (const path of [
+      "state/work-activity-report.json",
+      "state/morning-description-report.json",
+    ])
+      state.set(path, { ...legacy, processedThrough: "2026-11-11" });
+    const oldCheckpoints = structuredClone(state);
+    const fetcher = vi.fn<typeof fetch>((input, init) => {
+      if (typeof input !== "string") throw new Error("Expected a GitHub URL.");
+      const url = new URL(input);
+      expect(url.origin).toBe("https://api.github.com");
+      if (url.pathname === "/repos/fixture/reports") {
+        return Promise.resolve(Response.json({ private: true, default_branch: "main" }));
+      }
+      const path = url.pathname.split("/contents/")[1] as MorningReportStatePath;
+      const checkpoint = state.get(path);
+      const content =
+        checkpoint && Buffer.from(JSON.stringify(checkpoint)).toString("base64");
+      const sha = content && createHash("sha256").update(content).digest("hex");
+      if (init?.method === "PUT") {
+        if (typeof init.body !== "string") throw new Error("Expected checkpoint JSON.");
+        const update = JSON.parse(init.body) as { content: string; sha?: string };
+        expect(update.sha).toBe(sha);
+        const value = JSON.parse(
+          Buffer.from(update.content, "base64").toString(),
+        ) as DescriptionReportState;
+        state.set(path, value);
+        writes.push({ path, value });
+        return Promise.resolve(
+          Response.json({
+            content: { sha: createHash("sha256").update(update.content).digest("hex") },
+          }),
+        );
+      }
+      return Promise.resolve(
+        checkpoint
+          ? Response.json({ content, sha, encoding: "base64" })
+          : new Response(null, { status: 404 }),
+      );
+    });
+    options.storeFor = (path) =>
+      new GitHubReportStateStore("fixture/reports", "fixture-only", fetcher, path);
+    vi.mocked(options.collect).mockImplementation((_date, requestedPeriod) =>
+      Promise.resolve({
+        jiraBaseUrl: config.jiraBaseUrl,
+        boardId: config.boardId,
+        boardName: "Fixture",
+        period: requestedPeriod,
+        generatedAt: options.now.toISOString(),
+        issues,
+        events: [
+          event("at-start", "description-changed", period.start),
+          {
+            ...event("at-end", "description-changed", period.end),
+            actor: { id: "next-day", displayName: "Next-day editor" },
+          },
+        ],
+      }),
+    );
+    expect(await runMorningReports(options)).toMatchObject({
+      calendar: DAILY_WORK_REPORT_CALENDAR,
+      work: { processed: 1, messages: 1 },
+      descriptions: { processed: 1, messages: 1 },
+    });
+    expect(options.collect).toHaveBeenCalledExactlyOnceWith(day, period);
+    const [work, descriptions] = vi.mocked(options.send).mock.calls.map(([part]) => part);
+    expect(JSON.stringify(work)).toContain("11.11.2026 00:00 — 12.11.2026 00:00");
+    expect(JSON.stringify(descriptions)).toContain("2026-11-11 00:00 — 2026-11-12 00:00");
+    expect(JSON.stringify([work, descriptions])).not.toContain("Next-day editor");
+    expect(new Set(writes.map(({ path }) => path))).toEqual(
+      new Set([
+        "state/work-activity-midnight-report.json",
+        "state/midnight-description-report.json",
+      ]),
+    );
+    for (const path of [
+      "state/work-activity-midnight-report.json",
+      "state/midnight-description-report.json",
+    ]) {
+      expect(state.get(path)?.processedThrough).toBe(day);
+      expect(state.get(path)?.pending).toBeUndefined();
+    }
+    for (const [path, checkpoint] of oldCheckpoints)
+      expect(state.get(path)).toEqual(checkpoint);
+    expect(await runMorningReports(options)).toMatchObject({
+      work: { processed: 0, messages: 0 },
+      descriptions: { processed: 0, messages: 0 },
+    });
+    expect(options.send).toHaveBeenCalledTimes(2);
+  });
+
   it("collects one full source for both real formatters, isolates state paths and preserves legacy state", async () => {
     const { options, state, writes, legacy } = setup();
     const result = await runMorningReports(options);

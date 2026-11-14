@@ -3,13 +3,18 @@ import {
   type DescriptionReportRow,
 } from "./description-report";
 
+export interface ReportChatSection {
+  header?: string;
+  widgets: Array<Record<string, unknown>>;
+}
+
 export interface DescriptionChatMessage {
   text: string;
   cardsV2?: Array<{
     cardId: string;
     card: {
       header: { title: string; subtitle: string };
-      sections: Array<{ widgets: Array<Record<string, unknown>> }>;
+      sections: ReportChatSection[];
     };
   }>;
 }
@@ -20,6 +25,19 @@ const html = (value: string) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 const size = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
+
+export function reportColumns(left: string, right: string): Record<string, unknown> {
+  return {
+    columns: {
+      columnItems: [left, right].map((text) => ({
+        horizontalSizeStyle: "FILL_AVAILABLE_SPACE",
+        verticalAlignment: "TOP",
+        widgets: [{ textParagraph: { text } }],
+      })),
+    },
+  };
+}
+
 function message(
   report: DescriptionChangeReport,
   rows: DescriptionReportRow[],
@@ -43,48 +61,40 @@ function message(
     return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
   };
   const period = `${dateTime(report.period.start)} — ${dateTime(report.period.end)} · Київ`;
-  const widgets: Array<Record<string, unknown>> = [
-    {
-      textParagraph: {
-        text: `<b>Тікет та ієрархія · Хто змінив опис</b><br>Задач зі змінами: ${report.changedIssueCount}. Правок: ${report.changeCount}. Батьківські задачі без правок наведені як контекст.`,
-      },
-    },
-  ];
+  const boardName = report.boardName.replace(/[\r\n]/g, " ");
+  const widgets = [reportColumns("<b>Задача й ієрархія</b>", "<b>Автори правок</b>")];
   for (const row of rows) {
     const prefix = row.depth ? "　".repeat(Math.min(row.depth - 1, 10)) + "↳ " : "";
     const issue = `${prefix}<a href="${html(report.jiraBaseUrl + "/browse/" + encodeURIComponent(row.issueKey))}">${html(row.issueKey)}</a> · ${html(row.issueType)}<br>${html(row.summary.slice(0, 240))}`;
     const authors = row.contextOnly
-      ? "— <i>контекст</i>"
-      : row.authors.map((author) => html(author.displayName)).join(", ");
-    widgets.push({
-      columns: {
-        columnItems: [
-          {
-            horizontalSizeStyle: "FILL_AVAILABLE_SPACE",
-            widgets: [{ textParagraph: { text: issue } }],
-          },
-          {
-            horizontalSizeStyle: "FILL_AVAILABLE_SPACE",
-            widgets: [{ textParagraph: { text: authors } }],
-          },
-        ],
-      },
-    });
+      ? "🔗 <i>Батьківська задача</i>"
+      : `👤 ${row.authors.map((author) => html(author.displayName)).join(", ")}<br>✏️ Правок: ${row.changeCount}`;
+    if (widgets.length > 1 && row.depth === 0) widgets.push({ divider: {} });
+    widgets.push(reportColumns(issue, authors));
   }
+  const sections: ReportChatSection[] = [{ header: "🧾 Правки за задачами", widgets }];
+  if (index === 0)
+    sections.unshift({
+      header: "📌 Підсумок",
+      widgets: [
+        reportColumns(
+          `🗂️ <b>${report.changedIssueCount}</b><br>Задачі зі змінами`,
+          `✏️ <b>${report.changeCount}</b><br>Правки описів`,
+        ),
+      ],
+    });
   return {
-    text: `Зміни описів · ${report.period.date} · ${report.changedIssueCount} задач · ${report.boardName
-      .replaceAll("<", "‹")
-      .replaceAll(">", "›")
-      .replace(/[\r\n]/g, " ")}`,
+    text: `📝 Зміни описів · ${boardName.replaceAll("<", "‹").replaceAll(">", "›")}`,
     cardsV2: [
       {
         cardId: `descriptions-${report.period.date}-${index + 1}`,
         card: {
           header: {
-            title: "Зміни описів задач",
-            subtitle: `${report.boardName.slice(0, 120)} · ${period} · ${index + 1}/${count}`,
+            title:
+              "📝 Зміни описів задач" + (count > 1 ? ` · ${index + 1}/${count}` : ""),
+            subtitle: `📅 ${period}`,
           },
-          sections: [{ widgets }],
+          sections,
         },
       },
     ],

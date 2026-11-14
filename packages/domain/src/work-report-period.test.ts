@@ -1,10 +1,43 @@
 import { describe, expect, it } from "vitest";
 import {
+  DAILY_WORK_REPORT_CALENDAR,
   latestWorkReportDate,
   nextWorkReportDate,
   previousWorkReportDate,
   workReportPeriod,
 } from "./work-report-period";
+
+describe("Kyiv calendar-day reports", () => {
+  const calendar = DAILY_WORK_REPORT_CALENDAR;
+
+  it("covers the previous day and waits until 00:05 on weekends too", () => {
+    expect(workReportPeriod("2026-11-15", calendar)).toEqual({
+      date: "2026-11-15",
+      start: "2026-11-13T22:00:00.000Z",
+      end: "2026-11-14T22:00:00.000Z",
+      timeZone: "Europe/Kyiv",
+    });
+    expect(nextWorkReportDate("2026-11-14", calendar)).toBe("2026-11-15");
+    expect(latestWorkReportDate(new Date("2026-11-15T00:04:59+02:00"), calendar)).toBe(
+      "2026-11-14",
+    );
+    for (const time of ["00:05:00", "19:42:00"])
+      expect(latestWorkReportDate(new Date(`2026-11-15T${time}+02:00`), calendar)).toBe(
+        "2026-11-15",
+      );
+  });
+
+  it.each([
+    ["2026-03-30", "2026-03-28T22:00:00.000Z", "2026-03-29T21:00:00.000Z"],
+    ["2026-10-26", "2026-10-24T21:00:00.000Z", "2026-10-25T22:00:00.000Z"],
+  ])("keeps local midnight across the DST change ending on %s", (date, start, end) => {
+    const period = workReportPeriod(date, calendar);
+    expect(period).toMatchObject({ start, end });
+    expect(workReportPeriod(nextWorkReportDate(date, calendar), calendar).start).toBe(
+      end,
+    );
+  });
+});
 
 describe("Bot working-day report calendar", () => {
   it("uses the previous weekday 08:00 through the report date 08:00 in Kyiv", () => {

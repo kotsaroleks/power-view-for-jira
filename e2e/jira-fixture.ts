@@ -3,11 +3,16 @@ import {
   jiraCloudCurrentUserFixture,
   jiraCloudProjectsFixture,
   jiraCloudServerInfoFixture,
+  jiraDataCenterCurrentUserFixture,
+  jiraDataCenterServerInfoFixture,
   jiraFieldsFixture,
   makeJiraIssueFixtures,
 } from "../packages/test-fixtures/src/index";
 
-export async function installJiraFixture(context: BrowserContext) {
+export async function installJiraFixture(
+  context: BrowserContext,
+  deploymentType: "cloud" | "data-center" = "cloud",
+) {
   const today = new Date().toISOString().slice(0, 10);
   const issues = makeJiraIssueFixtures(3);
   for (const issue of issues) {
@@ -60,9 +65,21 @@ export async function installJiraFixture(context: BrowserContext) {
       return;
     }
     let json: unknown;
-    if (path.endsWith("/serverInfo")) json = jiraCloudServerInfoFixture;
-    else if (path.endsWith("/myself")) json = jiraCloudCurrentUserFixture;
+    if (path.endsWith("/serverInfo"))
+      json =
+        deploymentType === "cloud"
+          ? jiraCloudServerInfoFixture
+          : {
+              ...jiraDataCenterServerInfoFixture,
+              baseUrl: "https://fixture.atlassian.net",
+            };
+    else if (path.endsWith("/myself"))
+      json =
+        deploymentType === "cloud"
+          ? { ...jiraCloudCurrentUserFixture, timeZone: "Europe/Kyiv" }
+          : jiraDataCenterCurrentUserFixture;
     else if (path.endsWith("/project/search")) json = jiraCloudProjectsFixture;
+    else if (path === "/rest/api/2/project") json = jiraCloudProjectsFixture.values;
     else if (path.endsWith("/field")) json = jiraFieldsFixture;
     else if (path === "/rest/agile/1.0/board")
       json = { values: [board], startAt: 0, maxResults: 50, total: 1, isLast: true };
@@ -79,6 +96,8 @@ export async function installJiraFixture(context: BrowserContext) {
     else if (path.endsWith("/board/7/issue"))
       json = { issues, startAt: 0, maxResults: 100, total: issues.length };
     else if (path.endsWith("/search/jql")) json = { issues, isLast: true };
+    else if (path === "/rest/api/2/search")
+      json = { issues, startAt: 0, maxResults: 100, total: issues.length };
     else if (path.endsWith("/project/POWER/statuses"))
       json = [{ id: "10000", name: "Task", statuses }];
     else if (path.endsWith("/status")) json = statuses;

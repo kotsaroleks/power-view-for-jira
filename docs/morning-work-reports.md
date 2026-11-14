@@ -1,4 +1,4 @@
-# Morning Jira work reports
+# Daily Jira work reports
 
 The private automation runs two reports in the configured Google Chat space:
 
@@ -10,17 +10,42 @@ The private automation runs two reports in the configured Google Chat space:
 
 ## Calendar
 
-Target trigger: **08:01 Europe/Kyiv, Monday–Friday**. Recovery triggers: 08:11 and 08:31.
-The report date is the date of the closing 08:00 boundary. Tuesday's report covers Monday
-08:00 inclusive → Tuesday 08:00 exclusive. Monday covers Friday 08:00 → Monday 08:00,
-including weekend changes. There is no public-holiday calendar. The current period only
-becomes eligible at 08:01. All closed weekday periods catch up separately, at most seven
-per invocation. Late-night or next-day starts never change the event boundaries.
+Cloudflare dispatches the private workflow daily at **00:05 Europe/Kyiv**, with GitHub
+recovery at 00:15 and 00:35. Each report covers the previous calendar day, including
+weekends, from 00:00 inclusive to the following 00:00 exclusive. The report date names the
+closing boundary. The period becomes eligible at 00:05. Missed days catch up separately,
+at most seven per invocation. Late starts keep the same event boundaries.
 
-GitHub cron is a best-effort trigger, not a delivery-time guarantee. Actual earlier runs
-were created several hours late; changing the cron expression does not remove that
-platform limitation. No paid external scheduler is created by this change. The workflow
-remains manually dispatchable with `check`, `preview` and `deliver` modes.
+GitHub can start scheduled workflows late. The workflow also supports manual `check`,
+`preview` and `deliver` runs. Preview builds both messages for the latest eligible day.
+
+## Cloudflare timer
+
+The [Cloudflare Worker](../automation/description-report/cloudflare-timer) checks the
+scheduled UTC timestamp against 00:05 in `Europe/Kyiv`. This selects one of the two UTC
+slots every day, including across clock changes. GitHub Actions still runs the report
+workflow and controls delivery through `REPORT_ENABLED`.
+
+From the Worker directory, run `node --test worker.test.mjs` and
+`npx wrangler@4.161.0 deploy --dry-run` to validate the timer and bundle.
+
+1. Create a fine-grained GitHub token for `kotsaroleks/power-view-report-automation` with
+   repository **Actions: Read and write**. The Jira and Chat credentials stay in GitHub.
+   [GitHub workflow dispatch permissions](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
+2. On a new Cloudflare account, open Workers & Pages once to initialize Workers before
+   attaching a schedule. Deploy a temporary copy of `wrangler.json` with `REPORT_MODE` set
+   to `check` and an empty `triggers.crons` list. In the Worker settings, save the GitHub
+   token as the encrypted secret `GITHUB_ACTIONS_TOKEN`. Then run
+   `npx wrangler@4.161.0 deploy --var REPORT_MODE:check --triggers '<test cron>'` from the
+   Worker directory for a single upcoming UTC slot, with at least 15 minutes for the
+   schedule to propagate. Verify the run ID in Workers Logs and the successful `check` run
+   in GitHub.
+   [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+3. After the Cloudflare `check` succeeds, deploy the checked-in `wrangler.json` for daily
+   delivery and verify the live secret and schedule. Replace the GitHub 00:05 entry with
+   the `Cloudflare dispatches the primary report` comment used by the setup script. Keep
+   GitHub recovery at 00:15 and 00:35. Existing delivery checkpoints cover overlap. Rotate
+   the Worker secret before its GitHub token expires.
 
 ## Exact history and presentation
 
@@ -38,23 +63,21 @@ fixed period and the current-state read time separately. Sprint changes diff the
 raw ID sets and resolve sprint names; display-name digits never become sprint IDs.
 Description bodies never enter the normalized report, saved outbox or logs.
 
-Two-column cards preserve hierarchy, headings and every event when splitting messages.
-Each part has at most 20 displayed rows and stays below 28 KB. An individually oversized
-row fails preflight rather than silently losing history. A generation error never turns
-into an empty-success acknowledgement.
+The cards open with counts and use separate sections and dividers for the detail rows.
+Icons distinguish statuses, assignments, edits and sprint changes. Two-column rows
+preserve hierarchy, timestamps and actors when the report spans several messages. Each
+part has at most 20 displayed rows and stays below 28 KB. An oversized row stops the
+report before delivery.
 
 ## Delivery and migration
 
-`morningReports` in the protected configuration selects calendar `kyiv-workdays-08-v1` and
-its first weekday report date. A description cutover may additionally set
-`descriptionCoveredThrough` to the exact end of the last confirmed legacy report.
+`morningReports` selects `kyiv-calendar-days-00-v1` and the date of the first closing
+midnight. The previous weekday calendar remains readable for its existing checkpoints.
+Confirm both earlier outboxes are empty before switching calendars. Daily delivery uses
+`state/work-activity-midnight-report.json` and `state/midnight-description-report.json`.
 
-The migration must first confirm that the legacy outbox is empty. It preserves the legacy
-checkpoint and starts new, separately scoped outboxes at `state/work-activity-report.json`
-and `state/morning-description-report.json`. The first morning description period starts
-at the old delivered end, rather than replaying its overlapping part. Subsequent periods
-use the ordinary 08:00 boundary. For the deployed cutover, a confirmed 9 November 21:00
-legacy end joins 10 November 08:00, then ordinary daily morning periods continue.
+The first daily report closes at 00:00 on 12 November 2026. It covers all of 11 November,
+including the first eight hours that were covered by that morning's report.
 
 Both streams save exact payloads before posting, derive stable per-stream/period/message
 IDs, confirm Chat receipts, then advance their own checkpoint. Unknown outcomes retry the
@@ -64,8 +87,8 @@ credentials are reused; no browser or Mac session is needed.
 
 ## Validation
 
-Focused checks cover weekday/DST periods, delayed execution, current-status grouping,
-every transition and assignment loop, strict raw-history pagination, sprint set diffs,
-description redaction, message chunking, separate state paths, unknown outcomes and
-receipt/checkpoint failures. The first deployment also requires a private preview, an
-actual Chat delivery receipt and a repeat run proving that delivery is not duplicated.
+Focused checks cover calendar days, weekends, DST, delayed execution, current-status
+grouping, every transition and assignment loop, strict raw-history pagination, sprint set
+diffs, description redaction, message chunking, separate state paths, unknown outcomes and
+receipt/checkpoint failures. Scheduled deliveries record Chat receipts and advance each
+checkpoint independently.

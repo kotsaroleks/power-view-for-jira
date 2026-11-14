@@ -243,15 +243,17 @@ export function SetupPanel({
   const [recentJql, setRecentJql] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const [manualSettingsOpen, setManualSettingsOpen] = useState(false);
+  const validationSummary = useRef<HTMLDivElement>(null);
   const autoPersistedBoards = useRef(new Set<string>());
   const requestAbort = useRef<AbortController | undefined>(undefined);
   const issueAbort = useRef<AbortController | undefined>(undefined);
+  const refreshRequests = useRef(new Set<AbortController>());
   const [issueLoadState, setIssueLoadState] = useState<IssueLoadState>("idle");
   const [issueProgress, setIssueProgress] = useState<PageProgress>();
   const [issueResult, setIssueResult] = useState<IssueSearchResult>();
   const [issueLoadedAt, setIssueLoadedAt] = useState<string>();
   const [issueLoadError, setIssueLoadError] = useState<string>();
+  const [isDraftPreview, setIsDraftPreview] = useState(false);
   const scheduleModel = useMemo(
     () =>
       issueResult
@@ -263,6 +265,15 @@ export function SetupPanel({
     [defaultDurations, issueResult, nonWorkingDays],
   );
   const scheduleQueryKey = `${context.baseUrl}\n${selectedProjectKey}\n${jql.trim()}`;
+  const previewScopeKey = JSON.stringify([
+    scheduleQueryKey,
+    selectedBoardId,
+    fieldMapping,
+    defaultDurations,
+    nonWorkingDays,
+  ]);
+  const latestPreviewScope = useRef(previewScopeKey);
+  latestPreviewScope.current = previewScopeKey;
 
   const selectedProject = projectPage.values.find(
     (project) => project.key === selectedProjectKey,
@@ -395,12 +406,14 @@ export function SetupPanel({
 
   const invalidateIssuePreview = useCallback(() => {
     issueAbort.current?.abort();
+    setIsDraftPreview(true);
     client.clearIssueCache();
     setIssueLoadState("idle");
     setIssueProgress(undefined);
     setIssueResult(undefined);
     setIssueLoadedAt(undefined);
     setIssueLoadError(undefined);
+    setValidationErrors([]);
   }, [client]);
 
   useEffect(() => {
@@ -651,6 +664,7 @@ export function SetupPanel({
     () => () => {
       requestAbort.current?.abort();
       issueAbort.current?.abort();
+      refreshRequests.current.forEach((controller) => controller.abort());
     },
     [],
   );
@@ -670,6 +684,7 @@ export function SetupPanel({
   };
 
   const updateDuration = (key: keyof DefaultDurationDays, value: string) => {
+    setIsDraftPreview(true);
     const parsed = Number(value);
     setDefaultDurations((current) => ({
       ...current,
@@ -680,17 +695,23 @@ export function SetupPanel({
     setSaveStatus("idle");
   };
 
+  const setupErrors = (previewOnly = false) => [
+    ...(selectedProject ? [] : ["Choose a Jira project before saving setup."]),
+    ...(selectedBoard ? [] : ["Choose a Jira board before saving setup."]),
+    ...(previewOnly || completedStatusIds.length > 0
+      ? []
+      : ["Choose at least one completed Jira status."]),
+    ...validateJqlInput(jql),
+    ...validateFieldMapping(fieldMapping, fields),
+    ...(previewOnly || settingsStore ? [] : ["Chrome settings storage is unavailable."]),
+  ];
+
+  useEffect(() => {
+    if (active && validationErrors.length > 0) validationSummary.current?.focus();
+  }, [active, validationErrors]);
+
   const saveSetup = async (): Promise<boolean> => {
-    const errors = [
-      ...(selectedProject ? [] : ["Choose a Jira project before saving setup."]),
-      ...(selectedBoard ? [] : ["Choose a Jira board before saving setup."]),
-      ...(completedStatusIds.length > 0
-        ? []
-        : ["Choose at least one completed Jira status."]),
-      ...validateJqlInput(jql),
-      ...validateFieldMapping(fieldMapping, fields),
-      ...(settingsStore ? [] : ["Chrome settings storage is unavailable."]),
-    ];
+    const errors = setupErrors();
     setValidationErrors(errors);
     if (errors.length > 0 || !selectedProject || !selectedBoard || !settingsStore) {
       return false;
@@ -747,8 +768,16 @@ export function SetupPanel({
     [onDiagnosticsChanged, runtime],
   );
 
-  const loadIssues = async (forceRefresh = false, quickStart = false) => {
-    if (!quickStart && !(await saveSetup())) {
+  const loadIssues = async (
+    forceRefresh = false,
+    quickStart = false,
+    previewOnly = false,
+  ) => {
+    if (previewOnly) {
+      const errors = setupErrors(true);
+      setValidationErrors(errors);
+      if (errors.length > 0) return;
+    } else if (!quickStart && !(await saveSetup())) {
       return;
     }
     if (quickStart && (!selectedProject || !selectedBoard || !jql.trim())) {
@@ -758,6 +787,7 @@ export function SetupPanel({
     issueAbort.current?.abort();
     const controller = new AbortController();
     issueAbort.current = controller;
+    setIsDraftPreview(previewOnly);
     setIssueLoadState("loading");
     setIssueProgress({ loaded: 0, page: 0 });
     setIssueResult(undefined);
@@ -815,11 +845,10 @@ export function SetupPanel({
           refresh: refreshLoadedIssues,
         },
       });
-      onScheduleReady?.(readySchedule);
-      if (quickStart) {
-        onQuickStart?.(readySchedule);
-      } else {
-        onSetupComplete?.(readySchedule);
+      if (!previewOnly) {
+        onScheduleReady?.(readySchedule);
+        if (quickStart) onQuickStart?.(readySchedule);
+        else onSetupComplete?.(readySchedule);
       }
       reportIssueLoad(result.values.length, "ready");
     } catch (error) {
@@ -875,11 +904,15 @@ export function SetupPanel({
   ]);
 
   const refreshLoadedIssues = useCallback(async (): Promise<void> => {
-    issueAbort.current?.abort();
     const controller = new AbortController();
-    issueAbort.current = controller;
-    setIssueLoadState("loading");
-    setIssueLoadError(undefined);
+    refreshRequests.current.add(controller);
+    const matchesPreview = () => latestPreviewScope.current === previewScopeKey;
+    if (matchesPreview()) {
+      issueAbort.current?.abort();
+      issueAbort.current = controller;
+      setIssueLoadState("loading");
+      setIssueLoadError(undefined);
+    }
     client.clearIssueCache();
 
     try {
@@ -895,7 +928,7 @@ export function SetupPanel({
           pageSize: 100,
           forceRefresh: true,
           onProgress: (progress) => {
-            if (!controller.signal.aborted) {
+            if (!controller.signal.aborted && matchesPreview()) {
               setIssueProgress(progress);
             }
           },
@@ -905,24 +938,75 @@ export function SetupPanel({
       if (controller.signal.aborted) {
         return;
       }
-      setIssueResult(result);
-      setIssueLoadedAt(new Date().toISOString());
-      setIssueLoadState("ready");
+      const loadedAt = new Date().toISOString();
+      if (matchesPreview()) {
+        setIssueResult(result);
+        setIssueLoadedAt(loadedAt);
+        setIssueLoadState("ready");
+      }
+      // Refresh the immutable workspace that initiated the Jira update, even
+      // if Settings now contains a different, unsaved board/query draft.
+      onScheduleReady?.(
+        createWorkspaceContext({
+          model: buildGanttScheduleModel(result.values, {
+            defaultDurations,
+            nonWorkingDays,
+          }),
+          issues: result.values,
+          queryKey: scheduleQueryKey,
+          nonWorkingDays,
+          jiraBaseUrl: context.baseUrl,
+          projectKey: selectedProjectKey,
+          projectName: selectedProject?.name ?? selectedProjectKey,
+          board: selectedBoard,
+          reporting: resolveWorkspaceCompletedStatuses(
+            completedStatusIds,
+            statusOptions,
+            result.values,
+          ),
+          jql: jql.trim(),
+          loadedAt,
+          truncated: result.truncated,
+          sprintDataAvailable: Boolean(fieldMapping.sprintFieldId),
+          storyPointsDataAvailable: Boolean(fieldMapping.storyPointsFieldId),
+          editing: { client, fieldMapping, refresh: refreshLoadedIssues },
+        }),
+      );
       reportIssueLoad(result.values.length, "ready");
     } catch (error) {
       if (controller.signal.aborted) {
         return;
       }
-      setIssueLoadState("error");
-      setIssueLoadError(
-        isJiraClientError(error)
-          ? (error.appError.details ?? error.appError.message)
-          : "Power View could not refresh issues after the Jira update.",
-      );
+      if (matchesPreview()) {
+        setIssueLoadState("error");
+        setIssueLoadError(
+          isJiraClientError(error)
+            ? (error.appError.details ?? error.appError.message)
+            : "Power View could not refresh issues after the Jira update.",
+        );
+      }
       reportIssueLoad(0, "error");
       throw error;
+    } finally {
+      refreshRequests.current.delete(controller);
     }
-  }, [client, fieldMapping, jql, reportIssueLoad, selectedBoard]);
+  }, [
+    client,
+    completedStatusIds,
+    context.baseUrl,
+    defaultDurations,
+    fieldMapping,
+    jql,
+    nonWorkingDays,
+    onScheduleReady,
+    previewScopeKey,
+    reportIssueLoad,
+    scheduleQueryKey,
+    selectedBoard,
+    selectedProject,
+    selectedProjectKey,
+    statusOptions,
+  ]);
 
   useEffect(() => {
     if (
@@ -986,6 +1070,7 @@ export function SetupPanel({
   ]);
 
   useEffect(() => {
+    if (isDraftPreview) return;
     onScheduleReady?.(
       scheduleModel && issueResult && issueLoadedAt && selectedProject && selectedBoard
         ? createWorkspaceContext({
@@ -1021,6 +1106,7 @@ export function SetupPanel({
     fieldMapping,
     issueLoadedAt,
     issueResult,
+    isDraftPreview,
     jql,
     nonWorkingDays,
     onScheduleReady,
@@ -1068,9 +1154,6 @@ export function SetupPanel({
     );
   }
 
-  const manualSettingsRequired =
-    !context.boardId || boardCatalogState === "error" || issueLoadState === "error";
-
   return (
     <div id="setup">
       {loadState === "error" ? (
@@ -1093,56 +1176,7 @@ export function SetupPanel({
         </div>
       ) : null}
 
-      {loadState === "ready" &&
-      context.boardId &&
-      !manualSettingsRequired &&
-      !manualSettingsOpen ? (
-        <section className="setup-intro" aria-label="Detected board settings">
-          <h2>Board detected</h2>
-          <p>
-            Power View will use {selectedBoard?.name ?? `Board ${context.boardId}`}
-            {selectedProject ? ` in ${selectedProject.name}` : ""} automatically.
-          </p>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => setManualSettingsOpen(true)}
-          >
-            Edit settings manually
-          </button>
-        </section>
-      ) : null}
-
-      {loadState === "ready" && settingsStore && selectedProjectKey && selectedBoardId ? (
-        <BoardConfigurationTransfer
-          store={settingsStore}
-          scope={{
-            jiraBaseUrl: context.baseUrl,
-            projectKey: selectedProjectKey,
-            boardId: selectedBoardId,
-          }}
-          onImported={async () => {
-            const imported = await settingsStore.getSetup(
-              context.baseUrl,
-              selectedProjectKey,
-              selectedBoardId,
-            );
-            if (!imported) return;
-            setStoredSetup(imported);
-            setJql(imported.jql);
-            setFieldMapping(imported.fieldMapping);
-            setDefaultDurations(
-              imported.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
-            );
-            setNonWorkingDays(imported.nonWorkingDays ?? [...DEFAULT_NON_WORKING_DAYS]);
-            setCompletedStatusIds(imported.reporting?.completedStatusIds ?? []);
-            setSaveStatus("saved");
-            invalidateIssuePreview();
-          }}
-        />
-      ) : null}
-
-      {loadState === "ready" && (manualSettingsRequired || manualSettingsOpen) ? (
+      {loadState === "ready" ? (
         <form
           className="setup-form"
           onSubmit={(event) => {
@@ -1150,86 +1184,98 @@ export function SetupPanel({
             void loadIssues();
           }}
         >
-          <div className="setup-project-board">
-            <label className="setup-search-field">
-              <span>Search projects</span>
-              <input
-                type="search"
-                value={projectSearch}
-                placeholder="Project name or key"
-                onChange={(event) => {
-                  setProjectSearch(event.target.value);
-                  setPageStart(0);
-                }}
-              />
-            </label>
+          <section className="settings-group" aria-labelledby="workspace-source-title">
+            <div className="settings-group-heading">
+              <h3 id="workspace-source-title">Project &amp; board</h3>
+              <p>Choose where Power View gets your issues.</p>
+            </div>
+            <div className="setup-project-board">
+              <label className="setup-search-field">
+                <span>Search projects</span>
+                <input
+                  type="search"
+                  value={projectSearch}
+                  placeholder="Project name or key"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.preventDefault();
+                  }}
+                  onChange={(event) => {
+                    setProjectSearch(event.target.value);
+                    setPageStart(0);
+                  }}
+                />
+              </label>
 
-            <label className="setup-project-field">
-              <span>Jira project</span>
-              <select
-                aria-label="Jira project"
-                value={selectedProjectKey}
-                onChange={(event) => {
-                  setSelectedProjectKey(event.target.value);
-                  invalidateIssuePreview();
-                }}
-              >
-                <option value="">Choose a project…</option>
-                {projectPage.values.map((project) => (
-                  <option key={project.id} value={project.key}>
-                    {project.key} · {project.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="setup-board-column">
-              <span>Jira board</span>
-              <select
-                aria-label="Jira board"
-                value={selectedBoardId}
-                disabled={!selectedProject || boardCatalogState === "loading"}
-                onChange={(event) => {
-                  setSelectedBoardId(event.target.value);
-                  setSaveStatus("idle");
-                  invalidateIssuePreview();
-                }}
-              >
-                <option value="">Choose a board…</option>
-                {boards.map((board) => (
-                  <option key={board.id} value={board.id}>
-                    {board.name} · {board.type}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="project-pagination" aria-live="polite">
-              <span>
-                {projectPage.total === 0
-                  ? "No matching projects"
-                  : `${projectPage.startAt + 1}–${projectPage.startAt + projectPage.values.length} of ${projectPage.total}`}
-              </span>
-              <div>
-                <button
-                  type="button"
-                  disabled={projectPage.startAt === 0}
-                  onClick={() =>
-                    setPageStart(Math.max(0, pageStart - projectPage.maxResults))
-                  }
+              <label className="setup-project-field">
+                <span>Jira project</span>
+                <select
+                  aria-label="Jira project"
+                  value={selectedProjectKey}
+                  onChange={(event) => {
+                    setSelectedProjectKey(event.target.value);
+                    setSaveStatus("idle");
+                    invalidateIssuePreview();
+                  }}
                 >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  disabled={projectPage.isLast}
-                  onClick={() => setPageStart(pageStart + projectPage.maxResults)}
+                  <option value="">Choose a project…</option>
+                  {projectPage.values.map((project) => (
+                    <option key={project.id} value={project.key}>
+                      {project.key} · {project.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="setup-board-column">
+                <span>Jira board</span>
+                <select
+                  aria-label="Jira board"
+                  value={selectedBoardId}
+                  disabled={!selectedProject || boardCatalogState === "loading"}
+                  onChange={(event) => {
+                    setSelectedBoardId(event.target.value);
+                    setSaveStatus("idle");
+                    invalidateIssuePreview();
+                  }}
                 >
-                  Next
-                </button>
+                  <option value="">Choose a board…</option>
+                  {boards.map((board) => (
+                    <option key={board.id} value={board.id}>
+                      {board.name} · {board.type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="project-pagination" aria-live="polite">
+                <span>
+                  {projectPage.total === 0
+                    ? "No matching projects"
+                    : `${projectPage.startAt + 1}–${projectPage.startAt + projectPage.values.length} of ${projectPage.total}`}
+                </span>
+                {projectPage.startAt > 0 || !projectPage.isLast ? (
+                  <div>
+                    <button
+                      type="button"
+                      disabled={projectPage.startAt === 0}
+                      onClick={() =>
+                        setPageStart(Math.max(0, pageStart - projectPage.maxResults))
+                      }
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      disabled={projectPage.isLast}
+                      onClick={() => setPageStart(pageStart + projectPage.maxResults)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
-          </div>
+          </section>
 
           {boardCatalogError || boardLoadError ? (
             <div className="setup-errors" role="alert">
@@ -1237,53 +1283,66 @@ export function SetupPanel({
             </div>
           ) : null}
 
-          <details className="optional-fields">
-            <summary>Advanced: query, completed statuses, and date fields</summary>
+          <section className="settings-group" aria-labelledby="workspace-query-title">
+            <div className="settings-group-heading">
+              <h3 id="workspace-query-title">Issue scope</h3>
+              <p>Use the board query or narrow it down with JQL.</p>
+            </div>
+            <label>
+              <span>JQL query</span>
+              <textarea
+                value={jql}
+                rows={3}
+                aria-describedby="setup-jql-help"
+                maxLength={10_000}
+                placeholder='project = "POWER" ORDER BY Rank ASC'
+                onChange={(event) => {
+                  setJql(event.target.value);
+                  setSaveStatus("idle");
+                  invalidateIssuePreview();
+                }}
+              />
+            </label>
+            <p id="setup-jql-help" className="field-help">
+              This query is shared by Gantt, Status, Estimation and Reports.
+            </p>
 
-            <div className="accordion-body">
+            {recentJql.length > 0 ? (
               <label>
-                <span>JQL query</span>
-                <textarea
-                  value={jql}
-                  rows={4}
-                  maxLength={10_000}
-                  placeholder='project = "POWER" ORDER BY Rank ASC'
+                <span>Recent JQL</span>
+                <select
+                  aria-label="Recent JQL"
+                  value=""
                   onChange={(event) => {
-                    setJql(event.target.value);
-                    setSaveStatus("idle");
-                    invalidateIssuePreview();
+                    if (event.target.value) {
+                      setJql(event.target.value);
+                      setSaveStatus("idle");
+                      invalidateIssuePreview();
+                    }
                   }}
-                />
+                >
+                  <option value="">Choose a recent query…</option>
+                  {recentJql.map((query) => (
+                    <option key={query} value={query}>
+                      {query}
+                    </option>
+                  ))}
+                </select>
               </label>
+            ) : null}
+          </section>
 
-              {recentJql.length > 0 ? (
-                <label>
-                  <span>Recent JQL</span>
-                  <select
-                    aria-label="Recent JQL"
-                    value=""
-                    onChange={(event) => {
-                      if (event.target.value) {
-                        setJql(event.target.value);
-                        setSaveStatus("idle");
-                        invalidateIssuePreview();
-                      }
-                    }}
-                  >
-                    <option value="">Choose a recent query…</option>
-                    {recentJql.map((query) => (
-                      <option key={query} value={query}>
-                        {query}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-
+          <div className="settings-group-heading settings-options-heading">
+            <h3>Planning &amp; reports</h3>
+            <p>Defaults are ready to use. Adjust only what your team needs.</p>
+          </div>
+          <details className="optional-fields">
+            <summary>Completed statuses</summary>
+            <div className="accordion-body">
               <fieldset>
-                <legend>Completed statuses</legend>
+                <legend className="visually-hidden">Completed statuses</legend>
                 <p className="field-help">
-                  This board-level mapping is inherited by Board Health and every report.
+                  Choose which statuses count as complete in Board Health and reports.
                 </p>
                 {statusResolutionWarning ? (
                   <p className="field-warning" role="status">
@@ -1303,6 +1362,7 @@ export function SetupPanel({
                               : [...current, status.id],
                           );
                           setSaveStatus("idle");
+                          setIsDraftPreview(true);
                         }}
                       />
                       <span>{status.name}</span>
@@ -1315,12 +1375,15 @@ export function SetupPanel({
                   ) : null}
                 </div>
               </fieldset>
-
+            </div>
+          </details>
+          <details className="optional-fields">
+            <summary>Date fields</summary>
+            <div className="accordion-body">
               <fieldset>
-                <legend>Date field mapping</legend>
+                <legend className="visually-hidden">Date field mapping</legend>
                 <p className="field-help">
-                  Select the Jira fields used for planning. Jira verifies permission for
-                  the specific task when you drag or edit its dates.
+                  Choose the Jira fields used for planned start and end dates.
                 </p>
                 <div className="candidate-row">
                   <span>Start suggestions</span>
@@ -1397,13 +1460,15 @@ export function SetupPanel({
                         disabled={
                           !nonWorkingDays.includes(day) && nonWorkingDays.length === 6
                         }
-                        onChange={(event) =>
+                        onChange={(event) => {
                           setNonWorkingDays((current) =>
                             event.target.checked
                               ? [...new Set([...current, day])].sort((a, b) => a - b)
                               : current.filter((value) => value !== day),
-                          )
-                        }
+                          );
+                          setSaveStatus("idle");
+                          setIsDraftPreview(true);
+                        }}
                       />
                       <span>{label}</span>
                     </label>
@@ -1414,11 +1479,10 @@ export function SetupPanel({
           </details>
 
           <details className="optional-fields">
-            <summary>Optional reporting, hierarchy, and story-point fields</summary>
+            <summary>Reporting &amp; hierarchy</summary>
             <div className="accordion-body">
               <p className="field-help">
-                Map Sprint to enable planning coverage and the current-sprint report.
-                Missing report data is shown as unavailable, never as zero.
+                Connect Sprint, story points and parent relationships to your Jira fields.
               </p>
               <label>
                 <span>Sprint field</span>
@@ -1473,10 +1537,10 @@ export function SetupPanel({
           </details>
 
           <details className="optional-fields duration-settings">
-            <summary>Default estimates for inferred end dates</summary>
+            <summary>Default durations</summary>
             <div className="accordion-body">
               <p className="field-help">
-                Values are working days and are saved with this project setup.
+                Working days to use when an issue has no end date or estimate.
               </p>
               <div className="duration-grid">
                 {(
@@ -1506,7 +1570,12 @@ export function SetupPanel({
           </details>
 
           {validationErrors.length > 0 ? (
-            <div className="setup-errors" role="alert">
+            <div
+              className="setup-errors"
+              role="alert"
+              ref={validationSummary}
+              tabIndex={-1}
+            >
               <strong>Setup needs attention</strong>
               <ul>
                 {validationErrors.map((error) => (
@@ -1516,32 +1585,17 @@ export function SetupPanel({
             </div>
           ) : null}
 
-          <div className="setup-save-row">
-            <button
-              className="primary-button"
-              type="submit"
-              disabled={saveStatus === "saving" || issueLoadState === "loading"}
-            >
-              {saveStatus === "saving" || issueLoadState === "loading"
-                ? "Preparing workspace…"
-                : "Save and continue"}
-            </button>
-            {saveStatus === "saved" ? (
-              <span role="status">Setup saved. Preparing your workspace…</span>
-            ) : null}
-          </div>
-
           <section className="issue-preview" aria-labelledby="issue-preview-title">
             <div className="issue-preview-heading">
               <div>
-                <span>READ-ONLY SEARCH</span>
                 <h3 id="issue-preview-title">Issue preview</h3>
+                <p>Check matching issues without saving your changes.</p>
               </div>
               <button
                 className="secondary-button"
                 type="button"
                 disabled={issueLoadState === "loading"}
-                onClick={() => void loadIssues()}
+                onClick={() => void loadIssues(false, false, true)}
               >
                 {issueLoadState === "loading" ? "Loading issues…" : "Preview issues"}
               </button>
@@ -1549,14 +1603,14 @@ export function SetupPanel({
 
             {issueLoadState === "idle" ? (
               <p>
-                Validate and normalize up to {MAX_CONFIGURABLE_ISSUES.toLocaleString()}{" "}
-                issues before opening a view.
+                Preview up to {MAX_CONFIGURABLE_ISSUES.toLocaleString()} issues using your
+                current query and field selections.
               </p>
             ) : null}
 
             {issueLoadState === "loading" && issueProgress ? (
               <div className="issue-progress" role="status">
-                <strong>{issueProgress.loaded} issues normalized</strong>
+                <strong>{issueProgress.loaded} issues loaded</strong>
                 <span>
                   Page {issueProgress.page}
                   {issueProgress.total === undefined
@@ -1576,7 +1630,10 @@ export function SetupPanel({
             {issueLoadState === "ready" && issueResult ? (
               <div className="issue-preview-result" role="status">
                 <div>
-                  <strong>{issueResult.values.length} normalized issues ready</strong>
+                  <strong>
+                    {issueResult.values.length}{" "}
+                    {issueResult.values.length === 1 ? "issue" : "issues"} ready
+                  </strong>
                   <span>
                     {issueResult.fromCache
                       ? "Loaded from 5-minute cache"
@@ -1588,7 +1645,7 @@ export function SetupPanel({
                   <button
                     className="issue-refresh-button"
                     type="button"
-                    onClick={() => void loadIssues(true)}
+                    onClick={() => void loadIssues(true, false, true)}
                   >
                     Refresh from Jira
                   </button>
@@ -1608,46 +1665,101 @@ export function SetupPanel({
                   <p>No accessible issues matched this query.</p>
                 )}
                 {scheduleModel ? (
-                  <div className="schedule-summary">
-                    <strong>
-                      {scheduleModel.tasks.length} deterministic Gantt tasks
-                    </strong>
-                    <span>
-                      {scheduleModel.roots.length} roots ·{" "}
-                      {scheduleModel.syntheticDateCount} inferred date ranges ·{" "}
-                      {scheduleModel.dependencyCount} dependencies ·{" "}
-                      {scheduleModel.warnings.length} warnings
-                    </span>
-                    {scheduleModel.tasks.length > 0 ? (
-                      <ul aria-label="Schedule preview sample">
-                        {scheduleModel.tasks.slice(0, 5).map((task) => (
-                          <li key={task.id}>
-                            <strong>
-                              {"↳ ".repeat(task.depth)}
-                              {task.issueKey}
-                            </strong>
-                            <span>
-                              {task.start} → {task.end} · {task.progress}%
-                            </span>
-                            {task.dateWarning ? (
-                              <span
-                                className="date-warning-icon"
-                                title={task.dateWarning}
-                                aria-label={`${task.issueKey}: ${task.dateWarning}`}
-                              >
-                                !
+                  <details className="preview-schedule-details">
+                    <summary>Schedule details</summary>
+                    <div className="schedule-summary">
+                      <strong>{scheduleModel.tasks.length} tasks in Gantt</strong>
+                      <span>
+                        {scheduleModel.roots.length} top-level tasks ·{" "}
+                        {scheduleModel.syntheticDateCount} inferred date ranges ·{" "}
+                        {scheduleModel.dependencyCount} dependencies ·{" "}
+                        {scheduleModel.warnings.length} warnings
+                      </span>
+                      {scheduleModel.tasks.length > 0 ? (
+                        <ul aria-label="Schedule preview sample">
+                          {scheduleModel.tasks.slice(0, 5).map((task) => (
+                            <li key={task.id}>
+                              <strong>
+                                {"↳ ".repeat(task.depth)}
+                                {task.issueKey}
+                              </strong>
+                              <span>
+                                {task.start} → {task.end} · {task.progress}%
                               </span>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
+                              {task.dateWarning ? (
+                                <span
+                                  className="date-warning-icon"
+                                  title={task.dateWarning}
+                                  aria-label={`${task.issueKey}: ${task.dateWarning}`}
+                                >
+                                  !
+                                </span>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </details>
                 ) : null}
               </div>
             ) : null}
           </section>
+          <div className="setup-save-row">
+            <div className="setup-save-copy">
+              <strong>Workspace settings</strong>
+              <span role="status">
+                {saveStatus === "saving" ||
+                (issueLoadState === "loading" && !isDraftPreview)
+                  ? "Preparing your workspace…"
+                  : saveStatus === "saved"
+                    ? "Settings saved on this device."
+                    : "Save to apply your changes to Workspace."}
+              </span>
+            </div>
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={saveStatus === "saving" || issueLoadState === "loading"}
+            >
+              {saveStatus === "saving" ||
+              (issueLoadState === "loading" && !isDraftPreview)
+                ? "Preparing workspace…"
+                : "Save and open Workspace"}
+            </button>
+          </div>
         </form>
+      ) : null}
+      {loadState === "ready" && settingsStore && selectedProjectKey && selectedBoardId ? (
+        <details className="settings-transfer optional-fields">
+          <summary>Import &amp; export</summary>
+          <BoardConfigurationTransfer
+            store={settingsStore}
+            scope={{
+              jiraBaseUrl: context.baseUrl,
+              projectKey: selectedProjectKey,
+              boardId: selectedBoardId,
+            }}
+            onImported={async () => {
+              const imported = await settingsStore.getSetup(
+                context.baseUrl,
+                selectedProjectKey,
+                selectedBoardId,
+              );
+              if (!imported) return;
+              setStoredSetup(imported);
+              setJql(imported.jql);
+              setFieldMapping(imported.fieldMapping);
+              setDefaultDurations(
+                imported.defaultDurations ?? { ...DEFAULT_DURATION_DAYS },
+              );
+              setNonWorkingDays(imported.nonWorkingDays ?? [...DEFAULT_NON_WORKING_DAYS]);
+              setCompletedStatusIds(imported.reporting?.completedStatusIds ?? []);
+              setSaveStatus("saved");
+              invalidateIssuePreview();
+            }}
+          />
+        </details>
       ) : null}
     </div>
   );

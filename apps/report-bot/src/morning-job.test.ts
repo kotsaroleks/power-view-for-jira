@@ -308,7 +308,7 @@ describe("Morning report delivery", () => {
     job.dryRun = true;
     expect(await runMorningReportJob(job)).toMatchObject({ processed: 1, dryRun: true });
     expect(job.preview).toHaveBeenCalledWith({ period: workReportPeriod("2026-11-09") });
-    expect(job.format).not.toHaveBeenCalled();
+    expect(job.format).toHaveBeenCalledOnce();
     expect(job.send).not.toHaveBeenCalled();
     expect(store.save).not.toHaveBeenCalled();
     expect(getState()).toBeUndefined();
@@ -385,6 +385,8 @@ describe("Private report state paths", () => {
     "state/description-report.json",
     "state/morning-description-report.json",
     "state/work-activity-report.json",
+    "state/work-activity-midnight-report.json",
+    "state/midnight-description-report.json",
   ])("reads and writes only its configured stream path: %s", async (path) => {
     const fetcher = vi
       .fn<typeof fetch>()

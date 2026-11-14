@@ -131,7 +131,7 @@ def serve(local, lifetime=86400, ready_path=None, session=None, status_path=None
                 self.respond(400, document("<h1>Розклад увімкнено, перший запуск не підтверджено</h1><p>Jira перевірена, налаштування збережені. Не вдалося підтвердити запуск першого репорту в GitHub. Заплановані запуски залишаються увімкненими.</p><p>Перевірте <a href='" + escape(result["repository"] + "/actions") + "'>історію запусків</a> перед повторним запуском. Надсилання в чат ще не підтверджено.</p>"))
                 return
             status("enabled", deliveryEnabled=True, workflowDispatched=True)
-            self.respond(200, document("<h1>Репорти увімкнено</h1><p>Jira перевірена. Перший запуск передано GitHub; наступні заплановані на робочі дні о 08:01 за Києвом. GitHub може затримувати запуск.</p><p>Факт надсилання перевіряйте в <a href='" + escape(result["repository"] + "/actions") + "'>історії запусків</a>. Якщо змін немає, бот надсилає «No changes for today».</p><p>Цю сторінку можна закрити.</p>"))
+            self.respond(200, document("<h1>Репорти увімкнено</h1><p>Jira перевірена. Перший запуск передано GitHub. Наступні заплановані щодня о 00:05 за Києвом за попередню календарну добу. GitHub може затримувати запуск.</p><p>Факт надсилання перевіряйте в <a href='" + escape(result["repository"] + "/actions") + "'>історії запусків</a>. Якщо змін немає, бот надсилає «No changes for today».</p><p>Цю сторінку можна закрити.</p>"))
             print(json.dumps({"setupCompleted": True, "deliveryEnabled": True, "workflowDispatched": True}), flush=True)
             self.server.done = True
 

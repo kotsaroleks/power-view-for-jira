@@ -45,10 +45,8 @@ export function SectionSettings({
     >
       <div className="section-settings-heading">
         <h2 id={`${id}-title`}>App sections</h2>
-        <p>
-          Choose which sections appear in navigation and Workspace. Changes save
-          automatically on this device.
-        </p>
+        <p>Show these tools in the top menu and Workspace.</p>
+        <span className="settings-autosave-note">Saves automatically</span>
       </div>
       <div className="section-settings-list">
         {sections.map((section) => (

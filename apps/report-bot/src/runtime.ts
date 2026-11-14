@@ -1,5 +1,10 @@
 import { Buffer } from "node:buffer";
 import { z } from "zod";
+import {
+  DAILY_WORK_REPORT_CALENDAR,
+  WEEKDAY_WORK_REPORT_CALENDAR,
+  type WorkReportCalendar,
+} from "@power-view/domain";
 import type { JiraTransport } from "@power-view/jira-client";
 import type { JiraTransportRequest } from "@power-view/extension-messaging";
 import type { DescriptionReportState, OutboxPart, ReportStateStore } from "./job";
@@ -18,7 +23,7 @@ export const reportBotConfigSchema = z.strictObject({
   jiraApiRoot: z.url().optional(),
   morningReports: z
     .strictObject({
-      calendar: z.literal("kyiv-workdays-08-v1"),
+      calendar: z.enum([WEEKDAY_WORK_REPORT_CALENDAR, DAILY_WORK_REPORT_CALENDAR]),
       firstReportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       sprintFieldId: z
         .string()
@@ -29,6 +34,25 @@ export const reportBotConfigSchema = z.strictObject({
     .optional(),
 });
 export type ReportBotConfig = z.infer<typeof reportBotConfigSchema>;
+
+const legacyReportStatePath = "state/description-report.json";
+export const MORNING_REPORT_STATE_PATHS = {
+  [WEEKDAY_WORK_REPORT_CALENDAR]: {
+    work: "state/work-activity-report.json",
+    descriptions: "state/morning-description-report.json",
+  },
+  [DAILY_WORK_REPORT_CALENDAR]: {
+    work: "state/work-activity-midnight-report.json",
+    descriptions: "state/midnight-description-report.json",
+  },
+} as const satisfies Record<WorkReportCalendar, { work: string; descriptions: string }>;
+type CalendarStatePaths = (typeof MORNING_REPORT_STATE_PATHS)[WorkReportCalendar];
+export type MorningReportStatePath = CalendarStatePaths[keyof CalendarStatePaths];
+const supportedReportStatePaths = new Set<string>([
+  legacyReportStatePath,
+  ...Object.values(MORNING_REPORT_STATE_PATHS).flatMap((paths) => Object.values(paths)),
+]);
+
 export function checkedJiraRoot(config: ReportBotConfig): string {
   const origin = new URL(config.jiraBaseUrl);
   if (
@@ -172,15 +196,11 @@ export class GitHubReportStateStore implements ReportStateStore {
     private readonly repository: string,
     private readonly token: string,
     private readonly fetcher: typeof fetch = fetch,
-    private readonly statePath = "state/description-report.json",
+    private readonly statePath = legacyReportStatePath,
   ) {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repository))
       throw new Error("Select a private automation repository.");
-    if (
-      !/^state\/(?:description-report|morning-description-report|work-activity-report)\.json$/.test(
-        statePath,
-      )
-    )
+    if (!supportedReportStatePaths.has(statePath))
       throw new Error("Select a supported private report state file.");
   }
   private async request(path: string, method = "GET", body?: unknown): Promise<Response> {

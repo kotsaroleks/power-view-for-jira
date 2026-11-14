@@ -1,7 +1,10 @@
-import type { Page } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
 
 /** All GitHub traffic is intercepted; no real calendar or token is used. */
-export async function installGitHubCalendarFixture(page: Page, available = true) {
+export async function installGitHubCalendarFixture(
+  page: Page | BrowserContext,
+  available = true,
+) {
   const files = new Map<string, { sha: string; data: Record<string, unknown> }>();
   let revision = 0;
   let writes = 0;

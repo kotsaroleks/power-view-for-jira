@@ -9,6 +9,7 @@ const outputDirectory = resolve(projectRoot, "../../dist/extension");
 const manifestSource = resolve(projectRoot, "src/manifest.json");
 const manifestOutput = resolve(outputDirectory, "manifest.json");
 const buildInfoOutput = resolve(outputDirectory, "build-info.json");
+const appEntry = resolve(outputDirectory, "app/index.html");
 const iconsSourceDirectory = resolve(projectRoot, "icons");
 const iconsOutputDirectory = resolve(outputDirectory, "icons");
 
@@ -81,6 +82,21 @@ const emitBuildInfo = (): Plugin => ({
     };
 
     await mkdir(dirname(buildInfoOutput), { recursive: true });
+    const html = await readFile(appEntry, "utf8").catch(
+      (error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return undefined;
+        throw error;
+      },
+    );
+    if (html !== undefined) {
+      await writeFile(
+        appEntry,
+        html.replace(
+          /<meta name="power-view-built-at" content="[^"]*"\s*\/?>/,
+          `<meta name="power-view-built-at" content="${buildInfo.builtAt}" />`,
+        ),
+      );
+    }
     await writeFile(buildInfoOutput, `${JSON.stringify(buildInfo, null, 2)}\n`);
   },
 });

@@ -82,27 +82,24 @@ checklist.
 
 ## Update notifications
 
-The extension is loaded unpacked, so Chrome cannot silently auto-update it. The
-**Updates** section in the popup notifies you when `main` has commits you don't have yet,
-so you know when to pull and rebuild — it doesn't replace the manual workflow:
+For an unpacked installation, build the extension with `pnpm build` and click **↻ Update
+app** in the Power View workspace header. Chrome reads the files from the folder listed
+under **Loaded from** in the extension details. For this repository, use `dist/extension`.
+The button reports when the open tab already has that build.
 
-1. `git pull && pnpm build`
-2. Click **↻ Update app** in the Power View workspace header. Alternatively, click
-   **Update** (the reload icon) for Power View for Jira on `chrome://extensions`.
+To apply a build from an older Power View tab, use the **Reload** icon on the Power View
+card in `chrome://extensions`, then reopen Power View. **Diagnostics** shows the build
+time so you can verify which build opened.
 
-That reloads the unpacked extension in place — no delete or reinstall.
-
-The extension checks the public GitHub API for the latest commit on `main` — no
-authentication needed. It checks hourly in the background (showing a badge on the toolbar
-icon when an update is available) and on demand via **Check now** in the popup's
-**Updates** section.
+For packaged installations, **↻ Update app** asks Chrome to check its configured update
+channel. See [enterprise updates](docs/enterprise-updates.md) for release setup.
 
 ## Development
 
 Daily description-change reports have an explicit preview under **Reports → Description
 changes**, including the native Swift app. Automatic Google Chat delivery runs in a
-separate private GitHub Actions repository at 21:00 Kyiv, independently of the user's Mac.
-It remains disabled until the protected Jira/Chat setup succeeds. See
+separate private GitHub Actions repository at 00:05 Kyiv for the previous calendar day. It
+remains disabled until the protected Jira/Chat setup succeeds. See
 [daily report setup and behavior](docs/daily-description-report.md).
 
 Run `pnpm dev` to watch the web and extension builds. After an extension build changes,

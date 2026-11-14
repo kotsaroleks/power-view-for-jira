@@ -77,7 +77,9 @@ describe("Weekly task rows", () => {
     fireEvent.change(screen.getByLabelText("Board"), { target: { value: "1" } });
     const pin = await screen.findByRole("button", { name: "Pin PV-1" });
     fireEvent.click(pin);
-    expect(screen.getAllByRole("textbox", { name: /PV-1, .*hours/ })).toHaveLength(7);
+    await waitFor(() =>
+      expect(screen.getAllByRole("textbox", { name: /PV-1, .*hours/ })).toHaveLength(7),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Next period" }));
     await screen.findByRole("button", { name: "Unpin PV-1" });
     await waitFor(() =>

@@ -4,6 +4,11 @@ import {
   type DescriptionReportPeriod,
 } from "./description-report";
 
+export const WEEKDAY_WORK_REPORT_CALENDAR = "kyiv-workdays-08-v1" as const;
+export const DAILY_WORK_REPORT_CALENDAR = "kyiv-calendar-days-00-v1" as const;
+export type WorkReportCalendar =
+  typeof WEEKDAY_WORK_REPORT_CALENDAR | typeof DAILY_WORK_REPORT_CALENDAR;
+
 const formatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: DESCRIPTION_REPORT_TIME_ZONE,
   year: "numeric",
@@ -28,22 +33,29 @@ function isWorkingDay(date: string): boolean {
   return weekday !== 0 && weekday !== 6;
 }
 
-/** Monday–Friday only; public holidays are ordinary working days for these bots. */
-export function nextWorkReportDate(date: string): string {
+export function nextWorkReportDate(
+  date: string,
+  calendar: WorkReportCalendar = WEEKDAY_WORK_REPORT_CALENDAR,
+): string {
   let next = shiftDescriptionDate(date, 1);
-  while (!isWorkingDay(next)) next = shiftDescriptionDate(next, 1);
+  while (calendar === WEEKDAY_WORK_REPORT_CALENDAR && !isWorkingDay(next))
+    next = shiftDescriptionDate(next, 1);
   return next;
 }
 
-/** Returns the strict previous weekday, including when the input is a weekend. */
-export function previousWorkReportDate(date: string): string {
+export function previousWorkReportDate(
+  date: string,
+  calendar: WorkReportCalendar = WEEKDAY_WORK_REPORT_CALENDAR,
+): string {
   let previous = shiftDescriptionDate(date, -1);
-  while (!isWorkingDay(previous)) previous = shiftDescriptionDate(previous, -1);
+  while (calendar === WEEKDAY_WORK_REPORT_CALENDAR && !isWorkingDay(previous))
+    previous = shiftDescriptionDate(previous, -1);
   return previous;
 }
 
-function morning(date: string): string {
-  const desired = Date.parse(date + "T08:00:00.000Z");
+function civilBoundary(date: string, calendar: WorkReportCalendar): string {
+  const hour = calendar === DAILY_WORK_REPORT_CALENDAR ? "00" : "08";
+  const desired = Date.parse(`${date}T${hour}:00:00.000Z`);
   let guess = desired;
   for (let attempt = 0; attempt < 3; attempt++) {
     const parts = localParts(new Date(guess));
@@ -55,23 +67,33 @@ function morning(date: string): string {
   return new Date(guess).toISOString();
 }
 
-/** Bot-only calendar: previous weekday 08:00 inclusive → report date 08:00 exclusive.
- * Monday includes the whole weekend. Civil boundaries preserve Kyiv DST changes. */
-export function workReportPeriod(date: string): DescriptionReportPeriod {
-  if (!isWorkingDay(date)) throw new Error("A work report date must be Monday–Friday.");
+/** A report date names its closing boundary. Civil boundaries preserve Kyiv DST changes. */
+export function workReportPeriod(
+  date: string,
+  calendar: WorkReportCalendar = WEEKDAY_WORK_REPORT_CALENDAR,
+): DescriptionReportPeriod {
+  if (calendar === WEEKDAY_WORK_REPORT_CALENDAR && !isWorkingDay(date))
+    throw new Error("A work report date must be Monday–Friday.");
   return {
     date,
-    start: morning(previousWorkReportDate(date)),
-    end: morning(date),
+    start: civilBoundary(previousWorkReportDate(date, calendar), calendar),
+    end: civilBoundary(date, calendar),
     timeZone: DESCRIPTION_REPORT_TIME_ZONE,
   };
 }
 
-/** Latest report eligible at 08:01 Kyiv on a weekday; weekends retain Friday. */
-export function latestWorkReportDate(now = new Date()): string {
+export function latestWorkReportDate(
+  now = new Date(),
+  calendar: WorkReportCalendar = WEEKDAY_WORK_REPORT_CALENDAR,
+): string {
   const parts = localParts(now);
   const date = `${parts.year}-${parts.month}-${parts.day}`;
-  if (isWorkingDay(date) && Number(parts.hour) * 60 + Number(parts.minute) >= 8 * 60 + 1)
+  const daily = calendar === DAILY_WORK_REPORT_CALENDAR;
+  const readyAt = daily ? 5 : 8 * 60 + 1;
+  if (
+    (daily || isWorkingDay(date)) &&
+    Number(parts.hour) * 60 + Number(parts.minute) >= readyAt
+  )
     return date;
-  return previousWorkReportDate(date);
+  return previousWorkReportDate(date, calendar);
 }

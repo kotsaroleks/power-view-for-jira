@@ -201,14 +201,19 @@ test.describe("extension shell", () => {
       app.getByRole("heading", { name: "Timesheet", exact: true }),
     ).toBeVisible();
     await expect(
-      app.getByRole("heading", { name: "No worklogs found for this period and filters" }),
+      app.getByRole("heading", { name: "Choose a board to see your tasks" }),
     ).toBeVisible();
     await app
       .getByRole("combobox", { name: "Period", exact: true })
       .selectOption("month");
+    await expect(
+      app.getByRole("heading", { name: "No worklogs found for this period and filters" }),
+    ).toBeVisible();
     await app.getByText(/Filters & time zone/).click();
-    await expect(app.getByRole("combobox", { name: "Time zone" })).toHaveValue(
-      "Europe/Kyiv",
+    const timeZone = app.getByRole("combobox", { name: "Time zone" });
+    await expect(timeZone).toHaveValue("jira");
+    await expect(timeZone.locator("option:checked")).toHaveText(
+      "Jira profile · Europe/Kyiv",
     );
     await app.getByRole("button", { name: "Refresh", exact: true }).click();
     await expect(app.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();

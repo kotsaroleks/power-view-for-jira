@@ -37,3 +37,4 @@ export { UpdateStore } from "./update-store";
 
 export const CURRENT_STORAGE_SCHEMA_VERSION = 3;
 export type StorageSchemaVersion = typeof CURRENT_STORAGE_SCHEMA_VERSION;
+export { AppReloadStore } from "./app-reload-store";

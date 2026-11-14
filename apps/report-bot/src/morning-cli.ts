@@ -67,6 +67,7 @@ async function main() {
       });
     },
     storeFor: (path) => {
+      stage = "private report checkpoint setup";
       const store = new GitHubReportStateStore(
         required("REPORT_STATE_REPOSITORY"),
         required("GH_REPORT_TOKEN"),

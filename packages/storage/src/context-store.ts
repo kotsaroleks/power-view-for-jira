@@ -5,7 +5,7 @@ import { z } from "zod";
 const LATEST_CONTEXT_KEY = "jira-context:latest";
 const contextKey = (tabId: number) => `jira-context:tab:${tabId}`;
 
-const storedJiraContextSchema = z
+export const storedJiraContextSchema = z
   .object({
     schemaVersion: z.literal(1),
     tabId: z.number().int().nonnegative(),

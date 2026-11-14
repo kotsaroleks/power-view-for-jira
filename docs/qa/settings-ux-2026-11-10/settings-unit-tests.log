@@ -1,0 +1,11 @@
+
+ RUN  v3.2.7 /Users/kotsaroleks/Documents/GitHub/power-view-for-jira
+
+ ✓ apps/web/src/app/SetupPanel.test.tsx (7 tests) 490ms
+ ✓ apps/web/src/app/App.test.tsx (14 tests) 628ms
+
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+   Start at  20:11:30
+   Duration  1.69s (transform 445ms, setup 224ms, collect 875ms, tests 1.12s, environment 467ms, prepare 76ms)
+

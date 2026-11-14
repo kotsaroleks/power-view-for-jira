@@ -1,0 +1,44 @@
+$ pnpm clean && pnpm --filter @power-view/web build && pnpm --filter @power-view/extension build && pnpm validate:extension && pnpm package:extension
+$ node scripts/clean.mjs
+$ vite build
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 229 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/extension/app/index.html                       0.74 kB │ gzip:   0.39 kB
+../../dist/extension/app/assets/index-CUNNW0Ms.css      109.20 kB │ gzip:  19.30 kB
+../../dist/extension/app/assets/DesktopApp-CP_tr7rz.js    2.67 kB │ gzip:   1.20 kB
+../../dist/extension/app/assets/index-E6hDIKgT.js       708.48 kB │ gzip: 197.21 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.58s
+$ vite build && vite build --config vite.content.config.ts
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 157 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/extension/assets/icon-16-D1CWirzr.png      0.36 kB
+../../dist/extension/assets/icon-32-Cu0D19i2.png      0.44 kB
+../../dist/extension/popup/index.html                 0.73 kB │ gzip:  0.39 kB
+../../dist/extension/assets/popup-B_i5TPWk.css        5.98 kB │ gzip:  1.78 kB
+../../dist/extension/background/service-worker.js    37.30 kB │ gzip: 11.33 kB
+../../dist/extension/assets/build-info-tBbJqYcq.js   90.58 kB │ gzip: 24.63 kB
+../../dist/extension/assets/popup-CNv5GvC4.js       201.44 kB │ gzip: 63.58 kB
+✓ built in 832ms
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 105 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/extension/content/content-script.js  97.26 kB │ gzip: 27.12 kB
+✓ built in 440ms
+$ node scripts/validate-extension.mjs
+Validated 10 extension entry points.
+$ node scripts/package-extension.mjs
+Packaged 18 files as dist/power-view-for-jira-0.3.2.zip (1262162 bytes).
+SHA-256 f62dd72bc895412077ed8e03ea4c3c8cad35f3c04f7700926c9fe3c03121d86b

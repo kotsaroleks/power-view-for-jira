@@ -222,9 +222,9 @@ describe("Work activity Google Chat cards", () => {
     expect(messages).toHaveLength(1);
     const payload = JSON.stringify(messages);
     expect(payload).toContain("In Testing · 1 задача");
-    expect(payload).toContain("10.11 12:00 · To Do → In Progress · Editor");
-    expect(payload).toContain("10.11 13:00 · In Progress → To Do · Editor");
-    expect(payload).toContain("10.11 14:00 · To Do → In Progress · Editor");
+    expect(payload).toContain("10.11 12:00</b> 🔄 To Do → In Progress · <i>Editor</i>");
+    expect(payload).toContain("10.11 13:00</b> 🔄 In Progress → To Do · <i>Editor</i>");
+    expect(payload).toContain("10.11 14:00</b> 🔄 To Do → In Progress · <i>Editor</i>");
     expect(payload).toContain("Виконавець зараз:</b> Current owner");
     expect(payload).toContain("10.11.2026 08:00 — 11.11.2026 08:00");
     expect(payload).toContain("11.11.2026 08:01");
@@ -292,8 +292,16 @@ describe("Work activity Google Chat cards", () => {
       expect(payload).toContain(">" + parent.key + "</a> (Story)");
       expect(payload).not.toContain(parent.summary);
     }
-    const widgets = messages[0]!.cardsV2![0]!.card.sections[0]!.widgets;
-    expect(widgets.filter((widget) => "columns" in widget)).toHaveLength(6);
+    const sections = messages[0]!.cardsV2![0]!.card.sections;
+    expect(sections.map((section) => section.header).filter(Boolean)).toEqual([
+      "📌 Підсумок",
+      "🟡 In Progress · 1 задача",
+      "🔎 In Review · 2 задачі",
+      "🧪 In Testing · 2 задачі",
+    ]);
+    const issueWidgets = sections.slice(1, -1).flatMap((section) => section.widgets);
+    expect(issueWidgets.filter((widget) => "columns" in widget)).toHaveLength(6);
+    expect(issueWidgets.filter((widget) => "divider" in widget)).toHaveLength(2);
   });
 
   it("preserves assignment roundtrips and sprint names and emits description author metadata only", () => {
@@ -326,10 +334,10 @@ describe("Work activity Google Chat cards", () => {
       },
     ]);
     const payload = JSON.stringify(workActivityChatMessages(result));
-    expect(payload).toContain("10.11 12:00 · Виконавець: Не призначено → Editor");
-    expect(payload).toContain("10.11 13:00 · Виконавець: Editor → Не призначено");
-    expect(payload).toContain("10.11 14:00 · Виконавець: Не призначено → Editor");
-    expect(payload).toContain("Оновлено опис · Editor");
+    expect(payload).toContain("10.11 12:00</b> 🤝 Виконавець: Не призначено → Editor");
+    expect(payload).toContain("10.11 13:00</b> 🤝 Виконавець: Editor → Не призначено");
+    expect(payload).toContain("10.11 14:00</b> 🤝 Виконавець: Не призначено → Editor");
+    expect(payload).toContain("✏️ Оновлено опис · <i>Editor</i>");
     expect(payload).toContain("Додано до спринту: Aria Sprint 4");
     expect(payload).toContain("Знято зі спринту: Aria Sprint 3");
     expect(payload).not.toContain("OLD SECRET");
@@ -386,11 +394,11 @@ describe("Work activity Google Chat cards", () => {
     );
     expect(payload).toContain("To Do · 1 задача");
     for (let index = 0; index < 5; index++) {
-      expect(payload).toContain(`10.11 12:0${index} ·`);
+      expect(payload).toContain(`10.11 12:0${index}</b>`);
       expect(payload).toContain("Actor " + index);
       if (index > 0)
-        expect(payload.indexOf(`10.11 12:0${index - 1} ·`)).toBeLessThan(
-          payload.indexOf(`10.11 12:0${index} ·`),
+        expect(payload.indexOf(`10.11 12:0${index - 1}</b>`)).toBeLessThan(
+          payload.indexOf(`10.11 12:0${index}</b>`),
         );
     }
     expect(payload).toContain("Виконавець зараз:</b> Current owner");
@@ -462,7 +470,11 @@ describe("Work activity Google Chat cards", () => {
       const payload = JSON.stringify(message);
       expect(payload).toContain("In Testing · 55 задач");
       expect(payload).toContain(">TEST-1</a>");
-      const widgets = message.cardsV2![0]!.card.sections[0]!.widgets;
+      const widgets = message
+        .cardsV2![0]!.card.sections.filter((section) =>
+          section.header?.includes("In Testing"),
+        )
+        .flatMap((section) => section.widgets);
       expect(widgets.filter((widget) => "columns" in widget).length).toBeLessThanOrEqual(
         21,
       );

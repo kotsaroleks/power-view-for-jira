@@ -1,4 +1,8 @@
-import type { DescriptionChatMessage } from "./description-chat";
+import {
+  reportColumns,
+  type DescriptionChatMessage,
+  type ReportChatSection,
+} from "./description-chat";
 import type {
   WorkActivityChange,
   WorkActivityReport,
@@ -33,12 +37,27 @@ function actor(change: WorkActivityChange): string {
 function value(value: string | number | null | undefined, missing: string): string {
   return value === null || value === undefined || value === "" ? missing : String(value);
 }
+const eventIcons: Record<WorkActivityChange["type"], string> = {
+  "status-changed": "🔄",
+  "assignee-changed": "🤝",
+  "description-changed": "✏️",
+  "sprint-added": "➕",
+  "sprint-removed": "➖",
+};
+const statusIcons = new Map([
+  ["To Do", "⚪"],
+  ["In Progress", "🟡"],
+  ["In Review", "🔎"],
+  ["In Testing", "🧪"],
+  ["Acceptance", "🤝"],
+  ["Done", "✅"],
+]);
 function eventLine(change: WorkActivityChange, text: string): string {
   const dateTime = localDateTime(change.occurredAt);
-  return `${dateTime.slice(0, 5)} ${dateTime.slice(11)} · ${text} · ${actor(change)}`;
+  return `<b>${dateTime.slice(0, 5)} ${dateTime.slice(11)}</b> ${eventIcons[change.type]} ${text} · <i>${actor(change)}</i>`;
 }
 function owner(row: WorkActivityRow): string {
-  return `<b>Виконавець зараз:</b> ${html(row.currentAssignee?.displayName ?? "Не призначено")}`;
+  return `<b>👤 Виконавець зараз:</b> ${html(row.currentAssignee?.displayName ?? "Не призначено")}`;
 }
 function taskCount(count: number): string {
   const lastTwo = count % 100;
@@ -96,24 +115,27 @@ function message(
   count: number,
 ): DescriptionChatMessage {
   const boardName = report.boardName.replace(/[\r\n]/g, " ");
-  const widgets: Array<Record<string, unknown>> = [];
+  const cardSections: ReportChatSection[] = [];
   if (index === 0)
-    widgets.push({
-      textParagraph: {
-        text: `<b>${taskCount(report.changedIssueCount)} зі змінами</b> · ${html(boardName)}`,
-      },
+    cardSections.push({
+      header: "📌 Підсумок",
+      widgets: [
+        {
+          textParagraph: {
+            text: `<b>${taskCount(report.changedIssueCount)} зі змінами</b> · Подій: <b>${report.changeCount}</b><br>🗂️ ${html(boardName)}`,
+          },
+        },
+        reportColumns(
+          `🔄 Статус: <b>${report.statusChangedIssueCount}</b><br>🤝 Виконавець: <b>${report.assigneeChangedIssueCount}</b>`,
+          `✏️ Опис: <b>${report.descriptionChangedIssueCount}</b><br>🏁 Спринт: <b>${report.sprintChangedIssueCount}</b>`,
+        ),
+      ],
     });
-  widgets.push({
-    columns: {
-      columnItems: ["Задача", "Зміни / виконавець"].map((heading) => ({
-        horizontalSizeStyle: "FILL_AVAILABLE_SPACE",
-        widgets: [{ textParagraph: { text: `<b>${heading}</b>` } }],
-      })),
-    },
-  });
-  for (const section of sections(units)) {
-    widgets.push({ textParagraph: { text: `<b>${html(section.title)}</b>` } });
-    for (const row of section.rows) {
+  for (const [sectionIndex, section] of sections(units).entries()) {
+    const widgets: Array<Record<string, unknown>> = [];
+    if (sectionIndex === 0)
+      widgets.push(reportColumns("<b>Задача</b>", "<b>Зміни / виконавець</b>"));
+    for (const [rowIndex, row] of section.rows.entries()) {
       const summary =
         row.issue.summary.length > 240
           ? row.issue.summary.slice(0, 240) + "…"
@@ -127,27 +149,20 @@ function message(
       const issue =
         `<a href="${html(report.jiraBaseUrl + "/browse/" + encodeURIComponent(row.issue.issueKey))}">${html(row.issue.issueKey)}</a> · ${html(row.issue.issueType)}<br>${html(summary)}` +
         (breadcrumb ? `<br><i>${breadcrumb}</i>` : "");
-      widgets.push({
-        columns: {
-          columnItems: [
-            {
-              horizontalSizeStyle: "FILL_AVAILABLE_SPACE",
-              widgets: [{ textParagraph: { text: issue } }],
-            },
-            {
-              horizontalSizeStyle: "FILL_AVAILABLE_SPACE",
-              widgets: [{ textParagraph: { text: row.detail } }],
-            },
-          ],
-        },
-      });
+      if (rowIndex > 0) widgets.push({ divider: {} });
+      widgets.push(reportColumns(issue, row.detail));
     }
+    cardSections.push({ header: html(section.title), widgets });
   }
   if (index === count - 1)
-    widgets.push({
-      textParagraph: {
-        text: `<i>Поточний стан: ${localDateTime(report.generatedAt)} · Київ.</i>`,
-      },
+    cardSections.push({
+      widgets: [
+        {
+          textParagraph: {
+            text: `<i>🕒 Поточний стан: ${localDateTime(report.generatedAt)} · Київ.</i>`,
+          },
+        },
+      ],
     });
   return {
     text: "",
@@ -157,10 +172,10 @@ function message(
         card: {
           header: {
             title:
-              "Що змінилося в роботі" + (count > 1 ? ` · ${index + 1}/${count}` : ""),
-            subtitle: `${localDateTime(report.period.start)} — ${localDateTime(report.period.end)} · Київ`,
+              "📊 Що змінилося в роботі" + (count > 1 ? ` · ${index + 1}/${count}` : ""),
+            subtitle: `📅 ${localDateTime(report.period.start)} — ${localDateTime(report.period.end)} · Київ`,
           },
-          sections: [{ widgets }],
+          sections: cardSections,
         },
       },
     ],
@@ -206,14 +221,7 @@ export function workActivityChatMessages(
     group.rows.push(row);
     groups.set(key, group);
   }
-  const statusOrder = [
-    "To Do",
-    "In Progress",
-    "In Review",
-    "In Testing",
-    "Acceptance",
-    "Done",
-  ];
+  const statusOrder = [...statusIcons.keys()];
   const orderedGroups = [...groups.values()].sort((left, right) => {
     const order = (name: string) => {
       const index = statusOrder.indexOf(name);
@@ -225,7 +233,7 @@ export function workActivityChatMessages(
     );
   });
   for (const group of orderedGroups) {
-    const title = `${group.statusName} · ${taskCount(group.rows.length)}`;
+    const title = `${statusIcons.get(group.statusName) ?? "🔹"} ${group.statusName} · ${taskCount(group.rows.length)}`;
     for (const row of group.rows) {
       const transitions = row.changes.map((change) => {
         switch (change.type) {

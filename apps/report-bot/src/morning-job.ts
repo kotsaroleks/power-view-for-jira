@@ -3,6 +3,7 @@ import {
   latestWorkReportDate,
   nextWorkReportDate,
   workReportPeriod,
+  type WorkReportCalendar,
 } from "@power-view/domain";
 import {
   stableRequestId,
@@ -14,6 +15,7 @@ import {
 export interface MorningReportJob<T extends { period: DescriptionReportPeriod }> {
   scope: string;
   startDate: string;
+  calendar?: WorkReportCalendar;
   now: Date;
   dryRun: boolean;
   store: ReportStateStore;
@@ -28,9 +30,9 @@ export interface MorningReportJob<T extends { period: DescriptionReportPeriod }>
 export async function runMorningReportJob<T extends { period: DescriptionReportPeriod }>(
   job: MorningReportJob<T>,
 ) {
-  const periodFor = job.period ?? workReportPeriod;
-  workReportPeriod(job.startDate);
-  const latest = latestWorkReportDate(job.now);
+  const periodFor = job.period ?? ((date) => workReportPeriod(date, job.calendar));
+  workReportPeriod(job.startDate, job.calendar);
+  const latest = latestWorkReportDate(job.now, job.calendar);
   const loaded = await job.store.load();
   if (loaded && (loaded.schemaVersion !== 1 || loaded.scope !== job.scope))
     throw new Error("Morning report settings differ from the saved delivery state.");
@@ -38,12 +40,12 @@ export async function runMorningReportJob<T extends { period: DescriptionReportP
     ? structuredClone(loaded)
     : { schemaVersion: 1, scope: job.scope };
   if (state.processedThrough) {
-    workReportPeriod(state.processedThrough);
+    workReportPeriod(state.processedThrough, job.calendar);
     if (state.processedThrough < job.startDate || state.processedThrough > latest)
       throw new Error("The morning checkpoint is outside its configured period range.");
   }
   const expectedDate = state.processedThrough
-    ? nextWorkReportDate(state.processedThrough)
+    ? nextWorkReportDate(state.processedThrough, job.calendar)
     : job.startDate;
   if (state.pending) {
     if (state.pending.date !== expectedDate || !state.pending.parts.length)
@@ -79,17 +81,17 @@ export async function runMorningReportJob<T extends { period: DescriptionReportP
         report.period.end !== period.end
       )
         throw new Error("The report does not match its fixed morning period.");
-      if (job.dryRun) {
-        await job.preview?.(report);
-        processed++;
-        date = nextWorkReportDate(date);
-        continue;
-      }
       const payloads = job.format(report);
       if (!payloads.length)
         throw new Error(
-          "A complete morning report must have an acknowledgement or report payload.",
+          "A complete report must have an acknowledgement or report payload.",
         );
+      if (job.dryRun) {
+        await job.preview?.(report);
+        processed++;
+        date = nextWorkReportDate(date, job.calendar);
+        continue;
+      }
       state.pending = {
         date,
         parts: payloads.map((payload, index) => ({
@@ -111,7 +113,7 @@ export async function runMorningReportJob<T extends { period: DescriptionReportP
     state.processedThrough = date;
     await job.store.save(structuredClone(state));
     processed++;
-    date = nextWorkReportDate(date);
+    date = nextWorkReportDate(date, job.calendar);
   }
   return { processed, messages, dryRun: job.dryRun };
 }

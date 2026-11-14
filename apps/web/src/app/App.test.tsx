@@ -81,6 +81,21 @@ function runtimeFor(
 }
 
 describe("App", () => {
+  it("leaves Settings through Workspace and home even while Jira context is unresponsive", () => {
+    const runtime = { sendMessage: vi.fn(() => new Promise<never>(() => {})) };
+    render(<App runtime={runtime} />);
+    fireEvent.click(screen.getByRole("button", { name: "Workspace" }));
+    expect(
+      screen.getByRole("heading", { name: "What do you want to open?" }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Open Settings" }));
+    expect(screen.getByText("Reading Jira context…")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Power View for Jira home" }));
+    expect(
+      screen.getByRole("heading", { name: "What do you want to open?" }),
+    ).toBeVisible();
+  });
+
   it("hides optional sections by default, saves toggle changes, and restores them after reopening", async () => {
     const store = new SettingsStore(new MemoryStorage());
     const runtime = runtimeFor((path, requestId) => ({
@@ -155,12 +170,26 @@ describe("App", () => {
     expect(reload).toHaveBeenCalledOnce();
   });
 
+  it("keeps the menu usable and explains a failed app update", async () => {
+    const reload = vi.fn(() => {
+      throw new Error("Reload unavailable");
+    });
+    render(<App runtime={{ ...runtimeFor(), reload }} />);
+    await screen.findByText(context.baseUrl);
+    fireEvent.click(screen.getByRole("button", { name: "↻ Update app" }));
+    expect(
+      await screen.findByText(/Power View could not prepare the update/),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "↻ Update app" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Open diagnostics" }));
+    expect(await screen.findByRole("heading", { name: "Diagnostics" })).toBeVisible();
+  });
+
   it("displays the latest validated Jira context", async () => {
     render(<App runtime={runtimeFor()} />);
 
-    expect(await screen.findByText("Context detected")).toBeInTheDocument();
+    expect(await screen.findByText("Jira site")).toBeInTheDocument();
     expect(screen.getByText("https://example.atlassian.net")).toBeInTheDocument();
-    expect(screen.getByText("POWER-42")).toBeInTheDocument();
   });
 
   it("tests the current user and server info through JiraClient", async () => {
@@ -457,7 +486,7 @@ describe("App", () => {
     expect(await screen.findByRole("grid", { name: "Gantt tasks" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     // Reopening Settings keeps the loaded workspace available; no second
-    // Save and continue is needed just to enable another section.
+    // Save and open Workspace is needed just to enable another section.
     expect(screen.getByRole("button", { name: "Workspace" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Gantt" })).toBeEnabled();
     expect(
@@ -474,7 +503,7 @@ describe("App", () => {
     expect(reportsToggle).not.toBeChecked();
     fireEvent.click(reportsToggle);
     await waitFor(() => expect(reportsToggle).toBeChecked());
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and open Workspace" }));
     expect(
       await screen.findByText(
         "Create Daily, Weekly, and Sprint summaries for your team.",

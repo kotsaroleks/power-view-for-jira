@@ -1,0 +1,29 @@
+
+Running 21 tests using 1 worker
+
+
+(node:21220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/21] e2e/extension.spec.ts:48:3 › extension shell › shows safe no-context states in the popup and application
+[2/21] e2e/extension.spec.ts:67:3 › extension shell › detects Jira and loads a fixture schedule through the browser session
+[3/21] e2e/navigation.spec.ts:185:1 › every top-menu destination works from every page and with the keyboard
+[4/21] e2e/navigation.spec.ts:213:1 › Settings layout and draft actions remain usable at desktop and narrow widths
+[5/21] e2e/navigation.spec.ts:272:1 › Settings preview keeps the draft local and validation explains what to fix
+[6/21] e2e/navigation.spec.ts:325:1 › editing Settings does not erase the loaded workspace or trap navigation
+[7/21] e2e/navigation.spec.ts:375:1 › Settings can be left while metadata is still loading
+[8/21] e2e/navigation.spec.ts:409:1 › Gantt updates keep the loaded query separate from an unsaved Settings draft
+[9/21] e2e/navigation.spec.ts:439:1 › failed Settings metadata does not block the menu or home
+[10/21] e2e/navigation.spec.ts:466:3 › background workspace loading does not override Timesheet
+[11/21] e2e/navigation.spec.ts:466:3 › background workspace loading does not override Open diagnostics
+[12/21] e2e/navigation.spec.ts:466:3 › background workspace loading does not override Settings
+[13/21] e2e/navigation.spec.ts:502:1 › menu controls remain reachable and unobscured at narrow widths and 200% zoom
+[14/21] e2e/navigation.spec.ts:554:1 › section visibility changes apply to both menu and Workspace and survive a reload
+[15/21] e2e/navigation.spec.ts:599:1 › unfinished Timesheet cells explain blocked menu actions and allow navigation after canceling
+[16/21] e2e/navigation.spec.ts:647:1 › Update app restores a connected application from every page
+[17/21] e2e/navigation.spec.ts:670:3 › no Jira context › Settings, diagnostics, home and Update app remain usable
+[18/21] e2e/navigation.spec.ts:700:3 › Jira Data Center › Cloud-only Timesheet is consistently disabled in the menu and Workspace
+[19/21] e2e/navigation.spec.ts:726:3 › signed-out Jira session › support and Settings remain reachable and navigation recovers after reconnecting
+[20/21] e2e/time-report-production.spec.ts:33:1 › production Time Report: team-week worklog search, cross-project totals and styled responsive views
+[21/21] e2e/timesheet-production.spec.ts:118:1 › production Timesheet: no board dependency, compact grid and confirmed CRUD
+  21 passed (1.2m)

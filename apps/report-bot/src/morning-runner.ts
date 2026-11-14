@@ -3,6 +3,7 @@ import type { WorkActivitySource } from "@power-view/jira-client";
 import {
   buildWorkActivityReport,
   buildDescriptionChangeReport,
+  DAILY_WORK_REPORT_CALENDAR,
   descriptionChatMessages,
   workActivityChatMessages,
   workReportPeriod,
@@ -13,10 +14,12 @@ import {
 } from "@power-view/domain";
 import { type OutboxPart, type ReportStateStore } from "./job";
 import { runMorningReportJob } from "./morning-job";
-import type { ReportBotConfig } from "./runtime";
+import {
+  MORNING_REPORT_STATE_PATHS,
+  type MorningReportStatePath,
+  type ReportBotConfig,
+} from "./runtime";
 
-export type MorningReportStatePath =
-  "state/work-activity-report.json" | "state/morning-description-report.json";
 export type MorningReportPreview =
   | { kind: "work"; report: WorkActivityReport }
   | { kind: "descriptions"; report: DescriptionChangeReport };
@@ -36,10 +39,19 @@ export interface MorningReportsOptions {
 export async function runMorningReports(options: MorningReportsOptions) {
   const { config, now, previewOnly } = options;
   const calendar = config.morningReports;
-  if (!calendar) throw new Error("The morning reporting calendar is not configured.");
+  if (!calendar) throw new Error("The reporting calendar is not configured.");
+  const paths = MORNING_REPORT_STATE_PATHS[calendar.calendar];
+  if (
+    calendar.calendar === DAILY_WORK_REPORT_CALENDAR &&
+    calendar.descriptionCoveredThrough
+  )
+    throw new Error("Calendar-day reports must cover the full day.");
   const dryRun = options.dryRun || previewOnly;
-  const startDate = previewOnly ? latestWorkReportDate(now) : calendar.firstReportDate;
-  const firstPeriod = workReportPeriod(calendar.firstReportDate);
+  const startDate = previewOnly
+    ? latestWorkReportDate(now, calendar.calendar)
+    : calendar.firstReportDate;
+  const periodFor = (date: string) => workReportPeriod(date, calendar.calendar);
+  const firstPeriod = periodFor(calendar.firstReportDate);
   if (
     calendar.descriptionCoveredThrough &&
     (Date.parse(calendar.descriptionCoveredThrough) < Date.parse(firstPeriod.start) ||
@@ -52,9 +64,7 @@ export async function runMorningReports(options: MorningReportsOptions) {
   function source(date: string) {
     let promise = sourceCache.get(date);
     if (!promise) {
-      promise = Promise.resolve().then(() =>
-        options.collect(date, workReportPeriod(date)),
-      );
+      promise = Promise.resolve().then(() => options.collect(date, periodFor(date)));
       sourceCache.set(date, promise);
     }
     return promise;
@@ -87,9 +97,10 @@ export async function runMorningReports(options: MorningReportsOptions) {
     work = await runMorningReportJob({
       scope: scopeFor("work-activity-v1"),
       startDate,
+      calendar: calendar.calendar,
       now,
       dryRun,
-      store: storeFor("state/work-activity-report.json"),
+      store: storeFor(paths.work),
       collect: async (date) => buildWorkActivityReport(await source(date)),
       format: workActivityChatMessages,
       send: options.send,
@@ -100,7 +111,7 @@ export async function runMorningReports(options: MorningReportsOptions) {
     errors.push(error);
   }
   const descriptionPeriod = (date: string): DescriptionReportPeriod => {
-    const period = workReportPeriod(date);
+    const period = periodFor(date);
     return date === calendar.firstReportDate && calendar.descriptionCoveredThrough
       ? { ...period, start: calendar.descriptionCoveredThrough }
       : period;
@@ -109,9 +120,10 @@ export async function runMorningReports(options: MorningReportsOptions) {
     descriptions = await runMorningReportJob({
       scope: scopeFor("description-morning-v1"),
       startDate,
+      calendar: calendar.calendar,
       now,
       dryRun,
-      store: storeFor("state/morning-description-report.json"),
+      store: storeFor(paths.descriptions),
       period: descriptionPeriod,
       collect: async (date, period) =>
         buildDescriptionChangeReport({ ...(await source(date)), period }, period),

@@ -282,7 +282,7 @@ describe("SetupPanel", () => {
     });
   });
 
-  it("hides detected-board settings until manual editing is requested", async () => {
+  it("shows the detected board in the editable workspace form", async () => {
     const store = new SettingsStore(new MemoryStorage());
     render(
       <SetupPanel
@@ -293,27 +293,19 @@ describe("SetupPanel", () => {
       />,
     );
 
-    expect(await screen.findByText("Board detected")).toBeInTheDocument();
-    expect(screen.queryByRole("combobox", { name: "Jira project" })).toBeNull();
-    expect(screen.queryByRole("combobox", { name: "Jira board" })).toBeNull();
-    expect(
-      screen.queryByText("Advanced: query, completed statuses, and date fields"),
-    ).toBeNull();
-    expect(screen.getByRole("button", { name: "Export settings" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Choose settings file")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit settings manually" }));
-
     expect(
       await screen.findByRole("combobox", { name: "Jira project" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Jira board" })).toBeInTheDocument();
-    expect(
-      screen.getByText("Advanced: query, completed statuses, and date fields"),
-    ).toBeInTheDocument();
-    await expect(
-      store.getSetup("https://example.atlassian.net", "POWER", "7"),
-    ).resolves.toMatchObject({ board: { id: "7" } });
+    expect(screen.getByRole("textbox", { name: "JQL query" })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Import & export"));
+    expect(screen.getByRole("button", { name: "Export settings" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Choose settings file")).toBeInTheDocument();
+    await waitFor(async () =>
+      expect(
+        await store.getSetup("https://example.atlassian.net", "POWER", "7"),
+      ).toMatchObject({ board: { id: "7" } }),
+    );
   });
 
   it("loads metadata, ranks date fields, and persists a loadable setup", async () => {
@@ -352,15 +344,13 @@ describe("SetupPanel", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "End date field" }), {
       target: { value: "duedate" },
     });
-    fireEvent.click(screen.getByText("Default estimates for inferred end dates"));
+    fireEvent.click(screen.getByText("Default durations"));
     fireEvent.change(screen.getByRole("spinbutton", { name: "Story default duration" }), {
       target: { value: "8" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and open Workspace" }));
 
-    expect(
-      await screen.findByText("Setup saved. Preparing your workspace…"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Settings saved on this device.")).toBeInTheDocument();
     await expect(
       store.getSetup("https://example.atlassian.net", "POWER", "7"),
     ).resolves.toMatchObject({
@@ -379,8 +369,8 @@ describe("SetupPanel", () => {
       defaultDurations: { story: 8 },
     });
 
-    expect(await screen.findByText("3 normalized issues ready")).toBeInTheDocument();
-    expect(screen.getByText("3 deterministic Gantt tasks")).toBeInTheDocument();
+    expect(await screen.findByText("3 issues ready")).toBeInTheDocument();
+    expect(screen.getByText("3 tasks in Gantt")).toBeInTheDocument();
     await waitFor(() =>
       expect(readySchedule?.model.tasks.map((task) => task.issueKey)).toContain(
         "POWER-1",
@@ -410,7 +400,7 @@ describe("SetupPanel", () => {
         target: { value: "duedate" },
       });
     }
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and open Workspace" }));
 
     expect(
       await screen.findByText("Start and end dates must use different fields."),
@@ -418,6 +408,39 @@ describe("SetupPanel", () => {
     await expect(
       store.getSetup("https://example.atlassian.net", "POWER", "7"),
     ).resolves.toBeUndefined();
+  });
+
+  it("previews and refreshes a draft without saving or publishing a workspace", async () => {
+    const store = new SettingsStore(new MemoryStorage());
+    const save = vi.spyOn(store, "saveSetup");
+    const ready = vi.fn();
+    const complete = vi.fn();
+    render(
+      <SetupPanel
+        context={context}
+        runtime={setupRuntime()}
+        settingsStore={store}
+        autoContinue={false}
+        onScheduleReady={ready}
+        onSetupComplete={complete}
+      />,
+    );
+    await screen.findByRole("checkbox", { name: "Done" });
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "JQL query" })).not.toHaveValue(""),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "JQL query" }), {
+      target: { value: "key = POWER-2" },
+    });
+    ready.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Preview issues" }));
+    await screen.findByText("3 issues ready");
+    fireEvent.click(screen.getByRole("button", { name: "Refresh from Jira" }));
+    await screen.findByText("3 issues ready");
+    expect(save).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+    expect(ready).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Save and open Workspace" })).toBeEnabled();
   });
 
   it("displays Jira JQL validation errors", async () => {

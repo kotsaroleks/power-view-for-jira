@@ -1,0 +1,139 @@
+
+ RUN  v3.2.7 /Users/kotsaroleks/Documents/GitHub/power-view-for-jira
+
+ ✓ apps/web/src/app/timesheet/Timesheet.test.tsx (9 tests) 1687ms
+   ✓ Personal Timesheet > shows cells and records, returns focus, distinguishes visible totals, and has no automatic Setup scope  424ms
+ ✓ apps/web/src/app/timesheet/Timesheet.weekly.test.tsx (7 tests) 2040ms
+   ✓ Weekly task rows > cancels a newly pinned issue read without leaving the existing table stuck loading  422ms
+   ✓ Weekly task rows > shows an assigned task without worklogs, pins it across weeks, and scopes pins to account  755ms
+   ✓ Weekly task rows > keeps this week's own time outside the board when switching boards  302ms
+ ✓ apps/web/src/app/timesheet/Timesheet.priority.test.tsx (4 tests) 965ms
+   ✓ Weekly priority hierarchy > seeds the requested Epic only on the target Jira instance, after pins and logs and before assigned tasks  334ms
+   ✓ Weekly priority hierarchy > keeps the priority subtree collapsed and expands Epic then Story without duplicating any issue  348ms
+ ✓ apps/web/src/app/gantt/GanttView.test.tsx (20 tests) 1657ms
+   ✓ GanttView > loads and saves board-scoped workspace filter preferences  351ms
+ ✓ apps/web/src/app/timesheet/Timesheet.jira-time-zone.test.tsx (11 tests) 1470ms
+   ✓ Personal calendar matches the Jira profile > allows an explicit Kyiv view and preserves that deliberate choice on reopening  482ms
+ ✓ apps/web/src/app/time-report/TimeReportPanel.test.tsx (12 tests) 827ms
+ ✓ apps/web/src/app/timesheet/Timesheet.details-dialog.test.tsx (3 tests) 654ms
+ ✓ apps/web/src/app/gantt-v2/GanttV2.test.tsx (29 tests) 1169ms
+ ✓ apps/web/src/app/timesheet/Timesheet.day-off.test.tsx (5 tests) 1119ms
+   ✓ Timesheet shared Day Off > refreshes shared storage without participant sign-in or disconnect  301ms
+   ✓ Timesheet shared Day Off > persists a marked day across remounts, blocks logging, and allows cancellation without Jira mutations  461ms
+ ✓ apps/web/src/app/timesheet/Timesheet.refresh-drafts.test.tsx (2 tests) 686ms
+   ✓ Weekly cell refresh draft preservation > retains both failed drafts when one cell refreshes Jira records  386ms
+ ✓ apps/web/src/app/timesheet/Timesheet.day-off-refresh.test.tsx (3 tests) 1241ms
+   ✓ Established shared Day Off during refresh > keeps a known day off blocked while refreshing and after a incomplete reread  609ms
+   ✓ Established shared Day Off during refresh > keeps a known day off blocked while refreshing and after a rejected reread  386ms
+ ✓ apps/web/src/app/timesheet/Timesheet.inline-editor.test.tsx (2 tests) 1247ms
+   ✓ Worklog popup draft protection > clears the previous draft and saves to the newly selected issue after discard  926ms
+   ✓ Worklog popup draft protection > keeps the original target and draft when discarding is declined  321ms
+ ✓ apps/web/src/app/time-report/TimeReportPanel.day-off.test.tsx (3 tests) 1567ms
+   ✓ Time Report shared Day Off > shows shared Day Off and preserves existing two-hour worklogs as a conflict  344ms
+   ✓ Time Report shared Day Off > updates an already loaded report after Timesheet marks and clears the shared day  1124ms
+ ✓ apps/web/src/app/App.test.tsx (14 tests) 3041ms
+   ✓ App > leaves Settings through Workspace and home even while Jira context is unresponsive  486ms
+   ✓ App > hides optional sections by default, saves toggle changes, and restores them after reopening  548ms
+   ✓ App > opens the workspace chooser after automatic board setup  1227ms
+ ✓ apps/web/src/app/timesheet/WorklogIssuePicker.test.tsx (7 tests) 585ms
+   ✓ Board worklog picker > remembers explicit board selection and favorites, scoped by board  304ms
+ ✓ apps/web/src/app/time-report/TimeReportPanel.team-sync.test.tsx (7 tests) 516ms
+ ✓ apps/web/src/app/SetupPanel.test.tsx (7 tests) 925ms
+ ✓ apps/web/src/app/DesktopApp.test.tsx (2 tests) 455ms
+   ✓ sends credentials through the desktop bridge and clears the token field  423ms
+ ✓ packages/jira-client/src/issue-search.test.ts (5 tests) 395ms
+ ✓ apps/web/src/app/reports/DescriptionChangesReport.test.tsx (3 tests) 139ms
+ ✓ apps/web/src/app/timesheet/WorklogForm.test.tsx (5 tests) 505ms
+ ✓ apps/web/src/app/time-report/TimeReportView.test.tsx (5 tests) 392ms
+ ✓ apps/web/src/app/gantt-v2/GanttV2Service.test.tsx (4 tests) 473ms
+ ✓ apps/extension/src/background/update-checker-runner.test.ts (4 tests) 189ms
+ ✓ apps/web/src/app/reporting/ReportsView.cancel.test.tsx (2 tests) 260ms
+ ✓ apps/web/src/app/estimation/EstimationBoard.test.tsx (1 test) 297ms
+ ✓ apps/web/src/app/timesheet/WeeklyTimeCell.test.tsx (9 tests) 220ms
+ ✓ apps/web/src/app/day-off/use-shared-day-off.test.tsx (2 tests) 229ms
+ ✓ apps/web/src/app/timesheet/use-weekly-tasks.test.tsx (3 tests) 243ms
+ ✓ apps/web/src/app/reports/BoardHealthReport.test.tsx (5 tests) 313ms
+ ✓ apps/web/src/app/gantt/GanttEditPanel.test.tsx (7 tests) 221ms
+ ✓ apps/extension/src/popup/UpdatePanel.test.tsx (7 tests) 141ms
+ ✓ apps/extension/src/background/jira-request-handler.test.ts (17 tests) 240ms
+ ✓ apps/web/src/app/workspace/BoardConfigurationTransfer.test.tsx (3 tests) 451ms
+   ✓ BoardConfigurationTransfer > exports the active board as a JSON download  303ms
+ ✓ apps/extension/src/popup/PopupApp.test.tsx (3 tests) 195ms
+ ✓ apps/web/src/app/reporting/ReportsView.integration.test.tsx (2 tests) 118ms
+ ✓ apps/extension/src/jira-response-reader.test.ts (7 tests) 106ms
+ ✓ apps/web/src/app/status/BoardStatusReport.test.tsx (3 tests) 177ms
+ ✓ apps/web/src/app/timesheet/DayOffToggle.test.tsx (3 tests) 119ms
+ ✓ apps/report-bot/src/delivery-journey.test.ts (5 tests) 148ms
+ ✓ apps/extension/src/background/platform-operations.context-permission-memo.test.ts (8 tests) 178ms
+ ✓ apps/web/src/app/reports/ReportsService.test.tsx (1 test) 210ms
+ ✓ packages/storage/src/portable-board-config.test.ts (4 tests) 34ms
+ ✓ apps/web/src/app/reporting/reporting-generator.test.ts (8 tests) 132ms
+ ✓ apps/report-bot/src/runtime.test.ts (17 tests) 122ms
+ ✓ apps/extension/src/background/platform-operations.test.ts (10 tests) 184ms
+ ✓ packages/domain/src/time-report.test.ts (16 tests) 41ms
+ ✓ apps/web/src/app/timesheet/timesheet-model.test.ts (12 tests) 80ms
+ ✓ apps/web/src/app/time-report/time-report-loader.test.ts (18 tests) 35ms
+ ✓ apps/report-bot/src/job.test.ts (12 tests) 73ms
+ ✓ apps/web/src/app/gantt/GanttDependencyLayer.test.ts (4 tests) 52ms
+ ✓ apps/extension/src/jira-request-policy.test.ts (21 tests) 68ms
+ ✓ apps/web/src/app/reporting/history-cache.test.ts (13 tests) 30ms
+stdout | packages/domain/src/filters.test.ts > Gantt filters > benchmarks 1,000 tasks without changing result correctness
+[performance] 25 filters × 1,000 tasks: 18.43 ms
+
+ ✓ packages/domain/src/filters.test.ts (11 tests) 41ms
+ ✓ packages/jira-client/src/TimesheetClient.test.ts (16 tests) 30ms
+ ✓ apps/extension/src/background/restore-app-reload.test.ts (6 tests) 21ms
+ ✓ packages/storage/src/report-history-store.test.ts (17 tests) 39ms
+ ✓ packages/storage/src/settings-store.test.ts (11 tests) 26ms
+ ✓ apps/web/src/app/gantt/GanttRenderer.test.ts (9 tests) 34ms
+ ✓ packages/jira-client/src/JiraClient.test.ts (14 tests) 30ms
+ ✓ apps/extension/src/content/jira-page-request-handler.test.ts (5 tests) 21ms
+ ✓ apps/extension/src/background/jira-main-world-bridge.test.ts (6 tests) 19ms
+ ✓ packages/domain/src/schedule.test.ts (29 tests) 23ms
+ ✓ apps/web/src/app/reporting/standup.test.ts (2 tests) 25ms
+ ✓ apps/web/src/app/day-off/GitHubDayOffStore.test.ts (14 tests) 20ms
+ ✓ packages/storage/src/jira-history-cache.test.ts (14 tests) 20ms
+ ✓ packages/jira-client/src/CloudTeamsClient.test.ts (15 tests) 24ms
+ ✓ packages/jira-client/src/mappers.test.ts (18 tests) 17ms
+ ✓ packages/domain/src/description-report.test.ts (10 tests) 16ms
+ ✓ packages/extension-messaging/src/schemas.test.ts (4 tests) 7ms
+ ✓ apps/web/src/app/timesheet/time-zone-warning.test.ts (18 tests) 16ms
+ ✓ packages/domain/src/filters.regression.test.ts (3 tests) 30ms
+ ✓ packages/storage/src/diagnostics-store.debounce.test.ts (5 tests) 13ms
+ ✓ apps/web/src/app/reporting/ReportsView.test.ts (2 tests) 15ms
+ ✓ apps/web/src/app/reload-app.test.ts (2 tests) 17ms
+ ✓ packages/jira-client/src/schedule-integration.test.ts (1 test) 14ms
+ ✓ apps/extension/src/background/message-handler.test.ts (6 tests) 13ms
+ ✓ packages/jira-client/src/bulk-changelog.test.ts (6 tests) 22ms
+ ✓ packages/jira-client/src/description-report.test.ts (5 tests) 44ms
+ ✓ packages/storage/src/diagnostics-store.test.ts (3 tests) 8ms
+ ✓ packages/update-checker/src/check-for-update.test.ts (6 tests) 8ms
+ ✓ apps/web/src/app/reporting/progress-throttle.test.ts (4 tests) 8ms
+ ✓ packages/jira-client/src/concurrency.test.ts (6 tests) 8ms
+ ✓ apps/web/src/app/gantt/priority-integration.test.ts (2 tests) 11ms
+ ✓ apps/web/src/app/estimation/workflow.test.ts (6 tests) 5ms
+ ✓ packages/storage/src/context-store.test.ts (2 tests) 8ms
+ ✓ packages/storage/src/app-reload-store.test.ts (6 tests) 9ms
+ ✓ apps/web/src/app/gantt-v2/cascade-schedule.test.ts (5 tests) 4ms
+ ✓ packages/domain/src/setup.test.ts (4 tests) 3ms
+ ✓ apps/extension/src/content/context-detector.test.ts (4 tests) 8ms
+ ✓ packages/domain/src/jira-field.test.ts (9 tests) 5ms
+ ✓ apps/extension/src/background/jira-request-fallback.test.ts (4 tests) 3ms
+ ✓ packages/domain/src/report.test.ts (4 tests) 4ms
+ ✓ packages/domain/src/reporting.test.ts (3 tests) 5ms
+ ✓ apps/extension/src/popup/open-power-view.test.ts (1 test) 7ms
+ ✓ apps/web/src/app/timesheet/weekly-row-model.test.ts (4 tests) 5ms
+ ✓ apps/web/src/app/gantt-v2/gantt-v2-layout.test.ts (2 tests) 6ms
+ ✓ packages/extension-messaging/src/origin-permission.test.ts (3 tests) 6ms
+ ✓ packages/storage/src/update-store.test.ts (2 tests) 3ms
+ ✓ apps/web/src/app/gantt-v2/external-schedule-conflicts.test.ts (2 tests) 3ms
+ ✓ apps/web/src/app/workspace/WorkspaceContext.test.ts (2 tests) 5ms
+ ✓ apps/web/src/app/gantt/ganttVirtualization.test.ts (3 tests) 3ms
+ ✓ packages/domain/src/version.test.ts (1 test) 6ms
+ ✓ packages/jira-client/src/reporting-mappers.test.ts (2 tests) 3ms
+
+ Test Files  104 passed (104)
+      Tests  735 passed (735)
+   Start at  20:09:30
+   Duration  65.60s (transform 2.11s, setup 17.66s, collect 13.50s, tests 29.40s, environment 44.97s, prepare 7.47s)
+

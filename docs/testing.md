@@ -15,6 +15,32 @@ verifies both the safe no-context shell and a routed Jira Cloud fixture that det
 context, reuses the browser-session transport, loads metadata/issues, renders a dependency
 connector, and applies the blocked filter.
 
+The complete browser suite also covers Timesheet, Time Report and the top navigation.
+Build with the test calendar configuration before running it so local Day Off credentials
+and configuration cannot change fixture expectations:
+
+```bash
+POWERVIEW_DAY_OFF_GITHUB_CONFIG='{"owner":"fixture","repo":"calendar","branch":"main","root":"powerview","token":"fixture-token"}' pnpm build
+pnpm test:e2e
+```
+
+Run `pnpm build` again without that override to produce the regular extension package.
+Browser tests intercept Jira and GitHub traffic. The navigation tests use disposable,
+headless Chrome profiles, including developer mode within those profiles for unpacked
+extension reloads. They do not operate the user's Chrome profile or native desktop.
+
+`e2e/navigation.spec.ts` exercises every menu destination from every page, keyboard
+activation, brand/home, active-page indication, 320–1920px widths, 200% zoom, section
+visibility and persistence, unfinished Timesheet edits, setup/navigation races, Settings
+query/board edits and saving, navigation during pending/failed metadata loading, Update
+app from every page, missing Jira context, reconnection, and Cloud/Data Center
+availability.
+
+Settings coverage also checks the two-column desktop layout, expanded options at
+320–1440px, keyboard-operated disclosures, reachable sticky save controls, the explicit
+Back to Workspace action, draft preservation, preview/refresh without saving or changing
+the active workspace, project-search Enter handling, and focused validation feedback.
+
 Milestone 5 coverage exercises parent-versus-epic precedence, subtasks, missing parents,
 hierarchy cycles, depth limits, every start/end fallback, invalid date correction,
 configurable duration bounds and persistence, Jira/subtask/child/status progress priority,
